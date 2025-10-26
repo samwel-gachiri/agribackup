@@ -1,14 +1,12 @@
-# 🌾 AgriConnect - Blockchain-Powered Sustainable Agriculture Platform
+# 🌾 AgriBackUp - EUDR Compliance Solution For Global Trade
 
-## 🏆 Hackathon Submission - Hedera x EUDR Compliance Solution
-
-[![Hedera](https://img.shields.io/badge/Hedera-Hashgraph-00B4D8?style=for-the-badge&logo=hedera&logoColor=white)](https://hedera.com/)
-[![Vue.js](https://img.shields.io/badge/Vue.js-3.0-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white)](https://vuejs.org/)
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.0-6DB33F?style=for-the-badge&logo=spring&logoColor=white)](https://spring.io/projects/spring-boot)
-[![EUDR](https://img.shields.io/badge/EUDR-Compliant-28A745?style=for-the-badge)](https://environment.ec.europa.eu/)
 
 ---
-
+## Intro
+In the early 2010s, the EU realized that the demands for commodities like soy, palm oil, cocoa, coffee, beef, and timer was driving deforestation abroad.
+The EU came up with a tougher law that would:
+- Demand **traceability** all the way back to the farm or plot.
+- Require **proof that no deforestation occurred** after a set cutoff date
 ## 🌟 Problem Statement
 
 The agricultural sector faces critical challenges:
