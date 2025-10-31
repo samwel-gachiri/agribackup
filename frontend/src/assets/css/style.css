@@ -1,0 +1,118 @@
+@font-face {
+    font-family: Oswald-Medium;
+    src:url("../fonts/Oswald-Medium.ttf");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: trebuc;
+    src:url("../fonts/trebuc.ttf");
+    font-display: swap;
+}
+html, body, p, .v-application {
+    font-family: trebuc, sans-serif !important;
+}
+
+.c-gray-text {
+    color: var(--gray-color) ;
+}
+.c-white-text {
+    color: var(--white-color) ;
+}
+.c-green-text{
+    color: var(--green-color) ;
+}
+.c-blue-text{
+    color: var(--blue-color) ;
+}
+.c-yellow-text{
+    color: var(--yellow-color) ;
+}
+.c-light-blue-text{
+    color: var(--light-blue-color) ;
+}
+.c-bg-gray {
+    background-color: var(--bg-gray) !important;
+}
+.c-bg-green {
+    background-color: var(--green-color) !important;
+}
+.c-bg-blue {
+    background-color: var(--blue-color) !important;
+}
+.c-bg-yellow{
+    background-color: var(--yellow-color) ;
+}
+.c-bg-red{
+    background-color: var(--red-color) ;
+}
+.text-15-p{
+    font-size: 15px ;
+}
+.text-15-b{
+    font-size: 15px ;
+    font-weight: bold;
+}
+.c-title {
+    font-size: 25px;
+    font-family: trebuc, sans-serif;
+}
+.title-font {
+    font-family: trebuc, sans-serif ;
+}
+
+
+/*///////transitions*/
+
+.fade-enter-active {
+    transition: all 0.4s
+}
+.fade-enter {
+    opacity: 0;
+    margin-left: 90px;
+}
+.fade-leave-active {
+    transition: all 0.4s;
+    opacity: 0;
+    margin-left: -100px;
+}
+
+.slide-enter, .slide-leave-to{
+    transform: scaleY(0);
+}
+
+/*/////Overriding Veutify//////*/
+.v-expansion-panel--active > .v-expansion-panel-header {
+    min-height: inherit!important;
+}
+
+.v-input--selection-controls {
+    margin-top: 0px!important;
+    padding-top: 0px!important;
+}
+.v-expansion-panel-content__wrap {
+    padding: 0px 6px 6px!important;
+}
+.v-expansion-panel-header{
+    padding: 14px 20px!important;
+}
+
+.v-tabs:not(.v-tabs--vertical):not(.v-tabs--right) > .v-slide-group--is-overflowing.v-tabs-bar--is-mobile:not(.v-tabs-bar--show-arrows):not(.v-slide-group--has-affixes) .v-slide-group__prev {
+     display: none!important;
+    visibility: hidden;
+}
+ul{
+    list-style: none!important;
+}
+::-webkit-scrollbar {
+    width: 0;
+}
+::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #d6dee1;
+    border-radius: 20px;
+    border: 6px solid transparent;
+    background-clip: padding-box;
+}

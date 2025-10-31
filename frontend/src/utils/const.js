@@ -1,0 +1,60 @@
+export const MINIMUM_COMP_PREMIUM = 37500;
+
+export const USER_EMAIL = '823458teduuf334';
+export const ACCESS_TOKEN = '12wedfh3wdfhedvtre8';
+export const USER = 'g1kdk-damedoja-p';
+export const ROLE = 'AF2-3999-SAND-PEACH';
+export const APP_CODE = '2Rp99UAjqVA';
+export const USER_OTP = 'usr-otp';
+export const CR_KEY = 'tywrtr25cf';
+export const NOTIFICATIONS = 'cp-notifications';
+
+// firebase constants
+const FB_KEY = process.env.VUE_APP_FIREBASE_VAR;
+
+export const FB_INIT = `${FB_KEY}_start_products`;
+export const FB_CHOOSE_RFQ = `${FB_KEY}_RFQ_start_motor`;
+export const FB_CHOOSE_BIMA_BAMBA = `${FB_KEY}_RFQ_start_bima_bamba`;
+export const FB_CHOOSE_MARINE = `${FB_KEY}_RFQ_start_marine`;
+export const FB_CHOOSE_TRAVEL = `${FB_KEY}_RFQ_start_travel`;
+export const FB_RFQ_START = `${FB_KEY}_RFQ_quote_summary`;
+export const FB_RFQ_COMM = `${FB_KEY}_RFQ_commercial`;
+export const FB_RFQ_CYCLE = `${FB_KEY}_RFQ_motor_cycle_products`;
+export const FB_RFQ_UNSUPPORTED = `${FB_KEY}_RFQ_motor_model_not_supported`;
+export const FB_EMAIL_QUOTE = `${FB_KEY}_RFQ_email_quote`;
+export const FB_BUY_BIMA_BAMBA = `${FB_KEY}_RFQ_buy_bima_bamba`;
+export const FB_BUY_COMPREHENSIVE = `${FB_KEY}_RFQ_buy_comprehensive`;
+export const FB_BUY_THIRD_PARTY = `${FB_KEY}_RFQ_buy_third_party`;
+export const FB_BUY_PERSONAL = `${FB_KEY}_BUY_personal_details`;
+export const FB_BUY_VEHICLE = `${FB_KEY}_BUY_vehicle_details`;
+export const FB_BUY_COVER_SUMMARY = `${FB_KEY}_BUY_cover_summary`;
+export const FB_BUY_PICKUP_LOCATION = `${FB_KEY}_BUY_pickup_location`;
+export const FB_BUY_FULL_PAYMENT = `${FB_KEY}_BUY_full_payment`;
+export const FB_BUY_INSTALMENT_PAYMENT = `${FB_KEY}_BUY_instalment_payment`;
+export const FB_BUY_PAYMENT_INIT = `${FB_KEY}_BUY_payment_checkout`;
+export const FB_BUY_PAYMENT_INIT_FAIL = `${FB_KEY}_BUY_payment_checkout_failed`;
+export const FB_BUY_PAYMENT_STK = `${FB_KEY}_BUY_payment_stk`;
+export const FB_BUY_PAYMENT_PAYBILL = `${FB_KEY}_BUY_payment_paybill`;
+export const FB_BUY_PAYMENT_CARD_INIT = `${FB_KEY}_BUY_payment_card_init`;
+export const FB_BUY_PAYMENT_CARD = `${FB_KEY}_BUY_payment_card`;
+export const FB_BUY_PAYMENT_SUCCESS = `${FB_KEY}_BUY_payment_success`;
+export const FB_BUY_PAYMENT_FAILURE = `${FB_KEY}_BUY_payment_failed`;
+export const FB_PUSH_NOTIFICATION = `${FB_KEY}_BUY_push_notification_received`;
+export const FB_PUSH_NOTIFICATION_PAY = `${FB_KEY}_BUY_push_notification_payment`;
+export const FB_RENEW_IT = `${FB_KEY}_RENEW_init`;
+export const FB_RENEW_EXISTING = `${FB_KEY}_RENEW_existing_policy`;
+export const FB_RENEW_CHANGE = `${FB_KEY}_RENEW_change_policy`;
+export const FB_RENEW_CHANGE_PROCEED = `${FB_KEY}_RENEW_change_proceed_policy`;
+export const FB_RENEW_REVIEW_PERSONAL_DETAILS = `${FB_KEY}_RENEW_review_personal_details`;
+export const FB_RENEW_REVIEW_VEHICLE_DETAILS = `${FB_KEY}_RENEW_review_vehicle_details`;
+export const FB_RENEW_UPDATE_SUM_INSURED = `${FB_KEY}_RENEW_update_sum_insured`;
+export const FB_RENEW_UPDATE_BENEFITS = `${FB_KEY}_RENEW_update_benefits`;
+export const FB_RENEW_POLICY_REVIEW = `${FB_KEY}_RENEW_policy_review_step`;
+export const FB_RENEW_SELECT_BRANCH = `${FB_KEY}_RENEW_select_branch_step`;
+export const FB_RENEW_INSTALMENTS = `${FB_KEY}_RENEW_select_instalments_step`;
+
+export const FB_SIGNIN = `${FB_KEY}_USER_signin`;
+export const FB_SIGNUP = `${FB_KEY}_USER_signup`;
+export const FB_OTP = `${FB_KEY}_USER_otp`;
+export const FB_RESET_PASS_INIT = `${FB_KEY}_USER_reset_password_init`;
+export const FB_RESET_PASS_COMPLETE = `${FB_KEY}_USER_reset_password_complete`;
