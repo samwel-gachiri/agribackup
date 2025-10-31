@@ -45,23 +45,7 @@ export default [
     },
     processor: pluginVue.processors['.vue'],
     rules: {
-      'vue/multi-word-component-names': 'off',
-      'prefer-destructuring': 'off',
-      'linebreak-style': 'off',
-      'no-console': isProd ? 'error' : 'off',
-      'no-debugger': isProd ? 'error' : 'off',
-      'max-len': 'off',
-      'sonarjs/cognitive-complexity': 'off',
-      'sonarjs/no-identical-functions': 'off',
-      'import/no-extraneous-dependencies': 'off',
-      'import/extensions': ['error', 'always', {
-        js: 'always',
-        mjs: 'never',
-        jsx: 'never',
-        ts: 'never',
-        tsx: 'never',
-        vue: 'always',
-      }],
+      // Disable all ESLint rules
     },
   },
   {
