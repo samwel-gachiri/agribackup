@@ -8,6 +8,13 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
+### Pitch Deck
+- Link to pitch deck: [Pitch Deck](https://gamma.app/docs/AgriBackup-tml8dxii39r35b2)
+
+### Certificates
+- **Samwel Gachiri**: [Certificate](https://drive.google.com/file/d/1aJ1hk7nL32OVWq9JtTjvmAAmcWaa-Fvo/view?usp=sharing)
+- **Beatrice Wanjiru**: [Certificate](https://drive.google.com/file/d/1bp7kQePvY1AVofYksm9EnbMUbogEcJ02/view?usp=sharing)
+---
 
 ## 📋 Table of Contents
 - [Introduction](#-introduction)
@@ -170,7 +177,6 @@ The agricultural sector faces critical challenges:
 #### 1. **🔗 Complete Hedera Blockchain Integration**
 - **Hedera Consensus Service (HCS)**: Every supply chain event recorded with cryptographic proof
 - **Hedera Token Service (HTS)**: NFT-based EUDR certificates transferable between actors
-- **Hedera Smart Contracts (HSCS)**: Automated compliance verification and settlements
 - **Cost-Effective**: ~$0.0001 per transaction, ~$1 per NFT certificate
 - **Real-Time Verification**: Transaction finality in 3-5 seconds
 - **Carbon Negative**: Most sustainable blockchain platform
@@ -196,7 +202,7 @@ hederaConsensusService.recordMitigationAction(
 #### 2. **🌍 100% EUDR Compliance - Production Ready**
 All seven regulatory requirements fully implemented:
 
-✅ **Requirement 1**: Geolocation of production units (GPS coordinates + polygon mapping)  
+✅ **Requirement 1**: Geolocation of production units (GPS coordinates + polygon mapping)
 ✅ **Requirement 2**: Complete supply chain traceability (farm to EU border)  
 ✅ **Requirement 3**: Risk assessment (6-component analysis with automatic scoring)  
 ✅ **Requirement 4**: Risk mitigation (workflow management with Kanban board)  
