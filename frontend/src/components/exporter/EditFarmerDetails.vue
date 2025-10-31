@@ -283,7 +283,7 @@ export default {
 
     async fetchProductionUnits() {
       if (!this.farmer || !this.farmer.id) {
-        console.warn('No farmer ID available for fetching production units');
+        this.$toast.show('No farmer ID available for fetching production units');
         return;
       }
 

@@ -789,7 +789,7 @@ export default {
     },
     async deleteDocument(doc) {
       // eslint-disable-next-line no-alert, no-restricted-globals
-      if (!confirm(`Delete ${doc.fileName}?`)) return;
+      // if (!confirm(`Delete ${doc.fileName}?`)) return;
 
       try {
         await axios.delete(`/api/v1/documents/${doc.id}`);

@@ -291,7 +291,7 @@ export default {
     },
     async deleteYield(yieldItem) {
       // eslint-disable-next-line no-alert, no-restricted-globals
-      if (!confirm('Delete this yield record?')) return;
+      // if (!confirm('Delete this yield record?')) return;
       try {
         await axios.delete(`/api/yields/${yieldItem.id}`);
         this.$toast.success('Yield deleted.');
