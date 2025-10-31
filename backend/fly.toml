@@ -1,0 +1,25 @@
+# fly.toml app configuration file generated for farmers-portal-apis-green-water-6147 on 2025-06-12T09:48:06+03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'farmers-portal-apis-green-water-6147'
+primary_region = 'lax'
+
+[build]
+
+[env]
+  SPRING_PROFILES_ACTIVE = 'prod'
+  TZ = 'Africa/Nairobi'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'off'
+  auto_start_machines = false
+  min_machines_running = 1
+  processes = ['app']
+
+[[vm]]
+  size = 'shared-cpu-2x'
+  memory = '512MB'

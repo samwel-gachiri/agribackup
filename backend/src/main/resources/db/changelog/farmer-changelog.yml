@@ -1,0 +1,346 @@
+databaseChangeLog:
+  - changeSet:
+      id: Initial_setup_tables
+      comment: Initial setup
+      author: samwel gachiri
+      preConditions:
+        - onFail: CONTINUE
+        - onError: HALT
+        - sqlCheck:
+            expectedResult: 0
+            sql: select count(*) from information_schema.tables where table_schema='farmers_service_db' and (table_name='farmers' or table_name='fs_location' or table_name='farm_produces' or table_name='produce_listings')
+
+      changes:
+        - sqlFile:
+            dbms: mariadb,mysql
+            endDelimiter: ;
+            encoding: utf8
+            path: scripts/initial_setup.sql
+            relativeToChangelogFile: true
+            splitStatements: true
+            stripComments: true
+
+  - changeSet:
+      id: rename custom_name in fs_locations
+      author: Samwel Gachiri
+      changes:
+        - renameColumn:
+            tableName: fs_locations
+            schemaName: farmers_service_db
+            oldColumnName: customName
+            newColumnName: custom_name
+            columnDataType: Varchar(45)
+            remarks: Observing snake case in db naming
+
+  - changeSet:
+      id: Add pending acceptance status to order
+      author: Samwel Gachiri
+      changes:
+        - modifyDataType:
+            tableName: orders
+            schemaName: farmers_service_db
+            columnName: status
+            newDataType: enum('PENDING_ACCEPTANCE','BOOKED_FOR_SUPPLY','SUPPLIED','SUPPLIED_AND_PAID','CANCELLED')
+
+  - changeSet:
+      id: Adding the necessary datetime to order
+      author: Samwel Gachiri
+      changes:
+        - renameColumn:
+            tableName: orders
+            schemaName: farmers_service_db
+            newColumnName: date_created
+            columnDataType: timestamp
+            oldColumnName: date_bought
+
+        - addColumn:
+            tableName: orders
+            schemaName: farmers_service_db
+            columns:
+              - column:
+                  name: date_accepted
+                  type: timestamp
+                  constraints:
+                    nullable: true
+                    unique: false
+              - column:
+                  name: date_supplied
+                  type: timestamp
+                  constraints:
+                    nullable: true
+                    unique: false
+              - column:
+                  name: date_paid
+                  type: timestamp
+                  constraints:
+                    nullable: true
+                    unique: false
+
+  - changeSet:
+      id: rename table orders to listing orders
+      author: Samwel Gachiri
+      changes:
+        - renameTable:
+            oldTableName: orders
+            newTableName: listing_orders
+
+  - changeSet:
+      id: add-images-to-produce-listings
+      author: Samwel Gachiri
+      changes:
+        - addColumn:
+            tableName: produce_listings
+            columns:
+              - column:
+                  name: images
+                  type: TEXT
+
+  - changeSet:
+      id: drop-images-from-produce-listings
+      author: Samwel Gachiri
+      changes:
+        - dropColumn:
+            tableName: produce_listings
+            columns:
+              - column:
+                  name: images
+                  type: TEXT
+
+  - changeSet:
+      id: add-produce-desc and farming type-fields
+      author: Samwel Gachiri
+      changes:
+        - addColumn:
+            tableName: farmer_produces
+            columns:
+              - column:
+                  name: description
+                  type: varchar(255)
+              - column:
+                  name: farming_type
+                  type: varchar(255)
+        - createTable:
+            tableName: produce_images_urls
+            columns:
+              - column:
+                  name: produce_id
+                  type: uuid
+                  constraints:
+                    foreignKeyName: fk_produce_images_produce
+                    references: farmer_produces(id)
+                    nullable: false
+              - column:
+                  name: image_url
+                  type: varchar(255)
+
+  - changeSet:
+      id: add-created-at-column-to-produce-listing
+      author: Samwel Gachiri
+      changes:
+        - addColumn:
+            tableName: produce_listings
+            columns:
+              - column:
+                  name: createdAt
+                  type: TIMESTAMP
+                  remarks: Shows the time the listing was created
+
+  - changeSet:
+      id: rename produce listing created at column
+      author: Samwel Gachiri
+      changes:
+        - renameColumn:
+            tableName: produce_listings
+            oldColumnName: createdAt
+            newColumnName: created_at
+            columnDataType: TIMESTAMP
+
+  - changeSet:
+      id: Increase the size of varchar for the custom name of farmer location
+      author: Samwel Gachiri
+      changes:
+        - modifyDataType:
+            tableName: fs_locations
+            columnName: custom_name
+            newDataType: Varchar(255)
+
+
+
+  - changeSet:
+      id: add buyer comment and farmer comment to listing order
+      author: Samwel Gachiri
+      changes:
+        - addColumn:
+            tableName: listing_orders
+            columns:
+              - column:
+                  name: buyer_comment
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: farmer_comment
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: date_declined
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+  - changeSet:
+      id: change status from enum to varchar in listing orders
+      author: Samwel Gachiri
+      changes:
+        - modifyDataType:
+            tableName: listing_orders
+            columnName: status
+            newDataType: VARCHAR(45)
+
+  - changeSet:
+      id: 20250611-add-listing-images
+      author: Samwel Gachiri
+      changes:
+        - createTable:
+            tableName: listing_images_urls
+            columns:
+              - column:
+                  name: produce_listing_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: image_url
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: add-farm-size-to-farmers
+      author: system
+      changes:
+        - addColumn:
+            tableName: farmers
+            columns:
+              - column:
+                  name: farm_size
+                  type: double
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: add-farm-name-to-farmers
+      author: Samwel Gachiri
+      changes:
+        - addColumn:
+            tableName: farmers
+            columns:
+              - column:
+                  name: farm_name
+                  type: double
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: change-farm-name-to-string-from-double
+      author: Samwel Gachiri
+      changes:
+        - modifyDataType:
+            tableName: farmers
+            columnName: farm_name
+            newDataType: VARCHAR(100)
+
+
+  - changeSet:
+      id: add-uid-to-farmer
+      author: system
+      changes:
+        - addColumn:
+            tableName: farmers
+            columns:
+              - column:
+                  name: uid
+                  type: varchar(255)
+                  constraints:
+                    unique: true
+                    nullable: true
+
+  - changeSet:
+      id: change-produce-desc-data-type-to-text
+      author: Samwel Gachiri
+      changes:
+        - modifyDataType:
+            tableName: farmer_produces
+            columnName: description
+            newDataType: TEXT
+        - modifyDataType:
+            tableName: farm_produces
+            columnName: description
+            newDataType: TEXT
+
+  - changeSet:
+      id: create-produce-yields-table
+      author: Samwel Gachiri
+      changes:
+        - createTable:
+            tableName: produce_yields
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: farmer_produce_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_yield_farmer_produce
+                    references: farmer_produces(id)
+              - column:
+                  name: season_year
+                  type: int
+                  constraints:
+                    nullable: true
+              - column:
+                  name: season_name
+                  type: varchar(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: yield_amount
+                  type: decimal(10,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: yield_unit
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notes
+                  type: text
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_produce_yields_farmer_produce
+            tableName: produce_yields
+            columns:
+              - column:
+                  name: farmer_produce_id
+
+        - createIndex:
+            indexName: idx_produce_yields_season
+            tableName: produce_yields
+            columns:
+              - column:
+                  name: season_year
+              - column:
+                  name: season_name

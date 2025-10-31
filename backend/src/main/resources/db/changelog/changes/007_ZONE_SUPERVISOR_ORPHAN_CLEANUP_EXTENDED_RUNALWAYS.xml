@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <!-- Extended cleanup: also remove rows with NULL or empty user_id; add diagnostics -->
+    <changeSet id="20250903-runalways-clean-zone-supervisors-extended" author="grok" runAlways="true">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="zone_supervisors"/>
+                <tableExists tableName="users"/>
+            </and>
+        </preConditions>
+        <!-- Delete orphan join rows first (defensive) -->
+        <sql>DELETE zsz
+                FROM zone_supervisor_zones zsz
+                LEFT JOIN zone_supervisors zs 
+                    ON zsz.zone_supervisor_id = zs.zone_supervisor_id
+                WHERE zs.zone_supervisor_id IS NULL;
+        </sql>    
+        <!-- Delete supervisors with missing, NULL, or empty user id OR whose user no longer exists -->
+        <sql>DELETE FROM zone_supervisors WHERE (user_id IS NULL OR user_id = '' OR user_id NOT IN (SELECT id FROM users));</sql>
+        <!-- Optional: shrink any lingering blanks to NULL to enforce constraint expectations -->
+        <sql>UPDATE zone_supervisors SET user_id = NULL WHERE user_id = '';</sql>
+    </changeSet>
+
+</databaseChangeLog>

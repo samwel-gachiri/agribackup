@@ -1,0 +1,52 @@
+# General ignores
+HELP.md
+target/
+*.jar
+*.class
+*.log
+*.war
+*.exe
+*.py[cod]
+TEST*.xml
+.DS_Store
+Thumbs.db
+.env
+
+# IDE specific
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+.idea
+*.iws
+*.iml
+*.ipr
+.vscode/
+
+# Build directories
+build/
+dist/
+
+# Node.js
+node_modules/
+
+# Media files
+*.mp4
+*.tiff
+*.avi
+*.flv
+*.mov
+*.wmv
+
+# Maven (keep specific build directories)
+!**/src/main/**/target
+!**/src/test/**/target
+
+# NetBeans
+nbproject/private
+nbbuild
+nbdist
+.nb-gradle

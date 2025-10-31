@@ -1,0 +1,36 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-hedera-account-id-to-processors
+      author: system
+      changes:
+        - addColumn:
+            tableName: processors
+            columns:
+              - column:
+                  name: hedera_account_id
+                  type: VARCHAR(50)
+                  remarks: "Hedera account ID for processor on blockchain"
+
+  - changeSet:
+      id: add-eudr-certificate-fields-to-import-shipments
+      author: system
+      changes:
+        - addColumn:
+            tableName: import_shipments
+            columns:
+              - column:
+                  name: compliance_certificate_nft_id
+                  type: VARCHAR(50)
+                  remarks: "EUDR Compliance Certificate NFT token ID"
+              - column:
+                  name: compliance_certificate_serial_number
+                  type: BIGINT
+                  remarks: "Serial number of the certificate NFT for this shipment"
+              - column:
+                  name: compliance_certificate_transaction_id
+                  type: VARCHAR(100)
+                  remarks: "Hedera transaction ID when certificate was issued"
+              - column:
+                  name: current_owner_account_id
+                  type: VARCHAR(50)
+                  remarks: "Current Hedera account holding the certificate (exporter or importer)"

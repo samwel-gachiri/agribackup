@@ -1,0 +1,131 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-create-pickup-routes
+      author: system
+      changes:
+        - createTable:
+            tableName: pickup_routes
+            columns:
+              - column:
+                  name: route_id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: exporter_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: zone_supervisor_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: zone_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scheduled_date
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_distance_km
+                  type: decimal(10,2)
+              - column:
+                  name: estimated_duration_minutes
+                  type: int
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: pickup_route_stops
+            columns:
+              - column:
+                  name: stop_id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: route_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: farmer_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sequence_order
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: arrival_time
+                  type: timestamp
+              - column:
+                  name: completion_time
+                  type: timestamp
+              - column:
+                  name: notes
+                  type: text
+        - createIndex:
+            tableName: pickup_route_stops
+            indexName: idx_pickup_route_stops_route
+            columns:
+              - column:
+                  name: route_id
+        - addForeignKeyConstraint:
+            baseTableName: pickup_routes
+            baseColumnNames: exporter_id
+            referencedTableName: exporters
+            referencedColumnNames: exporter_id
+            constraintName: fk_pickup_routes_exporter
+        - addForeignKeyConstraint:
+            baseTableName: pickup_routes
+            baseColumnNames: zone_supervisor_id
+            referencedTableName: zone_supervisors
+            referencedColumnNames: zone_supervisor_id
+            constraintName: fk_pickup_routes_zone_supervisor
+        - addForeignKeyConstraint:
+            baseTableName: pickup_routes
+            baseColumnNames: zone_id
+            referencedTableName: zones
+            referencedColumnNames: zone_id
+            constraintName: fk_pickup_routes_zone
+        - addForeignKeyConstraint:
+            baseTableName: pickup_route_stops
+            baseColumnNames: route_id
+            referencedTableName: pickup_routes
+            referencedColumnNames: route_id
+            constraintName: fk_pickup_route_stops_route
+        - addForeignKeyConstraint:
+            baseTableName: pickup_route_stops
+            baseColumnNames: farmer_id
+            referencedTableName: farmers
+            referencedColumnNames: farmer_id
+            constraintName: fk_pickup_route_stops_farmer

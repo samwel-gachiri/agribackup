@@ -1,0 +1,35 @@
+  databaseChangeLog:
+  - changeSet:
+      id: backfill-aggregator-processor-userid
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: aggregators
+        - tableExists:
+            tableName: processors
+      changes:
+        - comment: "Backfill aggregator and processor user_id for existing rows that have NULL or empty user_id"
+        - sql:
+            sql: |
+              -- Replace the placeholder with the correct exporter user id if different
+              UPDATE aggregators
+              SET user_id = 'a58574e9-5f2d-11f0-8215-ace2d34ac24f'
+              WHERE user_id IS NULL OR user_id = '';
+
+              UPDATE processors
+              SET user_id = 'a58574e9-5f2d-11f0-8215-ace2d34ac24f'
+              WHERE user_id IS NULL OR user_id = '';
+
+              -- Optional: populate user profile fields stored on the aggregator/processor (if columns exist)
+              UPDATE aggregators
+              SET created_at = created_at
+              WHERE 1=1;
+      
+      rollback:
+        - sql:
+            sql: |
+              -- Rollback will not attempt to guess previous values. Manual rollback required if needed.
+              -- Example to set back to NULL (uncomment to use):
+              -- UPDATE aggregators SET user_id = NULL WHERE user_id = 'a58574e9-5f2d-11f0-8215-ace2d34ac24f' AND registration_number = 'NCC-2024-001';
+              -- UPDATE processors SET user_id = NULL WHERE user_id = 'a58574e9-5f2d-11f0-8215-ace2d34ac24f' AND organization_name = 'Kenya Coffee Processing Ltd';

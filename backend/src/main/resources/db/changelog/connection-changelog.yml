@@ -1,0 +1,43 @@
+databaseChangeLog:
+  - changeSet:
+      id: add buyer to farmer connection table
+      author: Samwel Gachiri
+      changes:
+        - createTable:
+            schemaName: farmers_service_db
+            tableName: farmer_buyer_connections
+            remarks: table for connecting farmer and buyer
+            columns:
+              - column:
+                  name: farmer_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: buyer_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TimeStamp
+  - changeSet:
+      id: add-id-column-to-farmer-buyer-connections
+      author: Samwel Gachiri
+      changes:
+        - addColumn:
+            tableName: farmer_buyer_connections
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                    unique: true
+  

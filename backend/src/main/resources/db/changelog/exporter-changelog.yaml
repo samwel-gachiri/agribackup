@@ -1,0 +1,262 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-exporter-tables
+      author: system
+      preConditions:
+        - onFail: CONTINUE
+        - onError: HALT
+        - sqlCheck:
+            expectedResult: 0
+            sql: select count(*) from information_schema.tables where table_schema='farmers_service_db' and (table_name='exporters' or table_name='zones')
+      changes:
+        # Exporters table
+        - createTable:
+            tableName: exporters
+            columns:
+              - column:
+                  name: exporter_id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: license_id
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: email
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: phone_number
+                  type: varchar(20)
+              - column:
+                  name: verification_status
+                  type: varchar(20)
+                  defaultValue: 'PENDING'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        # Zones table
+        - createTable:
+            tableName: zones
+            columns:
+              - column:
+                  name: zone_id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: exporter_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_zone_exporter
+                    references: exporters(exporter_id)
+              - column:
+                  name: produce_type
+                  type: varchar(100)
+              - column:
+                  name: center_latitude
+                  type: decimal(10,6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: center_longitude
+                  type: decimal(10,6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: radius_km
+                  type: decimal(10,2)
+                  constraints:
+                    nullable: false
+
+        # Farmer-Exporter relationship table
+        - createTable:
+            tableName: farmer_exporter_relationships
+            columns:
+              - column:
+                  name: relationship_id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: farmer_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_relationship_farmer
+                    references: farmers(farmer_id)
+              - column:
+                  name: exporter_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_relationship_exporter
+                    references: exporters(exporter_id)
+              - column:
+                  name: zone_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_relationship_zone
+                    references: zones(zone_id)
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        # Pickup Schedule table
+        - createTable:
+            tableName: pickup_schedules
+            columns:
+              - column:
+                  name: schedule_id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: farmer_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_schedule_farmer
+                    references: farmers(farmer_id)
+              - column:
+                  name: exporter_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_schedule_exporter
+                    references: exporters(exporter_id)
+              - column:
+                  name: produce_listing_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_schedule_listing
+                    references: produce_listings(produce_listing_id)
+              - column:
+                  name: scheduled_date
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(20)
+                  defaultValue: 'SCHEDULED'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: pickup_notes
+                  type: text
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        # Indexes
+        - createIndex:
+            indexName: idx_exporter_license
+            tableName: exporters
+            columns:
+              - column:
+                  name: license_id
+        - createIndex:
+            indexName: idx_zone_location
+            tableName: zones
+            columns:
+              - column:
+                  name: center_latitude
+              - column:
+                  name: center_longitude
+        - createIndex:
+            indexName: idx_pickup_schedule_date
+            tableName: pickup_schedules
+            columns:
+              - column:
+                  name: scheduled_date
+
+  - changeSet:
+      id: add-uid-to-exporter
+      author: system
+      changes:
+        - addColumn:
+            tableName: exporters
+            columns:
+              - column:
+                  name: uid
+                  type: varchar(255)
+                  constraints:
+                    unique: true
+                    nullable: true
+
+  - changeSet:
+      id: add-company-details-to-exporter
+      author: system
+      changes:
+        - addColumn:
+            tableName: exporters
+            columns:
+              - column:
+                  name: company_name
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: company_desc
+                  type: TEXT
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: add-export-license-form-url-to-exporter
+      author: system
+      changes:
+        - addColumn:
+            tableName: exporters
+            columns:
+              - column:
+                  name: export_license_form_url
+                  type: TEXT
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: make-license-id-nullable
+      author: system
+      changes:
+        - dropNotNullConstraint:
+            tableName: exporters
+            columnName: license_id
+            columnDataType: varchar(100)

@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: drop-unused-address-column-from-aggregators
+      author: samwel
+      changes:
+        # Drop the unused 'address' column from aggregators table
+        - dropColumn:
+            tableName: aggregators
+            columnName: address
+      
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: aggregators
+            columnName: address

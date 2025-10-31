@@ -1,2 +1,16 @@
 .kiro/
 .vscode/
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+frontend/.env.development
+app-backend/build/
+app-backend/.env
+app-backend/.env.local
+app-backend/.env.production
+app-backend/.env.development
+.idea
+.env
+node_modules/

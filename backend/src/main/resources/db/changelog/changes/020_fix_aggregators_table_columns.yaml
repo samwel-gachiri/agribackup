@@ -1,0 +1,91 @@
+databaseChangeLog:
+  - changeSet:
+      id: fix-aggregators-table-rename-columns
+      author: samwel
+      changes:
+        # Rename operating_region to facility_address
+        - renameColumn:
+            tableName: aggregators
+            oldColumnName: operating_region
+            newColumnName: facility_address
+            columnDataType: TEXT
+        
+        # Rename storage_capacity_kg to storage_capacity_tons
+        - renameColumn:
+            tableName: aggregators
+            oldColumnName: storage_capacity_kg
+            newColumnName: storage_capacity_tons
+            columnDataType: DECIMAL(15,2)
+        
+        # Rename aggregator_type to organization_type
+        - renameColumn:
+            tableName: aggregators
+            oldColumnName: aggregator_type
+            newColumnName: organization_type
+            columnDataType: VARCHAR(50)
+      
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: aggregators
+  
+  - changeSet:
+      id: fix-aggregators-table-add-missing-columns
+      author: samwel
+      changes:
+        # Add certification_details column if not exists
+        - addColumn:
+            tableName: aggregators
+            columns:
+              - column:
+                  name: certification_details
+                  type: TEXT
+                  constraints:
+                    nullable: true
+        
+        # Add collection_radius_km column if not exists
+        - addColumn:
+            tableName: aggregators
+            columns:
+              - column:
+                  name: collection_radius_km
+                  type: DECIMAL(10,2)
+                  constraints:
+                    nullable: true
+        
+        # Add primary_commodities column if not exists
+        - addColumn:
+            tableName: aggregators
+            columns:
+              - column:
+                  name: primary_commodities
+                  type: TEXT
+                  constraints:
+                    nullable: true
+        
+        # Add total_farmers_connected column if not exists
+        - addColumn:
+            tableName: aggregators
+            columns:
+              - column:
+                  name: total_farmers_connected
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: true
+        
+        # Add total_batches_collected column if not exists
+        - addColumn:
+            tableName: aggregators
+            columns:
+              - column:
+                  name: total_batches_collected
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: true
+      
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: aggregators

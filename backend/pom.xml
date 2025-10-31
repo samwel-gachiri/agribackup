@@ -1,0 +1,771 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.3.2</version>
+		<relativePath/>
+	</parent>
+	<groupId>com.agriconnect</groupId>
+	<artifactId>farmers-portal-apis</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>farmers-portal-apis</name>
+	<description>farmers-portal-apis</description>
+	<properties>
+		<java.version>21</java.version>
+		<kotlin.version>2.0.0</kotlin.version>
+		<springdoc-version>1.6.15</springdoc-version>
+		<gson.version>2.8.4</gson.version>
+		<apache.poi.version>5.2.5</apache.poi.version>
+		<apache-commons-io.version>2.16.1</apache-commons-io.version>
+		<reactor-spring.version>1.0.1.RELEASE</reactor-spring.version>
+		<mockwebserver.version>4.0.1</mockwebserver.version>
+		<cucumber.version>6.8.1</cucumber.version>
+		<spring-ai.version>1.0.0-RC1</spring-ai.version>
+<!--		<sonar.scanner.force-deprecated-java-version>true</sonar.scanner.force-deprecated-java-version>-->
+<!--		<sonar.exclusions>**/MotorAssessmentApisApplication*,-->
+<!--			**/aggregate/*,-->
+<!--			**/entities/*,-->
+<!--			**/events/*,-->
+<!--			**/annotation/*,-->
+<!--			**/config/*,-->
+<!--			**/util/*,-->
+<!--			**/common/**/*,-->
+<!--			**/listener/*,-->
+<!--			**/infrastructure/aws/**/*,-->
+<!--			**/infrastructure/dto/*,-->
+<!--			**/infrastructure/models/*-->
+<!--		</sonar.exclusions>-->
+
+		<liquibase.propertyFile>src/main/resources/application.yml</liquibase.propertyFile>
+		<liquibase.driver>com.mysql.cj.jdbc.Driver</liquibase.driver>
+		<liquibase-core.version>4.29.2</liquibase-core.version>
+		<!-- <liquibase-maven-plugin.version>4.6.1</liquibase-maven-plugin.version>
+        <liquibase-hibernate5.version>4.5.0</liquibase-hibernate5.version> -->
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>net.bull.javamelody</groupId>
+			<artifactId>javamelody-spring-boot-starter</artifactId>
+			<version>2.2.0</version>
+		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>org.springdoc</groupId>-->
+<!--			<artifactId>springdoc-openapi-ui</artifactId>-->
+<!--			<version>${springdoc-version}</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>org.springdoc</groupId>-->
+<!--			<artifactId>springdoc-openapi-data-rest</artifactId>-->
+<!--			<version>${springdoc-version}</version>-->
+<!--		</dependency>-->
+		<dependency>
+			<groupId>io.swagger.parser.v3</groupId>
+			<artifactId>swagger-parser-v3</artifactId>
+			<version>2.1.21</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.6.0</version>
+		</dependency>
+
+<!--		DEACTIVATED: because i haven't started using reactive programming as for now-->
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.boot</groupId>-->
+<!--			<artifactId>spring-boot-starter-webflux</artifactId>-->
+<!--			<version>2.6.6</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>org.projectreactor</groupId>-->
+<!--			<artifactId>reactor-spring</artifactId>-->
+<!--			<version>${reactor-spring.version}</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>io.projectreactor</groupId>-->
+<!--			<artifactId>reactor-test</artifactId>-->
+<!--			<scope>test</scope>-->
+<!--			<version>3.2.3.RELEASE</version>-->
+<!--		</dependency>-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+			<version>3.3.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-openfeign</artifactId>
+			<version>4.1.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.twilio.sdk</groupId>
+			<artifactId>twilio</artifactId>
+			<version>10.5.2</version>
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<version>2.3.232</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+			<version>3.3.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-websocket</artifactId>
+			<version>3.3.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.java-websocket</groupId>
+			<artifactId>Java-WebSocket</artifactId>
+			<version>1.5.7</version>
+		</dependency>
+<!--		DEACTIVATED: Wil be added when i need to convert json to entity and vv-->
+<!--		<dependency>-->
+<!--			<groupId>com.google.code.gson</groupId>-->
+<!--			<artifactId>gson</artifactId>-->
+<!--			<version>${gson.version}</version>-->
+<!--		</dependency>-->
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest-all</artifactId>
+			<version>1.3</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jetbrains.kotlin</groupId>
+			<artifactId>kotlin-reflect</artifactId>
+		</dependency>
+		<!-- Removed duplicate kotlin-stdlib-jdk8 (kept the one with explicit ${kotlin.version} at bottom) -->
+		<dependency>
+			<groupId>org.jetbrains.kotlinx</groupId>
+			<artifactId>kotlinx-coroutines-core</artifactId>
+			<version>1.3.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.dozermapper</groupId>
+			<artifactId>dozer-core</artifactId>
+			<version>7.0.0</version>
+		</dependency>
+<!--		DISABLED: will be activated when mapping of DTO to entity is needed-->
+<!--		<dependency>-->
+<!--			<groupId>com.github.dozermapper</groupId>-->
+<!--			<artifactId>dozer-spring-boot-starter</artifactId>-->
+<!--			<version>6.5.0</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.boot</groupId>-->
+<!--			<artifactId>spring-boot-devtools</artifactId>-->
+<!--			<scope>runtime</scope>-->
+<!--			<optional>true</optional>-->
+<!--		</dependency>-->
+<!--		DISABLED: will be activated when there is need of BDD-->
+<!--		<dependency>-->
+<!--			<groupId>io.cucumber</groupId>-->
+<!--			<artifactId>cucumber-java</artifactId>-->
+<!--			<version>${cucumber.version}</version>-->
+<!--			<scope>test</scope>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>io.cucumber</groupId>-->
+<!--			<artifactId>cucumber-junit-platform-engine</artifactId>-->
+<!--			<version>${cucumber.version}</version>-->
+<!--		</dependency>-->
+
+<!--		<dependency>-->
+<!--			<groupId>io.cucumber</groupId>-->
+<!--			<artifactId>cucumber-picocontainer</artifactId>-->
+<!--			<version>${cucumber.version}</version>-->
+
+<!--			<scope>test</scope>-->
+<!--		</dependency>-->
+		<!-- PostgreSQL Driver -->
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<version>42.7.3</version>
+		</dependency>
+		
+		<!-- PostGIS for spatial data support -->
+		<dependency>
+			<groupId>net.postgis</groupId>
+			<artifactId>postgis-jdbc</artifactId>
+			<version>2023.1.0</version>
+		</dependency>
+		
+		<!-- Hibernate Spatial for JPA spatial support -->
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-spatial</artifactId>
+			<version>6.4.4.Final</version>
+		</dependency>
+		
+		<!-- JTS Core for spatial operations -->
+		<dependency>
+			<groupId>org.locationtech.jts</groupId>
+			<artifactId>jts-core</artifactId>
+			<version>1.19.0</version>
+		</dependency>
+		
+		<!-- JTS IO for GeoJSON support -->
+		<dependency>
+			<groupId>org.locationtech.jts.io</groupId>
+			<artifactId>jts-io-common</artifactId>
+			<version>1.19.0</version>
+		</dependency>
+		
+		<!-- JTS GeoJSON module for GeoJSON reading/writing -->
+		<dependency>
+			<groupId>org.wololo</groupId>
+			<artifactId>jts2geojson</artifactId>
+			<version>0.18.1</version>
+		</dependency>
+		
+		<!-- Keep MySQL for backward compatibility during migration -->
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>8.0.33</version>
+		</dependency>
+
+		<!-- iText PDF library for EUDR dossier PDF generation -->
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>kernel</artifactId>
+			<version>8.0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>layout</artifactId>
+			<version>8.0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>io</artifactId>
+			<version>8.0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>forms</artifactId>
+			<version>8.0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>html2pdf</artifactId>
+			<version>5.0.4</version>
+		</dependency>
+		
+		<!-- QR Code generation for certificates -->
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>core</artifactId>
+			<version>3.5.3</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>javase</artifactId>
+			<version>3.5.3</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt</artifactId>
+			<version>0.9.1</version>
+		</dependency>
+
+
+<!--		DISABLED: will be enabled when i start using AWS-->
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.cloud</groupId>-->
+<!--			<artifactId>spring-cloud-aws-autoconfigure</artifactId>-->
+<!--			<version>2.2.6.RELEASE</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>com.amazonaws</groupId>-->
+<!--			<artifactId>aws-java-sdk-secretsmanager</artifactId>-->
+<!--			<version>1.12.19</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>com.amazonaws</groupId>-->
+<!--			<artifactId>aws-java-sdk</artifactId>-->
+<!--			<version>1.12.66</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>com.amazonaws</groupId>-->
+<!--			<artifactId>aws-java-sdk-core</artifactId>-->
+<!--			<version>1.12.66</version>-->
+<!--		</dependency>-->
+
+<!--		<dependency>-->
+<!--			<groupId>com.amazonaws</groupId>-->
+<!--			<artifactId>aws-java-sdk-cognitoidp</artifactId>-->
+<!--			<version>1.12.66</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>com.amazonaws</groupId>-->
+<!--			<artifactId>aws-java-sdk-s3</artifactId>-->
+<!--			<version>1.12.118</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.cloud</groupId>-->
+<!--			<artifactId>spring-cloud-aws-messaging</artifactId>-->
+<!--			<version>2.2.6.RELEASE</version>-->
+<!--		</dependency>-->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+			<version>2.25.27</version>
+		</dependency>
+		
+		<!-- Hedera SDK for DLT integration -->
+		<dependency>
+			<groupId>com.hedera.hashgraph</groupId>
+			<artifactId>sdk</artifactId>
+			<version>2.61.0</version>
+		</dependency>
+		
+		<!-- gRPC Netty transport for Hedera SDK -->
+		<dependency>
+			<groupId>io.grpc</groupId>
+			<artifactId>grpc-netty-shaded</artifactId>
+			<version>1.66.0</version>
+		</dependency>
+
+
+		<!--liquibase-->
+		<dependency>
+			<groupId>org.liquibase</groupId>
+			<artifactId>liquibase-core</artifactId>
+			<version>${liquibase-core.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20231013</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.module</groupId>
+			<artifactId>jackson-module-kotlin</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-resource-server</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.freefair.okhttp-spring-boot</groupId>
+			<artifactId>okhttp3-spring-boot-starter</artifactId>
+			<version>2.6.14</version>
+		</dependency>
+<!--		DISABLED: I will activate them once i start using aws-->
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.cloud</groupId>-->
+<!--			<artifactId>spring-cloud-aws-autoconfigure</artifactId>-->
+<!--			<version>2.2.6.RELEASE</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>com.amazonaws</groupId>-->
+<!--			<artifactId>aws-java-sdk-secretsmanager</artifactId>-->
+<!--			<version>1.12.19</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>com.amazonaws</groupId>-->
+<!--			<artifactId>aws-java-sdk-s3</artifactId>-->
+<!--			<version>1.12.118</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>com.amazonaws</groupId>-->
+<!--			<artifactId>aws-java-sdk</artifactId>-->
+<!--			<version>1.12.66</version>-->
+<!--		</dependency>-->
+
+<!--		<dependency>-->
+<!--			<groupId>com.amazonaws</groupId>-->
+<!--			<artifactId>aws-java-sdk-core</artifactId>-->
+<!--			<version>1.12.66</version>-->
+<!--		</dependency>-->
+
+<!--		<dependency>-->
+<!--			<groupId>com.amazonaws</groupId>-->
+<!--			<artifactId>aws-java-sdk-cognitoidp</artifactId>-->
+<!--			<version>1.12.66</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>software.amazon.awssdk</groupId>-->
+<!--			<artifactId>lambda</artifactId>-->
+<!--			<version>2.17.16</version>-->
+<!--		</dependency>-->
+
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.junit.vintage</groupId>
+					<artifactId>junit-vintage-engine</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+			<version>3.3.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.18.28</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+			<version>3.1.8</version>
+		</dependency>
+		<!-- Removed duplicate spring-boot-starter-test (already declared above with exclusions) -->
+		<dependency>
+			<groupId>org.mockito.kotlin</groupId>
+			<artifactId>mockito-kotlin</artifactId>
+			<version>4.1.0</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- Removed duplicate test-scoped jackson-module-kotlin (compile scope dependency already present) -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+
+		<!--		<dependency>-->
+<!--			<groupId>com.nhaarman.mockitokotlin2</groupId>-->
+<!--			<artifactId>mockito-kotlin</artifactId>-->
+<!--			<version>2.2.0</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>org.mockito</groupId>-->
+<!--			<artifactId>mockito-inline</artifactId>-->
+<!--			<version>3.11.2</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>org.mockito</groupId>-->
+<!--			<artifactId>mockito-core</artifactId>-->
+<!--			<version>3.9.0</version> &lt;!&ndash; Replace with the latest version &ndash;&gt;-->
+<!--			<scope>test</scope>-->
+<!--		</dependency>-->
+<!--		DISABLED: I will activate it when testing with mockito-->
+<!--        <dependency>-->
+<!--            <groupId>net.bytebuddy</groupId>-->
+<!--            <artifactId>byte-buddy</artifactId>-->
+<!--            <version>1.14.11</version>-->
+<!--        </dependency>-->
+
+		<!-- Feature Flags -->
+<!--		DISABLED: Trying to fix dependency issues first-->
+<!--		<dependency>-->
+<!--			<groupId>org.togglz</groupId>-->
+<!--			<artifactId>togglz-spring-boot-starter</artifactId>-->
+<!--			<version>3.2.1</version>-->
+<!--		</dependency>-->
+
+<!--		&lt;!&ndash; Togglz Admin Console (optional) &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>org.togglz</groupId>-->
+<!--			<artifactId>togglz-console</artifactId>-->
+<!--			<version>3.2.1</version>-->
+<!--		</dependency>-->
+
+<!--		&lt;!&ndash; https://mvnrepository.com/artifact/org.togglz/togglz-servlet &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>org.togglz</groupId>-->
+<!--			<artifactId>togglz-servlet</artifactId>-->
+<!--			<version>3.2.1</version>-->
+<!--		</dependency>-->
+
+<!--		&lt;!&ndash; Togglz Spring Security (optional) &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>org.togglz</groupId>-->
+<!--			<artifactId>togglz-spring-security</artifactId>-->
+<!--			<version>3.2.1</version>-->
+<!--		</dependency>-->
+
+<!--		&lt;!&ndash; Thymeleaf Togglz Dialect (optional) &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>com.github.heneke.thymeleaf</groupId>-->
+<!--			<artifactId>thymeleaf-extras-togglz</artifactId>-->
+<!--			<version>2.0.1.RELEASE</version>-->
+<!--		</dependency>-->
+
+<!--		&lt;!&ndash; Mobile &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>org.togglz</groupId>-->
+<!--			<artifactId>togglz-spring-mobile</artifactId>-->
+<!--			<version>2.8.0</version>-->
+<!--		</dependency>-->
+
+<!--		&lt;!&ndash; https://mvnrepository.com/artifact/org.togglz/togglz-spring-web &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>org.togglz</groupId>-->
+<!--			<artifactId>togglz-spring-web</artifactId>-->
+<!--			<version>3.2.1</version>-->
+<!--		</dependency>-->
+
+<!--		&lt;!&ndash; https://mvnrepository.com/artifact/org.togglz/togglz-kotlin &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>org.togglz</groupId>-->
+<!--			<artifactId>togglz-kotlin</artifactId>-->
+<!--			<version>2.8.0</version>-->
+<!--		</dependency>-->
+
+
+		<dependency>
+			<groupId>org.thymeleaf.extras</groupId>
+			<artifactId>thymeleaf-extras-java8time</artifactId>
+			<version>3.0.4.RELEASE</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+		<!-- Dev tools for automatic restart & LiveReload (enabled only in dev since optional=true) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-model-anthropic</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-model-ollama</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-model-openai</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-freemarker</artifactId>
+		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.ai</groupId>-->
+<!--			<artifactId>spring-ai-starter-model-vertex-ai-gemini</artifactId>-->
+<!--		</dependency>-->
+
+		<dependency>
+			<groupId>org.xhtmlrenderer</groupId>
+			<artifactId>flying-saucer-pdf</artifactId>
+			<version>9.9.4</version>
+		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>commons-io</groupId>-->
+<!--			<artifactId>commons-io</artifactId>-->
+<!--			<version>${apache-commons-io.version}</version>-->
+<!--		</dependency>-->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-to-slf4j</artifactId>
+			<version>2.17.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>
+			<version>2.17.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jetbrains.kotlin</groupId>
+			<artifactId>kotlin-stdlib-jdk8</artifactId>
+			<version>${kotlin.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jetbrains.kotlin</groupId>
+			<artifactId>kotlin-test</artifactId>
+			<version>${kotlin.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+	</dependencies>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.ai</groupId>
+				<artifactId>spring-ai-bom</artifactId>
+				<version>${spring-ai.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<build>
+		<sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
+		<testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<fork>true</fork>
+					<addResources>true</addResources>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.jetbrains.kotlin</groupId>
+				<artifactId>kotlin-maven-plugin</artifactId>
+				<version>${kotlin.version}</version>
+				<configuration>
+					<args>
+						<arg>-Xjsr305=strict</arg>
+					</args>
+					<compilerPlugins>
+						<plugin>spring</plugin>
+						<plugin>jpa</plugin>
+						<plugin>all-open</plugin>
+					</compilerPlugins>
+					<pluginOptions>
+						<option>all-open:annotation=javax.persistence.Entity</option>
+						<option>all-open:annotation=javax.persistence.Embeddable</option>
+						<option>all-open:annotation=javax.persistence.MappedSuperclass</option>
+					</pluginOptions>
+					<jvmTarget>21</jvmTarget>
+				</configuration>
+                <executions>
+					<execution>
+						<id>compile</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+						<configuration>
+							<jvmTarget>21</jvmTarget>
+							<sourceDirs>
+								<source>src/main/kotlin</source>
+								<source>target/generated-sources/annotations</source>
+							</sourceDirs>
+						</configuration>
+					</execution>
+					<execution>
+						<id>test-compile</id>
+						<phase>test-compile</phase>
+						<goals>
+							<goal>test-compile</goal>
+						</goals>
+						<configuration>
+							<jvmTarget>21</jvmTarget>
+							<sourceDirs>
+								<source>src/test/kotlin</source>
+								<source>target/generated-test-sources/test-annotations</source>
+							</sourceDirs>
+						</configuration>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>org.jetbrains.kotlin</groupId>
+						<artifactId>kotlin-maven-allopen</artifactId>
+						<version>${kotlin.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>org.jetbrains.kotlin</groupId>
+						<artifactId>kotlin-maven-noarg</artifactId>
+						<version>${kotlin.version}</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			<plugin>
+				<groupId>org.sonarsource.sonar-packaging-maven-plugin</groupId>
+				<artifactId>sonar-packaging-maven-plugin</artifactId>
+				<version>1.17</version>
+				<extensions>true</extensions>
+				<configuration>
+					<pluginClass>org.silverbulleters.sonar.plugins.bsl.BSLPlugin</pluginClass>
+					<sonarLintSupported>true</sonarLintSupported>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<configuration>
+					<!--                    <forkCount>3</forkCount>-->
+					<!--                    <reuseForks>true</reuseForks>-->
+					<!--                    <argLine>-Xmx1024m -XX:MaxPermSize=512m</argLine>-->
+					<excludes>
+						<exclude>**/MotorAssessmentApisApplication*</exclude>
+						<exclude>**/aggregate/*</exclude>
+						<exclude>**/entities/*</exclude>
+						<exclude>**/events/**</exclude>
+						<exclude>**/annotation/**</exclude>
+						<exclude>**/config/**</exclude>
+						<exclude>**/util/**</exclude>
+						<exclude>**/common/**</exclude>
+						<exclude>**/listener/**</exclude>
+						<exclude>**/infrastructure/aws/**</exclude>
+						<exclude>**/infrastructure/models/**</exclude>
+						<exclude>**/dto/**</exclude>
+						<exclude>java/*</exclude>
+						<exclude>javax/*</exclude>
+						<exclude>sun/*</exclude>
+						<exclude>com/sun/*</exclude>
+						<exclude>org/*</exclude>
+						<exclude>jdk/*</exclude>
+
+					</excludes>
+				</configuration>
+				<version>0.8.7</version>
+				<executions>
+					<execution>
+						<id>default-prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>default-report</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>generate-code-coverage-report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <!-- Add SYSTEM_ADMIN and ZONE_SUPERVISOR roles to roles table -->
+    <changeSet id="20250720-1-add-new-roles" author="grok">
+        <insert tableName="roles">
+            <column name="id" value="5"/>
+            <column name="name" value="SYSTEM_ADMIN"/>
+            <column name="description" value="System Admin role for managing zones and zone supervisors"/>
+        </insert>
+        <insert tableName="roles">
+            <column name="id" value="6"/>
+            <column name="name" value="ZONE_SUPERVISOR"/>
+            <column name="description" value="Zone Supervisor role for managing farmers and zone comments"/>
+        </insert>
+    </changeSet>
+
+    <!-- Add new permissions for SYSTEM_ADMIN and ZONE_SUPERVISOR -->
+    <changeSet id="20250720-2-add-new-permissions" author="grok">
+        <insert tableName="permissions">
+            <column name="id" valueComputed="1"/>
+            <column name="name" value="CREATE_ZONE"/>
+            <column name="description" value="Permission to create zones"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="id" valueComputed="2"/>
+            <column name="name" value="ADD_ZONE_SUPERVISOR"/>
+            <column name="description" value="Permission to add zone supervisors"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="id" valueComputed="3"/>
+            <column name="name" value="VIEW_ZONE_SUPERVISOR"/>
+            <column name="description" value="Permission to view zone supervisor details"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="id" valueComputed="4"/>
+            <column name="name" value="ADD_FARMER"/>
+            <column name="description" value="Permission to add farmers"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="id" valueComputed="5"/>
+            <column name="name" value="EDIT_FARMER"/>
+            <column name="description" value="Permission to edit farmer details with consent"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="id" valueComputed="6"/>
+            <column name="name" value="ADD_ZONE_COMMENT"/>
+            <column name="description" value="Permission to add comments to zones"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="id" valueComputed="7"/>
+            <column name="name" value="SCHEDULE_PICKUP"/>
+            <column name="description" value="Permission to schedule pickups for farmers"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="id" valueComputed="8"/>
+            <column name="name" value="MANAGE_SYSTEM_ADMIN"/>
+            <column name="description" value="Permission to add/remove system admins"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="id" valueComputed="9"/>
+            <column name="name" value="MANAGE_ZONE_SUPERVISOR"/>
+            <column name="description" value="Permission to add/remove zone supervisors"/>
+        </insert>
+    </changeSet>
+
+    <!-- Assign permissions to roles -->
+    <changeSet id="20250720-3-assign-permissions-to-roles" author="grok">
+        <sql>
+            INSERT INTO role_permissions (role_id, permission_id)
+            SELECT r.id, p.id
+            FROM roles r, permissions p
+            WHERE r.name = 'SYSTEM_ADMIN' AND p.name IN ('CREATE_ZONE', 'ADD_ZONE_SUPERVISOR', 'VIEW_ZONE_SUPERVISOR', 'ADD_FARMER');
+
+            INSERT INTO role_permissions (role_id, permission_id)
+            SELECT r.id, p.id
+            FROM roles r, permissions p
+            WHERE r.name = 'ZONE_SUPERVISOR' AND p.name IN ('ADD_FARMER', 'EDIT_FARMER', 'ADD_ZONE_COMMENT', 'SCHEDULE_PICKUP');
+
+            INSERT INTO role_permissions (role_id, permission_id)
+            SELECT r.id, p.id
+            FROM roles r, permissions p
+            WHERE r.name = 'EXPORTER' AND p.name IN ('MANAGE_SYSTEM_ADMIN', 'MANAGE_ZONE_SUPERVISOR', 'CREATE_ZONE', 'ADD_ZONE_SUPERVISOR', 'VIEW_ZONE_SUPERVISOR', 'ADD_FARMER', 'EDIT_FARMER', 'ADD_ZONE_COMMENT', 'SCHEDULE_PICKUP');
+        </sql>
+    </changeSet>
+
+    <!-- Create system_admins table -->
+    <changeSet id="20250720-4-create-system-admins-table" author="grok">
+        <createTable tableName="system_admins">
+            <column name="system_admin_id" type="varchar(36)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="varchar(36)">
+                <constraints nullable="false" unique="true" foreignKeyName="fk_system_admins_user_id" references="users(id)"/>
+            </column>
+            <column name="status" type="varchar(50)" defaultValue="ACTIVE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- Create zone_supervisors table -->
+    <changeSet id="20250720-5-create-zone-supervisors-table" author="grok">
+        <createTable tableName="zone_supervisors">
+            <column name="zone_supervisor_id" type="varchar(36)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="varchar(36)">
+                <constraints nullable="false" unique="true" foreignKeyName="fk_zone_supervisors_user_id" references="users(id)"/>
+            </column>
+            <column name="status" type="varchar(50)" defaultValue="ACTIVE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- Create zone_supervisor_zones join table -->
+    <changeSet id="20250720-6-create-zone-supervisor-zones-table" author="grok">
+        <createTable tableName="zone_supervisor_zones" remarks="Junction table between zone supervisors and zones">
+            <column name="zone_supervisor_id" type="varchar(36)">
+                <constraints nullable="false" foreignKeyName="fk_zone_supervisor_zones_supervisor" references="zone_supervisors(zone_supervisor_id)"/>
+            </column>
+            <column name="zone_id" type="varchar(36)">
+                <constraints nullable="false" foreignKeyName="fk_zone_supervisor_zones_zone" references="zones(zone_id)"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addPrimaryKey
+            tableName="zone_supervisor_zones"
+            columnNames="zone_supervisor_id, zone_id"
+            constraintName="pk_zone_supervisor_zones"/>
+    </changeSet>
+
+    <!-- Modify zones table to add creator_id and comments -->
+    <changeSet id="20250720-7-add-creator_id-to-zone-table" author="grok">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="zones" columnName="creator_id"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="zones">
+            <column name="creator_id" type="varchar(36)">
+                <constraints nullable="false" foreignKeyName="fk_zones_creator_id" references="users(id)"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet id="20250720-7-add-comment-to-zone-table" author="grok">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="zones" columnName="comments"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="zones">
+            <column name="comments" type="text"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- Add index for creator_id in zones table -->
+    <changeSet id="20250720-8-add-index-zones-creator" author="grok">
+        <createIndex tableName="zones" indexName="idx_zones_creator_id">
+            <column name="creator_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="20250720-8-make-creator-id-nullable" author="grok">
+        <!-- Combined precondition checking both column existence and FK constraint existence -->
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <columnExists tableName="zones" columnName="creator_id"/>
+                <foreignKeyConstraintExists foreignKeyName="fk_zones_creator_id"/>
+            </and>
+        </preConditions>
+
+        <!-- First drop the FK constraint -->
+        <dropForeignKeyConstraint
+                baseTableName="zones"
+                constraintName="fk_zones_creator_id"/>
+
+        <!-- Then drop the NOT NULL constraint -->
+        <dropNotNullConstraint
+                tableName="zones"
+                columnName="creator_id"
+                columnDataType="varchar(36)"/>
+
+        <!-- Finally add back the FK constraint with proper null handling -->
+        <addForeignKeyConstraint
+                baseTableName="zones"
+                baseColumnNames="creator_id"
+                constraintName="fk_zones_creator_id"
+                referencedTableName="users"
+                referencedColumnNames="id"
+                onDelete="SET NULL"/>
+    </changeSet>
+
+</databaseChangeLog>

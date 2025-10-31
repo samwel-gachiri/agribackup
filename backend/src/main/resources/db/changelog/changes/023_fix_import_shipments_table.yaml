@@ -1,0 +1,415 @@
+databaseChangeLog:
+  - changeSet:
+      id: 023-rename-batch-shipments-to-import-shipments
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: batch_shipments
+      changes:
+        - renameTable:
+            oldTableName: batch_shipments
+            newTableName: import_shipments
+      rollback:
+        - renameTable:
+            oldTableName: import_shipments
+            newTableName: batch_shipments
+
+  - changeSet:
+      id: 023-add-missing-columns-to-import-shipments
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: import_shipments
+      changes:
+        # Add missing columns from ImportShipment entity
+        - addColumn:
+            tableName: import_shipments
+            columns:
+              - column:
+                  name: source_batch_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: source_entity_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: source_entity_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: produce_type
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                  defaultValue: 'COFFEE'
+              - column:
+                  name: quantity_kg
+                  type: DECIMAL(15,2)
+                  constraints:
+                    nullable: false
+                  defaultValue: "0.00"
+              - column:
+                  name: quality_inspection_passed
+                  type: BOOLEAN
+                  constraints:
+                    nullable: true
+              - column:
+                  name: quality_inspection_date
+                  type: DATE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: quality_inspection_notes
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: import_categories
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: certification_details
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: total_shipments_received
+                  type: INT
+                  defaultValue: "0"
+              - column:
+                  name: total_import_volume_kg
+                  type: DECIMAL(15,2)
+                  defaultValue: "0.00"
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: 023-rename-batch-inspections-columns
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: batch_inspections
+        - columnExists:
+            tableName: batch_inspections
+            columnName: shipment_id
+      changes:
+        # Drop old foreign key constraint
+        - dropForeignKeyConstraint:
+            baseTableName: batch_inspections
+            constraintName: batch_inspections_ibfk_2
+        # Add new foreign key pointing to import_shipments
+        - addForeignKeyConstraint:
+            baseTableName: batch_inspections
+            baseColumnNames: shipment_id
+            constraintName: fk_batch_inspections_shipment_id
+            referencedTableName: import_shipments
+            referencedColumnNames: shipment_id
+            onDelete: CASCADE
+
+  - changeSet:
+      id: 023-rename-batch-inspections-to-inspection-records
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: batch_inspections
+      changes:
+        - renameTable:
+            oldTableName: batch_inspections
+            newTableName: inspection_records
+      rollback:
+        - renameTable:
+            oldTableName: inspection_records
+            newTableName: batch_inspections
+
+  - changeSet:
+      id: 023-create-customs-documents-table
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: customs_documents
+      changes:
+        - createTable:
+            tableName: customs_documents
+            columns:
+              - column:
+                  name: document_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: shipment_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: document_type
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: document_number
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: issue_date
+                  type: DATE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: issuing_authority
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: s3_key
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_size
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: checksum_sha256
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: hedera_document_hash
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: uploaded_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: customs_documents
+            baseColumnNames: shipment_id
+            constraintName: fk_customs_documents_shipment_id
+            referencedTableName: import_shipments
+            referencedColumnNames: shipment_id
+            onDelete: CASCADE
+        - createIndex:
+            tableName: customs_documents
+            indexName: idx_customs_documents_shipment_id
+            columns:
+              - column:
+                  name: shipment_id
+
+  - changeSet:
+      id: 023-update-inspection-records-drop-constraint
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: inspection_records
+      changes:
+        # Drop check constraint using raw SQL with proper syntax
+        - sql:
+            sql: |
+              SET @constraint_exists = (
+                SELECT COUNT(*)
+                FROM information_schema.TABLE_CONSTRAINTS
+                WHERE CONSTRAINT_SCHEMA = 'farmers_service_db'
+                AND TABLE_NAME = 'inspection_records'
+                AND CONSTRAINT_NAME = 'inspection_records_chk_1'
+              );
+              SET @drop_constraint = IF(@constraint_exists > 0, 
+                'ALTER TABLE inspection_records DROP CHECK inspection_records_chk_1', 
+                'SELECT 1');
+              PREPARE stmt FROM @drop_constraint;
+              EXECUTE stmt;
+              DEALLOCATE PREPARE stmt;
+        - rollback:
+            empty:
+
+  - changeSet:
+      id: 023-update-inspection-records-drop-fk
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: inspection_records
+        - columnExists:
+            tableName: inspection_records
+            columnName: batch_id
+      changes:
+        # Drop foreign key constraint on batch_id first
+        - dropForeignKeyConstraint:
+            baseTableName: inspection_records
+            constraintName: inspection_records_ibfk_1
+
+  - changeSet:
+      id: 023-update-inspection-records-columns
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: inspection_records
+        - columnExists:
+            tableName: inspection_records
+            columnName: batch_id
+      changes:
+        # Now drop batch_id column
+        - dropColumn:
+            tableName: inspection_records
+            columnName: batch_id
+
+  - changeSet:
+      id: 023-drop-indexes-on-import-shipments
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: import_shipments
+      changes:
+        # Skip dropping indexes that are tied to foreign keys (MySQL manages them)
+        # These will be recreated with new names in the next changeset
+        - sql:
+            sql: "SELECT 1"
+            comment: "Placeholder - FK indexes are managed by MySQL automatically"
+
+  - changeSet:
+      id: 023-create-new-indexes-on-import-shipments
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: import_shipments
+      changes:
+        - createIndex:
+            tableName: import_shipments
+            indexName: idx_import_shipments_importer_id
+            columns:
+              - column:
+                  name: importer_id
+        - createIndex:
+            tableName: import_shipments
+            indexName: idx_import_shipments_status
+            columns:
+              - column:
+                  name: shipment_status
+        - createIndex:
+            tableName: import_shipments
+            indexName: idx_import_shipments_number
+            columns:
+              - column:
+                  name: shipment_number
+        - createIndex:
+            tableName: import_shipments
+            indexName: idx_import_shipments_source_batch
+            columns:
+              - column:
+                  name: source_batch_id
+
+  - changeSet:
+      id: 023-add-certification-details-to    -importers
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: importers
+        - not:
+            - columnExists:
+                tableName: importers
+                columnName: certification_details
+      changes:
+        - addColumn:
+            tableName: importers
+            columns:
+              - column:
+                  name: certification_details
+                  type: TEXT
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: 023-add-import-categories-to-importers
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: importers
+        - not:
+            - columnExists:
+                tableName: importers
+                columnName: import_categories
+      changes:
+        - addColumn:
+            tableName: importers
+            columns:
+              - column:
+                  name: import_categories
+                  type: TEXT
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: 023-add-total-import-volume-to-importers
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: importers
+        - not:
+            - columnExists:
+                tableName: importers
+                columnName: total_import_volume_kg
+      changes:
+        - addColumn:
+            tableName: importers
+            columns:
+              - column:
+                  name: total_import_volume_kg
+                  type: DECIMAL(15,2)
+                  defaultValue: "0.00"
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 024-add-missing-importer-columns
+      author: samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: importers
+        - not:
+            - columnExists:
+                tableName: importers
+                columnName: total_shipments_received
+      changes:
+        - addColumn:
+            tableName: importers
+            columns:
+              - column:
+                  name: total_shipments_received
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+

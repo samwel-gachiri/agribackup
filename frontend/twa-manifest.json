@@ -1,0 +1,47 @@
+{
+  "packageId": "app.vercel.farmers_portal_frontend.twa",
+  "host": "farmers-portal-frontend.vercel.app",
+  "name": "agriconnect",
+  "launcherName": "agriconnect",
+  "display": "fullscreen",
+  "themeColor": "#008000",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#008000",
+  "enableNotifications": true,
+  "startUrl": "/home",
+  "iconUrl": "https://farmers-portal-frontend.vercel.app/img/icons/android-chrome-512x512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "G:\\documents\\computer science\\4.1\\SCO400 - Project\\MyProject\\Application\\frontend\\farmer-portal-frontend\\android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://farmers-portal-frontend.vercel.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://farmers-portal-frontend.vercel.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "appVersion": "1"
+}

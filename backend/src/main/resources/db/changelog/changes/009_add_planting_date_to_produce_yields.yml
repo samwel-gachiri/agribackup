@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-planting-date-to-produce-yields
+      author: system
+      changes:
+        - addColumn:
+            tableName: produce_yields
+            columns:
+              - column:
+                  name: planting_date
+                  type: date
+                  constraints:
+                    nullable: true
+        - createIndex:
+            indexName: idx_produce_yields_planting_date
+            tableName: produce_yields
+            columns:
+              - column:
+                  name: planting_date

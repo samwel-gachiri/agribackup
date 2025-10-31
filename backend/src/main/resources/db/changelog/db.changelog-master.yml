@@ -1,0 +1,101 @@
+databaseChangeLog:
+  # changes to the farmer, buyer and connection are treated separately under one
+  - include:
+      file: db/changelog/farmer-changelog.yml
+  - include:
+      file: db/changelog/buyer-changelog.yml
+  - include:
+      file: db/changelog/connection-changelog.yml
+  - include:
+      file: db/changelog/exporter-changelog.yaml
+  - include:
+      file: db/changelog/hedera-changelog.yml
+#  - include:
+#      file: db/changelog/hedera-changelog.yaml
+  - includeAll:
+      path: db/changelog/changes
+
+  # Feature request table was created in this file because it serves both the farmer and the buyer
+  - changeSet:
+      id: create_feature_request_table
+      author: Samwel Gachiri
+      changes:
+        - createTable:
+            tableName: feature_request
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_section
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: request_type
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: message
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: OPEN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: admin_notes
+                  type: TEXT
+        - createIndex:
+            tableName: feature_request
+            indexName: feature_request" indexName="idx_feature_request_status
+            columns:
+              - column:
+                  name: status
+  - changeSet:
+      id: changed_feature_requests_user_id_to_string
+      author: Samwel Gachiri
+      changes:
+        - modifyDataType:
+            tableName: feature_request
+            columnName: user_id
+            newDataType: Varchar(50)
+
+  - changeSet:
+      id: Add_ai_gen_request knowledge
+      author: Samwel Gachiri
+      changes:
+        - addColumn:
+            tableName: feature_request
+            columns:
+              - column:
+                  name: ai_generated
+                  type: BOOLEAN
+              - column:
+                  name: original_prompt
+                  type: TEXT

@@ -1,0 +1,196 @@
+databaseChangeLog:
+  - changeSet:
+      id: migrate-farmers-to-users
+      author: system
+      changes:
+        - dropNotNullConstraint:
+            tableName: users
+            columnName: email
+            columnDataType: VARCHAR(255)
+        - sql:
+            sql: >
+              INSERT INTO users (id, email, password_hash, full_name, phone_number, is_active, created_at, updated_at)
+              SELECT 
+                UUID(),
+                CASE 
+                  WHEN TRIM(f.email) = '' OR f.email IS NULL THEN NULL 
+                  ELSE f.email 
+                END,
+                'MIGRATION_NEEDED',
+                f.name,
+                f.phone_number,
+                true,
+                f.created_at,
+                f.created_at
+              FROM farmers f
+              WHERE (f.email IS NULL OR f.email = '' OR f.email NOT IN (SELECT email FROM users WHERE email IS NOT NULL))
+              AND f.phone_number NOT IN (SELECT phone_number FROM users WHERE phone_number IS NOT NULL);
+              
+              UPDATE farmers f
+              INNER JOIN users u ON (
+                (f.email IS NOT NULL AND f.email != '' AND f.email = u.email) OR
+                (f.email IS NULL OR f.email = '') AND u.email IS NULL AND f.phone_number = u.phone_number
+              )
+              SET f.user_id = u.id
+              WHERE f.user_id IS NULL;
+              
+              INSERT INTO user_roles (user_id, role_id)
+              SELECT f.user_id, '1'
+              FROM farmers f
+              WHERE f.user_id IS NOT NULL 
+              AND f.user_id NOT IN (
+                SELECT user_id FROM user_roles WHERE role_id = '1'
+              );
+
+  - changeSet:
+      id: migrate-buyers-to-users
+      author: system
+      changes:
+        - sql:
+            sql: >
+              INSERT INTO users (id, email, password_hash, full_name, phone_number, is_active, created_at, updated_at)
+              SELECT 
+                UUID(),
+                CASE 
+                  WHEN TRIM(b.email) = '' OR b.email IS NULL THEN NULL 
+                  ELSE b.email 
+                END,
+                'MIGRATION_NEEDED',
+                b.name,
+                b.phone_number,
+                true,
+                b.created_at,
+                b.created_at
+              FROM buyers b
+              WHERE (b.email IS NULL OR b.email = '' OR b.email NOT IN (SELECT email FROM users WHERE email IS NOT NULL))
+              AND b.phone_number NOT IN (SELECT phone_number FROM users WHERE phone_number IS NOT NULL);
+              
+              UPDATE buyers b
+              INNER JOIN users u ON (
+                (b.email IS NOT NULL AND b.email != '' AND b.email = u.email) OR
+                (b.email IS NULL OR b.email = '') AND u.email IS NULL AND b.phone_number = u.phone_number
+              )
+              SET b.user_id = u.id
+              WHERE b.user_id IS NULL;
+              
+              INSERT INTO user_roles (user_id, role_id)
+              SELECT b.user_id, '2'
+              FROM buyers b
+              WHERE b.user_id IS NOT NULL
+              AND b.user_id NOT IN (
+                SELECT user_id FROM user_roles WHERE role_id = '2'
+              );
+
+  - changeSet:
+      id: migrate-exporters-to-users
+      author: system
+      changes:
+        - sql:
+            sql: >
+              INSERT INTO users (id, email, password_hash, full_name, phone_number, is_active, created_at, updated_at)
+              SELECT 
+                UUID(),
+                CASE 
+                  WHEN TRIM(e.email) = '' OR e.email IS NULL THEN NULL 
+                  ELSE e.email 
+                END,
+                'MIGRATION_NEEDED',
+                e.name,
+                e.phone_number,
+                true,
+                e.created_at,
+                e.updated_at
+              FROM exporters e
+              WHERE (e.email IS NULL OR e.email = '' OR e.email NOT IN (SELECT email FROM users WHERE email IS NOT NULL))
+              AND e.phone_number NOT IN (SELECT phone_number FROM users WHERE phone_number IS NOT NULL);
+              
+              UPDATE exporters e
+              INNER JOIN users u ON (
+                (e.email IS NOT NULL AND e.email != '' AND e.email = u.email) OR
+                (e.email IS NULL OR e.email = '') AND u.email IS NULL AND e.phone_number = u.phone_number
+              )
+              SET e.user_id = u.id
+              WHERE e.user_id IS NULL;
+              
+              INSERT INTO user_roles (user_id, role_id)
+              SELECT e.user_id, '3'
+              FROM exporters e
+              WHERE e.user_id IS NOT NULL
+              AND e.user_id NOT IN (
+                SELECT user_id FROM user_roles WHERE role_id = '3'
+              );
+
+
+  - changeSet:
+      id: drop-redundant-columns
+      author: system
+      preConditions:
+        - onFail: HALT
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM farmers WHERE user_id IS NULL
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM buyers WHERE user_id IS NULL
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM exporters WHERE user_id IS NULL
+      changes:
+        - dropColumn:
+            tableName: farmers
+            columns:
+              - column:
+                  name: email
+              - column:
+                  name: name
+              - column:
+                  name: phone_number
+              - column:
+                  name: created_at
+              - column:
+                  name: uid
+
+        - dropColumn:
+            tableName: buyers
+            columns:
+              - column:
+                  name: email
+              - column:
+                  name: name
+              - column:
+                  name: phone_number
+              - column:
+                  name: created_at
+              - column:
+                  name: uid
+
+        - dropColumn:
+            tableName: exporters
+            columns:
+              - column:
+                  name: email
+              - column:
+                  name: name
+              - column:
+                  name: phone_number
+              - column:
+                  name: created_at
+              - column:
+                  name: uid
+
+  - changeSet:
+      id: add-not-null-constraints
+      author: system
+      changes:
+        - addNotNullConstraint:
+            tableName: farmers
+            columnName: user_id
+            columnDataType: varchar(36)
+        - addNotNullConstraint:
+            tableName: buyers
+            columnName: user_id
+            columnDataType: varchar(36)
+        - addNotNullConstraint:
+            tableName: exporters
+            columnName: user_id
+            columnDataType: varchar(36)

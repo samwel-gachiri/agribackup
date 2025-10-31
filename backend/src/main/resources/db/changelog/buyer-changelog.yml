@@ -1,0 +1,143 @@
+databaseChangeLog:
+  - changeSet:
+      id: Initial_setup_tables_buyerdb
+      comment: Initial setup
+      author: samwel gachiri
+      preConditions:
+        - onFail: CONTINUE
+        - onError: HALT
+        - sqlCheck:
+            expectedResult: 0
+            sql: select count(*) from information_schema.tables where table_schema='farmers_service_db' and (table_name='buyers' or table_name='bs_locations' or table_name='produce_requests')
+
+      changes:
+        - sqlFile:
+            dbms: mariadb,mysql
+            endDelimiter: ;
+            encoding: utf8
+            path: scripts/buyerdb_initial_setup.sql
+            relativeToChangelogFile: true
+            splitStatements: true
+            stripComments: true
+
+  - changeSet:
+      id: rename custom_name in bs_locations
+      author: Samwel Gachiri
+      changes:
+        - renameColumn:
+            tableName: bs_locations
+            oldColumnName: customName
+            newColumnName: custom_name
+            columnDataType: Varchar(45)
+            remarks: Observing snake case in db naming
+
+  - changeSet:
+      id: Add pending acceptance status to request order
+      author: Samwel Gachiri
+      changes:
+        - modifyDataType:
+            tableName: request_orders
+            columnName: status
+            newDataType: enum('PENDING_ACCEPTANCE','BOOKED_FOR_SUPPLY','SUPPLIED','SUPPLIED_AND_PAID','CANCELLED')
+
+  - changeSet:
+      id: Adding the necessary datetime to order
+      author: Samwel Gachiri
+      changes:
+        - renameColumn:
+            tableName: request_orders
+            newColumnName: date_created
+            columnDataType: timestamp
+            oldColumnName: date_bought
+
+        - addColumn:
+            tableName: request_orders
+            columns:
+              - column:
+                  name: date_accepted
+                  type: timestamp
+                  constraints:
+                    nullable: true
+                    unique: false
+              - column:
+                  name: date_supplied
+                  type: timestamp
+                  constraints:
+                    nullable: true
+                    unique: false
+              - column:
+                  name: date_paid
+                  type: timestamp
+                  constraints:
+                    nullable: true
+                    unique: false
+
+  - changeSet:
+      id: modify status in preferred produces
+      author: Samwel Gachiri
+      changes:
+        - modifyDataType:
+            tableName: preferred_produces
+            columnName: status
+            newDataType: enum('ACTIVE', 'INACTIVE', 'REQUESTING')
+
+  - changeSet:
+      id: Add date created to produce_requests
+      author: Samwel Gachiri
+      changes:
+        - addColumn:
+            tableName: produce_requests
+            columns:
+              - column:
+                  name: date_created
+                  type: TIMESTAMP
+
+  - changeSet:
+      id: Increase the size of varchar for the custom name of buyer location
+      author: Samwel Gachiri
+      changes:
+        - modifyDataType:
+            tableName: bs_locations
+            columnName: custom_name
+            newDataType: Varchar(255)
+
+  - changeSet:
+      id: rename column of request order from buyer id to farmer id
+      author: Samwel Gachiri
+      changes:
+        - renameColumn:
+            tableName: request_orders
+            oldColumnName: buyer_id
+            newColumnName: farmer_id
+            columnDataType: VARCHAR(36)
+
+  - changeSet:
+      id: add-uid-to-buyer
+      author: system
+      changes:
+        - addColumn:
+            tableName: buyers
+            columns:
+              - column:
+                  name: uid
+                  type: varchar(255)
+                  constraints:
+                    unique: true
+                    nullable: true
+  - changeSet:
+      id: add-company-business-details-to-buyers
+      author: system
+      changes:
+        - addColumn:
+            tableName: buyers
+            columns:
+              - column:
+                  name: company_name
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: business_type
+                  type: varchar(100)
+                  constraints:
+                    nullable: true

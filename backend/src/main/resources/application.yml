@@ -1,0 +1,194 @@
+#spring.application.name=farmers-portal-apis
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  address: 0.0.0.0
+
+spring:
+  application:
+    name: farmers-service-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:mysql}
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    driver-class-name: ${DB_DRIVER_CLASS:com.mysql.cj.jdbc.Driver}
+  jpa:
+    generate-ddl: false
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+      cache:
+        use_second_level_cache: true
+        region.factory_class: org.hibernate.cache.jcache.JCacheRegionFactory
+    properties:
+      hibernate:
+        dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.MySQL8Dialect}
+        jdbc:
+          time_zone: UTC
+  autoconfigure:
+    exclude:
+#      - org.springframework.cloud.aws.autoconfigure.context.ContextStackAutoConfiguration
+#      - org.springframework.cloud.aws.autoconfigure.context.ContextRegionProviderAutoConfiguration
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/changelog/db.changelog-master.yml
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: agribackupltd@gmail.com
+    password: ${EMAIL_APP_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  devtools:
+    livereload:
+      enabled: false
+    restart:
+      enabled: false
+  trigger-file: .restart-trigger
+
+
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY}
+    ollama:
+      chat:
+        options:
+          model: deepseek-r1:latest
+#  level:
+#    liquibase: DEBUG
+
+aws:
+  accessKey: ${AWS_ACCESS_KEY_ID}
+  secretKey: ${AWS_SECRET_ACCESS_KEY}
+  region: us-east-1
+  bucketName: agri-image
+
+twilio:
+  account-sid: ${TWILIO_ACCOUNT_SID:sid}
+  auth-token: ${TWILIO_AUTH_TOKEN:tok}
+  phone-number: ${TWILIO_PHONE_NUMBER:kd}
+textsms:
+  apikey: ${TEXTSMS_API_KEY}
+  partnerID: ${TEXTSMS_PARTNER_ID}
+  shortcode: TextSMS
+#cloud:
+#  aws:
+#    stack:
+#      auto: false
+#    credentials:
+#      accessKey: ${AWS_ACCESS_KEY_ID}
+#      secretKey: ${AWS_SECRET_ACCESS_KEY}
+#    region:
+#      static: us-east-1
+
+springdoc:
+  swagger-ui:
+    tags-sorter: alpha
+    operations-sorter: alpha
+    enabled: true
+  api-docs:
+    path: /v3/api-docs
+  paths-to-match: /api/**,/farmers-service/**,/buyers-service/**,/connection-service/**
+
+elevenlabs:
+  api:
+    key: ${ELEVENLABS_API_KEY}
+  voice:
+    id: pFZP5JQG7iQjIQuC4Bku
+maps:
+  api:
+    key: ${MAPS_API_KEY}
+google:
+  api:
+    key: ${GOOGLE_API_KEY}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400
+
+# Hedera DLT Configuration
+hedera:
+  network:
+    type: ${HEDERA_NETWORK_TYPE:testnet}
+    endpoint: ${HEDERA_NETWORK_ENDPOINT:https://testnet.mirrornode.hedera.com}
+  account:
+    id: ${HEDERA_ACCOUNT_ID}
+    private-key: ${HEDERA_PRIVATE_KEY}
+  consensus:
+    topic-id: ${HEDERA_CONSENSUS_TOPIC_ID}
+  retry:
+    max-attempts: 3
+    backoff-delay: 1000
+
+# IPFS Configuration
+ipfs:
+  enabled: ${IPFS_ENABLED:true}
+  gateway:
+    url: ${IPFS_GATEWAY_URL:https://ipfs.io}
+  api:
+    url: ${IPFS_API_URL:https://api.pinata.cloud}
+    key: ${IPFS_API_KEY}
+    secret: ${IPFS_API_SECRET}
+
+# Global Forest Watch Configuration
+gfw:
+  api:
+    base-url: ${GFW_API_BASE_URL:https://data-api.globalforestwatch.org}
+    key: ${GFW_API_KEY}
+
+# Deforestation Monitoring Configuration
+deforestation:
+  monitoring:
+    enabled: ${DEFORESTATION_MONITORING_ENABLED:true}
+  buffer:
+    distance:
+      km: ${DEFORESTATION_BUFFER_DISTANCE_KM:5.0}
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.agriconnect.farmersportalapis.service.supplychain.DeforestationAlertService: DEBUG
+    org.springframework.web.client.RestTemplate: DEBUG
+
+---
+# PostgreSQL with PostGIS Profile
+spring:
+  config:
+    activate:
+      on-profile: postgresql
+  datasource:
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.spatial.dialect.postgis.PostgisPG95Dialect
+  liquibase:
+    driver-class-name: org.postgresql.Driver
+
+---
+# MySQL Profile (Default)
+spring:
+  config:
+    activate:
+      on-profile: mysql
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+  liquibase:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+

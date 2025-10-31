@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-closed-to-produce-listing-status-enum
+      author: ai-assistant
+      changes:
+        - sql:
+            sql: ALTER TABLE produce_listings MODIFY COLUMN status ENUM('ACTIVE','INACTIVE','CANCELLED','CLOSED');

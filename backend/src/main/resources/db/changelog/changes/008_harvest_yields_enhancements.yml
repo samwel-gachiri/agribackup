@@ -1,0 +1,118 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-harvest-date-to-produce-yields
+      author: ai-assistant
+      changes:
+        - sql:
+            splitStatements: true
+            stripComments: true
+            sql: |
+              -- 1. Add the column as nullable
+              ALTER TABLE produce_yields
+              ADD COLUMN harvest_date DATE NULL;
+
+              -- 2. Populate existing rows
+              UPDATE produce_yields
+              SET harvest_date = CURRENT_DATE
+              WHERE harvest_date IS NULL;
+
+              -- 3. Make it NOT NULL
+              ALTER TABLE produce_yields
+              MODIFY harvest_date DATE NOT NULL;
+
+  - changeSet:
+      id: add-listing-tracking-to-produce-yields
+      author: ai-assistant
+      changes:
+        - addColumn:
+            tableName: produce_yields
+            columns:
+              - column:
+                  name: listed_amount
+                  type: decimal(10,2)
+                  defaultValue: "0.00"
+              - column:
+                  name: remaining_amount
+                  type: decimal(10,2)
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: add-yield-reference-to-listings
+      author: ai-assistant
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - sqlCheck:
+                expectedResult: 1
+                sql: >
+                  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                  WHERE TABLE_SCHEMA = DATABASE() 
+                  AND TABLE_NAME = 'produce_listings' 
+                  AND COLUMN_NAME = 'produce_yield_id'
+      changes:
+        - addColumn:
+            tableName: produce_listings
+            columns:
+              - column:
+                  name: produce_yield_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: true
+        - addForeignKeyConstraint:
+            baseTableName: produce_listings
+            baseColumnNames: produce_yield_id
+            referencedTableName: produce_yields
+            referencedColumnNames: id
+            constraintName: fk_listing_yield
+
+  - changeSet:
+      id: change-farmer-produce-status-to-varchar
+      author: ai-assistant
+      changes:
+        - modifyDataType:
+            tableName: farmer_produces
+            columnName: status
+            newDataType: varchar(50)
+        - addDefaultValue:
+            tableName: farmer_produces
+            columnName: status
+            defaultValue: "PLANTED"
+
+  - changeSet:
+      id: add-indexes-for-harvest-yields
+      author: ai-assistant
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: >
+              SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+              WHERE TABLE_SCHEMA = DATABASE() 
+              AND TABLE_NAME IN ('produce_yields', 'produce_listings', 'farmer_produces')
+              AND INDEX_NAME IN ('idx_produce_yields_harvest_date', 'idx_produce_yields_farmer_produce', 'idx_produce_listings_produce_yield', 'idx_farmer_produces_status')
+      changes:
+        - createIndex:
+            indexName: idx_produce_yields_harvest_date
+            tableName: produce_yields
+            columns:
+              - column:
+                  name: harvest_date
+        - createIndex:
+            indexName: idx_produce_yields_farmer_produce
+            tableName: produce_yields
+            columns:
+              - column:
+                  name: farmer_produce_id
+        - createIndex:
+            indexName: idx_produce_listings_produce_yield
+            tableName: produce_listings
+            columns:
+              - column:
+                  name: produce_yield_id
+        - createIndex:
+            indexName: idx_farmer_produces_status
+            tableName: farmer_produces
+            columns:
+              - column:
+                  name: status

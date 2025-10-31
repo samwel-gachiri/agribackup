@@ -1,0 +1,58 @@
+```plantuml
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Superadmin\n(Exporter Org)" as Superadmin
+actor "Admin" as Admin
+actor "Zone Supervisor" as Supervisor
+actor "Farmer" as Farmer
+
+package "User Management" {
+  usecase "Add Admins" as UC1
+  usecase "Add Zone Supervisors" as UC2
+  usecase "Add Farmers to Zones" as UC3
+}
+
+package "Access Control" {
+  usecase "Assign Zones to Supervisors" as UC4
+}
+
+package "Zone Operations" {
+  usecase "Manage Pickup" as UC5
+  usecase "Enter & Manage Farmer Data" as UC6
+}
+
+package "Administrative Operations" {
+  usecase "Administer Zone Supervisors" as UC7
+  usecase "Administer Admins" as UC8
+}
+
+' Connections
+Superadmin --> UC1
+Superadmin --> UC8
+Superadmin --> UC4
+Superadmin --> UC2
+Superadmin --> UC3
+Superadmin --> UC5
+Superadmin --> UC6
+
+Admin       --> UC2
+Admin       --> UC7
+Admin       --> UC3
+Admin       --> UC4
+Admin       --> UC6
+
+Supervisor  --> UC3
+Supervisor  --> UC5
+Supervisor  --> UC6
+
+Farmer      --> UC3
+
+' Use-case relationships
+UC2 .> UC4 : <<includes>>
+UC7 .> UC2 : <<includes>>
+UC8 .> UC1 : <<includes>>
+
+@enduml
+```

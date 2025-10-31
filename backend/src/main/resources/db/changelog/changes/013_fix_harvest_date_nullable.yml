@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: make-harvest-date-nullable
+      author: ai-assistant
+      comment: Make harvest_date nullable since it should only be set when produce is actually harvested
+      changes:
+        - modifyDataType:
+            tableName: produce_yields
+            columnName: harvest_date
+            newDataType: DATE
+            constraints:
+              nullable: true

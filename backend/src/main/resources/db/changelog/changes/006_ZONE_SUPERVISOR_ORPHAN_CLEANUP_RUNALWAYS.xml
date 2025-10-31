@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <!-- Force cleanup of orphan zone supervisors and join rows on every run for safety -->
+    <changeSet id="20250903-runalways-clean-zone-supervisors" author="grok" runAlways="true">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="zone_supervisors"/>
+                <tableExists tableName="users"/>
+            </and>
+        </preConditions>
+        <sql>DELETE FROM zone_supervisor_zones WHERE zone_supervisor_id NOT IN (SELECT zone_supervisor_id FROM zone_supervisors);</sql>
+        <sql>DELETE FROM zone_supervisors WHERE user_id NOT IN (SELECT id FROM users);</sql>
+    </changeSet>
+
+</databaseChangeLog>

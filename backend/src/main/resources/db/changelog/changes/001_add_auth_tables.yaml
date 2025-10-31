@@ -1,0 +1,333 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-users-table
+      author: system
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: email
+                  type: varchar(255)
+                  constraints:
+                    unique: true
+                    nullable: false
+              - column:
+                  name: password_hash
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: full_name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phone_number
+                  type: varchar(20)
+              - column:
+                  name: user_type
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_active
+                  type: boolean
+                  defaultValueBoolean: true
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+  - changeSet:
+      id: add-user-references
+      author: system
+      changes:
+        - addColumn:
+            tableName: farmers
+            columns:
+              - column:
+                  name: user_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_farmer_user
+                    references: users(id)
+                    unique: true
+
+        - addColumn:
+            tableName: buyers
+            columns:
+              - column:
+                  name: user_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_buyer_user
+                    references: users(id)
+                    unique: true
+
+        - addColumn:
+            tableName: exporters
+            columns:
+              - column:
+                  name: user_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_exporter_user
+                    references: users(id)
+                    unique: true
+
+  - changeSet:
+      id: create-admins-table
+      author: system
+      changes:
+        - createTable:
+            tableName: admins
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_admin_user
+                    references: users(id)
+                    unique: true
+              - column:
+                  name: role
+                  type: varchar(50)
+              - column:
+                  name: department
+                  type: varchar(100)
+
+  - changeSet:
+      id: add-indexes
+      author: system
+      changes:
+        - createIndex:
+            indexName: idx_users_email
+            tableName: users
+            columns:
+              - column:
+                  name: email
+        - createIndex:
+            indexName: idx_users_phone
+            tableName: users
+            columns:
+              - column:
+                  name: phone_number
+
+  - changeSet:
+      id: create-roles-table
+      author: system
+      changes:
+        - createTable:
+            tableName: roles
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: description
+                  type: varchar(255)
+
+  - changeSet:
+      id: create-user-roles-table
+      author: system
+      changes:
+        - createTable:
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: user_roles
+            columnNames: user_id, role_id
+            constraintName: pk_user_roles
+        - addForeignKeyConstraint:
+            baseTableName: user_roles
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_user_roles_user
+        - addForeignKeyConstraint:
+            baseTableName: user_roles
+            baseColumnNames: role_id
+            referencedTableName: roles
+            referencedColumnNames: id
+            constraintName: fk_user_roles_role
+
+  - changeSet:
+      id: remove-user-type-column
+      author: system
+      changes:
+        - dropColumn:
+            tableName: users
+            columnName: user_type
+
+  - changeSet:
+      id: insert-default-roles
+      author: system
+      changes:
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: id
+                  value: "1"
+              - column:
+                  name: name
+                  value: "FARMER"
+              - column:
+                  name: description
+                  value: "Farmer role with access to farming-related features"
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: id
+                  value: "2"
+              - column:
+                  name: name
+                  value: "BUYER"
+              - column:
+                  name: description
+                  value: "Buyer role with access to purchasing features"
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: id
+                  value: "3"
+              - column:
+                  name: name
+                  value: "EXPORTER"
+              - column:
+                  name: description
+                  value: "Exporter role with access to export-related features"
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: id
+                  value: "4"
+              - column:
+                  name: name
+                  value: "ROLE_ADMIN"
+              - column:
+                  name: description
+                  value: "Administrative role with full system access"
+
+  - changeSet:
+      id: create-permissions-table
+      author: system
+      changes:
+        - createTable:
+            tableName: permissions
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: description
+                  type: varchar(255)
+
+  - changeSet:
+      id: create-role-permissions-table
+      author: system
+      changes:
+        - createTable:
+            tableName: role_permissions
+            columns:
+              - column:
+                  name: role_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: permission_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: role_permissions
+            columnNames: role_id, permission_id
+            constraintName: pk_role_permissions
+        - addForeignKeyConstraint:
+            baseTableName: role_permissions
+            baseColumnNames: role_id
+            referencedTableName: roles
+            referencedColumnNames: id
+            constraintName: fk_role_permissions_role
+        - addForeignKeyConstraint:
+            baseTableName: role_permissions
+            baseColumnNames: permission_id
+            referencedTableName: permissions
+            referencedColumnNames: id
+            constraintName: fk_role_permissions_permission
+
+  - changeSet:
+      id: add-auth-indexes
+      author: system
+      changes:
+        - createIndex:
+            indexName: idx_user_roles_user_id
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+        - createIndex:
+            indexName: idx_user_roles_role_id
+            tableName: user_roles
+            columns:
+              - column:
+                  name: role_id
+        - createIndex:
+            indexName: idx_role_permissions_role_id
+            tableName: role_permissions
+            columns:
+              - column:
+                  name: role_id

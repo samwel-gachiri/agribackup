@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-enhanced-yield-fields-to-produce-yields
+      author: system
+      changes:
+        - addColumn:
+            tableName: produce_yields
+            columns:
+              - column:
+                  name: quality_grade
+                  type: varchar(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: moisture_content
+                  type: decimal(5,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: storage_location
+                  type: varchar(255)
+                  constraints:
+                    nullable: true

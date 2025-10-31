@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <!-- Cleanup orphan zone_supervisors rows & harden FK constraints to prevent future orphans -->
+
+    <changeSet id="20250903-1-clean-orphan-zone-supervisors" author="grok">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="zone_supervisors"/>
+                <tableExists tableName="users"/>
+            </and>
+        </preConditions>
+        <!-- Remove zone_supervisors whose user_id no longer exists (historical inconsistencies) -->
+        <delete tableName="zone_supervisors">
+            <where>user_id NOT IN (SELECT id FROM users)</where>
+        </delete>
+    </changeSet>
+
+    <!-- Ensure FK on zone_supervisors.user_id cascades so deleting a user removes supervisor -->
+    <changeSet id="20250903-2-alter-fk-zone-supervisors-user" author="grok">
+        <preConditions onFail="MARK_RAN">
+            <foreignKeyConstraintExists foreignKeyName="fk_zone_supervisors_user_id"/>
+        </preConditions>
+        <dropForeignKeyConstraint baseTableName="zone_supervisors" constraintName="fk_zone_supervisors_user_id"/>
+        <addForeignKeyConstraint baseTableName="zone_supervisors"
+                                  baseColumnNames="user_id"
+                                  constraintName="fk_zone_supervisors_user_id"
+                                  referencedTableName="users"
+                                  referencedColumnNames="id"
+                                  onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- Ensure join table rows are removed automatically when a zone supervisor is deleted -->
+    <changeSet id="20250903-3-alter-fk-zone-supervisor-zones-supervisor" author="grok">
+        <preConditions onFail="MARK_RAN">
+            <foreignKeyConstraintExists foreignKeyName="fk_zone_supervisor_zones_supervisor"/>
+        </preConditions>
+        <dropForeignKeyConstraint baseTableName="zone_supervisor_zones" constraintName="fk_zone_supervisor_zones_supervisor"/>
+        <addForeignKeyConstraint baseTableName="zone_supervisor_zones"
+                                  baseColumnNames="zone_supervisor_id"
+                                  constraintName="fk_zone_supervisor_zones_supervisor"
+                                  referencedTableName="zone_supervisors"
+                                  referencedColumnNames="zone_supervisor_id"
+                                  onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- Defensive cleanup: If any stale join table rows reference a missing supervisor, remove them -->
+    <changeSet id="20250903-4-clean-orphan-join-rows" author="grok">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="zone_supervisor_zones"/>
+        </preConditions>
+        <sql>
+            DELETE zsz FROM zone_supervisor_zones zsz
+            LEFT JOIN zone_supervisors zs ON zsz.zone_supervisor_id = zs.zone_supervisor_id
+            WHERE zs.zone_supervisor_id IS NULL;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

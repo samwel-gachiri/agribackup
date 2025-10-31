@@ -1,0 +1,109 @@
+databaseChangeLog:
+  - changeSet:
+      id: 012-create-buyer-pickup-routes
+      author: system
+      changes:
+        - createTable:
+            tableName: buyer_pickup_routes
+            columns:
+              - column:
+                  name: route_id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: buyer_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_distance
+                  type: decimal(10,2)
+              - column:
+                  name: estimated_duration
+                  type: int
+              - column:
+                  name: total_cost
+                  type: decimal(10,2)
+              - column:
+                  name: pickup_date
+                  type: date
+              - column:
+                  name: start_time
+                  type: varchar(10)
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: confirmed_at
+                  type: timestamp
+        - createTable:
+            tableName: buyer_route_waypoints
+            columns:
+              - column:
+                  name: waypoint_id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: route_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: farmer_id
+                  type: varchar(36)
+              - column:
+                  name: sequence_number
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: estimated_arrival
+                  type: varchar(20)
+              - column:
+                  name: estimated_duration
+                  type: int
+              - column:
+                  name: latitude
+                  type: decimal(10,8)
+              - column:
+                  name: longitude
+                  type: decimal(11,8)
+              - column:
+                  name: special_instructions
+                  type: text
+        - createIndex:
+            tableName: buyer_route_waypoints
+            indexName: idx_buyer_route_waypoints_route
+            columns:
+              - column:
+                  name: route_id
+        - addForeignKeyConstraint:
+            baseTableName: buyer_pickup_routes
+            baseColumnNames: buyer_id
+            referencedTableName: buyers
+            referencedColumnNames: buyer_id
+            constraintName: fk_buyer_pickup_routes_buyer
+        - addForeignKeyConstraint:
+            baseTableName: buyer_route_waypoints
+            baseColumnNames: route_id
+            referencedTableName: buyer_pickup_routes
+            referencedColumnNames: route_id
+            constraintName: fk_buyer_route_waypoints_route
+        - addForeignKeyConstraint:
+            baseTableName: buyer_route_waypoints
+            baseColumnNames: farmer_id
+            referencedTableName: farmers
+            referencedColumnNames: farmer_id
+            constraintName: fk_buyer_route_waypoints_farmer

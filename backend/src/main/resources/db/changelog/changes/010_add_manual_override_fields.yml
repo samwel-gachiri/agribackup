@@ -1,0 +1,29 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-manual-override-fields-to-farmer-produces
+      author: system
+      changes:
+        - addColumn:
+            tableName: farmer_produces
+            columns:
+              - column:
+                  name: manual_override
+                  type: boolean
+                  defaultValue: false
+                  constraints:
+                    nullable: true
+              - column:
+                  name: manual_override_reason
+                  type: varchar(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: manual_override_notes
+                  type: text
+                  constraints:
+                    nullable: true
+              - column:
+                  name: manual_override_date
+                  type: timestamp
+                  constraints:
+                    nullable: true

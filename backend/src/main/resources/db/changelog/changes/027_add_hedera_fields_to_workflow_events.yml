@@ -1,0 +1,92 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_hedera_fields_to_workflow_collection_events
+      author: Samwel
+      changes:
+        - addColumn:
+            tableName: workflow_collection_events
+            columns:
+              - column:
+                  name: hedera_hash
+                  type: VARCHAR(255)
+                  remarks: "Hedera blockchain hash for this collection event"
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(255)
+                  remarks: "Hedera transaction ID for blockchain verification"
+        - createIndex:
+            tableName: workflow_collection_events
+            indexName: idx_collection_hedera_tx
+            columns:
+              - column:
+                  name: hedera_transaction_id
+
+  - changeSet:
+      id: add_notes_and_hedera_fields_to_workflow_consolidation_events
+      author: Samwel
+      changes:
+        - addColumn:
+            tableName: workflow_consolidation_events
+            columns:
+              - column:
+                  name: notes
+                  type: TEXT
+                  remarks: "Additional notes for consolidation event"
+              - column:
+                  name: hedera_hash
+                  type: VARCHAR(255)
+                  remarks: "Hedera blockchain hash for this consolidation event"
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(255)
+                  remarks: "Hedera transaction ID for blockchain verification"
+        - createIndex:
+            tableName: workflow_consolidation_events
+            indexName: idx_consolidation_hedera_tx
+            columns:
+              - column:
+                  name: hedera_transaction_id
+
+  - changeSet:
+      id: add_hedera_fields_to_workflow_processing_events
+      author: Samwel
+      changes:
+        - addColumn:
+            tableName: workflow_processing_events
+            columns:
+              - column:
+                  name: hedera_hash
+                  type: VARCHAR(255)
+                  remarks: "Hedera blockchain hash for this processing event"
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(255)
+                  remarks: "Hedera transaction ID for blockchain verification"
+        - createIndex:
+            tableName: workflow_processing_events
+            indexName: idx_processing_hedera_tx
+            columns:
+              - column:
+                  name: hedera_transaction_id
+
+  - changeSet:
+      id: add_hedera_fields_to_workflow_shipment_events
+      author: Samwel
+      changes:
+        - addColumn:
+            tableName: workflow_shipment_events
+            columns:
+              - column:
+                  name: hedera_hash
+                  type: VARCHAR(255)
+                  remarks: "Hedera blockchain hash for this shipment event"
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(255)
+                  remarks: "Hedera transaction ID for blockchain verification"
+        - createIndex:
+            tableName: workflow_shipment_events
+            indexName: idx_shipment_hedera_tx
+            columns:
+              - column:
+                  name: hedera_transaction_id

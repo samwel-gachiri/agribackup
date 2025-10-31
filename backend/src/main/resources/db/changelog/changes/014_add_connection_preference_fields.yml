@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-connection-preference-fields
+      author: System
+      changes:
+        - addColumn:
+            tableName: farmer_buyer_connections
+            columns:
+              - column:
+                  name: notes
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: notification_preference
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: priority_level
+                  type: INT
+                  constraints:
+                    nullable: true

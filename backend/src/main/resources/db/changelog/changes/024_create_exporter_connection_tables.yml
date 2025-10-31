@@ -1,0 +1,298 @@
+databaseChangeLog:
+  - changeSet:
+      id: create_exporter_processor_connections_table
+      author: Samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: exporter_processor_connections
+      changes:
+        - createTable:
+            tableName: exporter_processor_connections
+            remarks: Junction table for exporter-processor many-to-many relationships
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: exporter_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processor_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+                  defaultValue: ACTIVE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: connected_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notes
+                  type: TEXT
+        - addUniqueConstraint:
+            tableName: exporter_processor_connections
+            columnNames: exporter_id, processor_id
+            constraintName: uk_exporter_processor
+        - addForeignKeyConstraint:
+            baseTableName: exporter_processor_connections
+            baseColumnNames: exporter_id
+            referencedTableName: exporters
+            referencedColumnNames: exporter_id
+            constraintName: fk_exp_proc_exporter
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: exporter_processor_connections
+            baseColumnNames: processor_id
+            referencedTableName: processors
+            referencedColumnNames: processor_id
+            constraintName: fk_exp_proc_processor
+            onDelete: CASCADE
+        - createIndex:
+            tableName: exporter_processor_connections
+            indexName: idx_exp_proc_exporter
+            columns:
+              - column:
+                  name: exporter_id
+        - createIndex:
+            tableName: exporter_processor_connections
+            indexName: idx_exp_proc_processor
+            columns:
+              - column:
+                  name: processor_id
+        - createIndex:
+            tableName: exporter_processor_connections
+            indexName: idx_exp_proc_status
+            columns:
+              - column:
+                  name: status
+
+  - changeSet:
+      id: create_exporter_aggregator_connections_table
+      author: Samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: exporter_aggregator_connections
+      changes:
+        - createTable:
+            tableName: exporter_aggregator_connections
+            remarks: Junction table for exporter-aggregator many-to-many relationships
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: exporter_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: aggregator_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+                  defaultValue: ACTIVE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: connected_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notes
+                  type: TEXT
+        - addUniqueConstraint:
+            tableName: exporter_aggregator_connections
+            columnNames: exporter_id, aggregator_id
+            constraintName: uk_exporter_aggregator
+        - addForeignKeyConstraint:
+            baseTableName: exporter_aggregator_connections
+            baseColumnNames: exporter_id
+            referencedTableName: exporters
+            referencedColumnNames: exporter_id
+            constraintName: fk_exp_agg_exporter
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: exporter_aggregator_connections
+            baseColumnNames: aggregator_id
+            referencedTableName: aggregators
+            referencedColumnNames: aggregator_id
+            constraintName: fk_exp_agg_aggregator
+            onDelete: CASCADE
+        - createIndex:
+            tableName: exporter_aggregator_connections
+            indexName: idx_exp_agg_exporter
+            columns:
+              - column:
+                  name: exporter_id
+        - createIndex:
+            tableName: exporter_aggregator_connections
+            indexName: idx_exp_agg_aggregator
+            columns:
+              - column:
+                  name: aggregator_id
+        - createIndex:
+            tableName: exporter_aggregator_connections
+            indexName: idx_exp_agg_status
+            columns:
+              - column:
+                  name: status
+
+  - changeSet:
+      id: create_exporter_importer_connections_table
+      author: Samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: exporter_importer_connections
+      changes:
+        - createTable:
+            tableName: exporter_importer_connections
+            remarks: Junction table for exporter-importer many-to-many relationships
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: exporter_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: importer_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+                  defaultValue: ACTIVE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: connected_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notes
+                  type: TEXT
+        - addUniqueConstraint:
+            tableName: exporter_importer_connections
+            columnNames: exporter_id, importer_id
+            constraintName: uk_exporter_importer
+        - addForeignKeyConstraint:
+            baseTableName: exporter_importer_connections
+            baseColumnNames: exporter_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_exp_imp_exporter
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: exporter_importer_connections
+            baseColumnNames: importer_id
+            referencedTableName: importers
+            referencedColumnNames: importer_id
+            constraintName: fk_exp_imp_importer
+            onDelete: CASCADE
+        - createIndex:
+            tableName: exporter_importer_connections
+            indexName: idx_exp_imp_exporter
+            columns:
+              - column:
+                  name: exporter_id
+        - createIndex:
+            tableName: exporter_importer_connections
+            indexName: idx_exp_imp_importer
+            columns:
+              - column:
+                  name: importer_id
+        - createIndex:
+            tableName: exporter_importer_connections
+            indexName: idx_exp_imp_status
+            columns:
+              - column:
+                  name: status
+
+  - changeSet:
+      id: fix_exporter_aggregator_connections_foreign_key
+      author: Samwel
+      preConditions:
+        - onFail: MARK_RAN
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: exporter_aggregator_connections
+            constraintName: fk_exp_agg_exporter
+        - addForeignKeyConstraint:
+            baseTableName: exporter_aggregator_connections
+            baseColumnNames: exporter_id
+            referencedTableName: exporters
+            referencedColumnNames: exporter_id
+            constraintName: fk_exp_agg_exporter
+            onDelete: CASCADE
+
+  - changeSet:
+      id: fix_exporter_processor_connections_foreign_key
+      author: Samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - foreignKeyConstraintExists:
+            foreignKeyName: fk_exp_proc_exporter
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: exporter_processor_connections
+            constraintName: fk_exp_proc_exporter
+        - addForeignKeyConstraint:
+            baseTableName: exporter_processor_connections
+            baseColumnNames: exporter_id
+            referencedTableName: exporters
+            referencedColumnNames: exporter_id
+            constraintName: fk_exp_proc_exporter
+            onDelete: CASCADE
+
+  - changeSet:
+      id: fix_exporter_importer_connections_foreign_key
+      author: Samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - foreignKeyConstraintExists:
+            foreignKeyName: fk_exp_imp_exporter
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: exporter_importer_connections
+            constraintName: fk_exp_imp_exporter
+        - addForeignKeyConstraint:
+            baseTableName: exporter_importer_connections
+            baseColumnNames: exporter_id
+            referencedTableName: exporters
+            referencedColumnNames: exporter_id
+            constraintName: fk_exp_imp_exporter
+            onDelete: CASCADE

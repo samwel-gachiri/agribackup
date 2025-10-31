@@ -1,0 +1,392 @@
+databaseChangeLog:
+  - changeSet:
+      id: create_supply_chain_workflows_table
+      author: Samwel
+      changes:
+        - createTable:
+            tableName: supply_chain_workflows
+            remarks: Tracks exporter's end-to-end supply chain workflows from farm to shipment
+            columns:
+              - column:
+                  name: workflow_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: exporter_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: workflow_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: produce_type
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+                  defaultValue: IN_PROGRESS
+                  constraints:
+                    nullable: false
+                  remarks: "IN_PROGRESS, COMPLETED, CANCELLED"
+              - column:
+                  name: current_stage
+                  type: VARCHAR(50)
+                  defaultValue: COLLECTION
+                  constraints:
+                    nullable: false
+                  remarks: "COLLECTION, CONSOLIDATION, PROCESSING, SHIPMENT, COMPLETED"
+              - column:
+                  name: total_quantity_kg
+                  type: DECIMAL(15,2)
+                  defaultValue: 0
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: completed_at
+                  type: TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: supply_chain_workflows
+            baseColumnNames: exporter_id
+            referencedTableName: exporters
+            referencedColumnNames: exporter_id
+            constraintName: fk_workflow_exporter
+            onDelete: CASCADE
+        - createIndex:
+            tableName: supply_chain_workflows
+            indexName: idx_workflow_exporter
+            columns:
+              - column:
+                  name: exporter_id
+        - createIndex:
+            tableName: supply_chain_workflows
+            indexName: idx_workflow_status
+            columns:
+              - column:
+                  name: status
+
+  - changeSet:
+      id: create_workflow_collection_events_table
+      author: Samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: workflow_collection_events
+      changes:
+        - createTable:
+            tableName: workflow_collection_events
+            remarks: Tracks collection events - connection between production units and aggregators
+            columns:
+              - column:
+                  name: event_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workflow_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: production_unit_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: aggregator_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: farmer_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity_collected_kg
+                  type: DECIMAL(15,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: collection_date
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quality_grade
+                  type: VARCHAR(50)
+              - column:
+                  name: notes
+                  type: TEXT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: workflow_collection_events
+            baseColumnNames: workflow_id
+            referencedTableName: supply_chain_workflows
+            referencedColumnNames: workflow_id
+            constraintName: fk_collection_workflow
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: workflow_collection_events
+            baseColumnNames: production_unit_id
+            referencedTableName: production_units
+            referencedColumnNames: unit_id
+            constraintName: fk_collection_production_unit
+            onDelete: RESTRICT
+        - addForeignKeyConstraint:
+            baseTableName: workflow_collection_events
+            baseColumnNames: aggregator_id
+            referencedTableName: aggregators
+            referencedColumnNames: aggregator_id
+            constraintName: fk_collection_aggregator
+            onDelete: RESTRICT
+        - addForeignKeyConstraint:
+            baseTableName: workflow_collection_events
+            baseColumnNames: farmer_id
+            referencedTableName: farmers
+            referencedColumnNames: farmer_id
+            constraintName: fk_collection_farmer
+            onDelete: RESTRICT
+        - createIndex:
+            tableName: workflow_collection_events
+            indexName: idx_collection_workflow
+            columns:
+              - column:
+                  name: workflow_id
+
+  - changeSet:
+      id: create_workflow_consolidation_events_table
+      author: Samwel
+      changes:
+        - createTable:
+            tableName: workflow_consolidation_events
+            remarks: Tracks consolidation - aggregator to processor connections
+            columns:
+              - column:
+                  name: event_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workflow_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: aggregator_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processor_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity_sent_kg
+                  type: DECIMAL(15,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: consolidation_date
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: transport_details
+                  type: TEXT
+              - column:
+                  name: batch_number
+                  type: VARCHAR(100)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: workflow_consolidation_events
+            baseColumnNames: workflow_id
+            referencedTableName: supply_chain_workflows
+            referencedColumnNames: workflow_id
+            constraintName: fk_consolidation_workflow
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: workflow_consolidation_events
+            baseColumnNames: aggregator_id
+            referencedTableName: aggregators
+            referencedColumnNames: aggregator_id
+            constraintName: fk_consolidation_aggregator
+            onDelete: RESTRICT
+        - addForeignKeyConstraint:
+            baseTableName: workflow_consolidation_events
+            baseColumnNames: processor_id
+            referencedTableName: processors
+            referencedColumnNames: processor_id
+            constraintName: fk_consolidation_processor
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: create_workflow_processing_events_table
+      author: Samwel
+      changes:
+        - createTable:
+            tableName: workflow_processing_events
+            remarks: Tracks processing - processor activities
+            columns:
+              - column:
+                  name: event_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workflow_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processor_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity_processed_kg
+                  type: DECIMAL(15,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processing_date
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processing_type
+                  type: VARCHAR(100)
+              - column:
+                  name: output_quantity_kg
+                  type: DECIMAL(15,2)
+              - column:
+                  name: processing_notes
+                  type: TEXT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: workflow_processing_events
+            baseColumnNames: workflow_id
+            referencedTableName: supply_chain_workflows
+            referencedColumnNames: workflow_id
+            constraintName: fk_processing_workflow
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: workflow_processing_events
+            baseColumnNames: processor_id
+            referencedTableName: processors
+            referencedColumnNames: processor_id
+            constraintName: fk_processing_processor
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: create_workflow_shipment_events_table
+      author: Samwel
+      changes:
+        - createTable:
+            tableName: workflow_shipment_events
+            remarks: Tracks shipment - processor to importer
+            columns:
+              - column:
+                  name: event_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workflow_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processor_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: importer_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity_shipped_kg
+                  type: DECIMAL(15,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: shipment_date
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expected_arrival_date
+                  type: TIMESTAMP
+              - column:
+                  name: actual_arrival_date
+                  type: TIMESTAMP
+              - column:
+                  name: shipping_company
+                  type: VARCHAR(255)
+              - column:
+                  name: tracking_number
+                  type: VARCHAR(255)
+              - column:
+                  name: destination_port
+                  type: VARCHAR(255)
+              - column:
+                  name: shipment_notes
+                  type: TEXT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: workflow_shipment_events
+            baseColumnNames: workflow_id
+            referencedTableName: supply_chain_workflows
+            referencedColumnNames: workflow_id
+            constraintName: fk_shipment_workflow
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: workflow_shipment_events
+            baseColumnNames: processor_id
+            referencedTableName: processors
+            referencedColumnNames: processor_id
+            constraintName: fk_shipment_processor
+            onDelete: RESTRICT
+        - addForeignKeyConstraint:
+            baseTableName: workflow_shipment_events
+            baseColumnNames: importer_id
+            referencedTableName: importers
+            referencedColumnNames: importer_id
+            constraintName: fk_shipment_importer
+            onDelete: RESTRICT
