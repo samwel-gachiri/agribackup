@@ -1,19 +1,19 @@
 databaseChangeLog:
   # changes to the farmer, buyer and connection are treated separately under one
-  - include:
-      file: db/changelog/farmer-changelog.yml
-  - include:
-      file: db/changelog/buyer-changelog.yml
-  - include:
-      file: db/changelog/connection-changelog.yml
-  - include:
-      file: db/changelog/exporter-changelog.yaml
-  - include:
-      file: db/changelog/hedera-changelog.yml
+  # - include:
+  #     file: db/changelog/farmer-changelog.yml
+  # - include:
+  #     file: db/changelog/buyer-changelog.yml
+  # - include:
+  #     file: db/changelog/connection-changelog.yml
+  # - include:
+  #     file: db/changelog/exporter-changelog.yaml
+  # - include:
+  #     file: db/changelog/hedera-changelog.yml
 #  - include:
 #      file: db/changelog/hedera-changelog.yaml
-  - includeAll:
-      path: db/changelog/changes
+  # - includeAll:
+  #     path: db/changelog/changes
 
   # Feature request table was created in this file because it serves both the farmer and the buyer
   - changeSet:

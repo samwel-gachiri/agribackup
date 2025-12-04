@@ -240,6 +240,9 @@ databaseChangeLog:
             indexName: idx_exp_imp_status
             columns:
               - column:
+<<<<<<< HEAD
+                  name: status
+=======
                   name: status
 
   - changeSet:
@@ -296,3 +299,4 @@ databaseChangeLog:
             referencedColumnNames: exporter_id
             constraintName: fk_exp_imp_exporter
             onDelete: CASCADE
+>>>>>>> 15523e5 (Initial commit: Farmers Portal APIs backend)

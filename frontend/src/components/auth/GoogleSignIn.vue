@@ -1,12 +1,6 @@
 <template>
   <div>
     <div id="google-signin-button" class="tw-border"></div>
-    <div v-if="user">
-      <h2>Welcome, {{ user.userProfile.fullName }}!</h2>
-      <img :src="user.picture" alt="Profile Picture" />
-      <p>Email: {{ user.email }}</p>
-      <button @click="signOut">Sign Out</button>
-    </div>
   </div>
 </template>
 
@@ -19,8 +13,12 @@ export default {
     };
   },
   mounted() {
+    const clientId = process.env.VUE_APP_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      console.error('Google Client ID is missing. Please set VUE_APP_GOOGLE_CLIENT_ID in your .env file.');
+    }
     window.google.accounts.id.initialize({
-      client_id: 'YOUR_GOOGLE_CLIENT_ID', // Replace with your Client ID
+      client_id: clientId,
       callback: this.handleCredentialResponse, // Callback function
     });
 
@@ -36,12 +34,13 @@ export default {
       if (response.credential) {
         // Decode the JWT token to get user info
         const userInfo = this.decodeJWT(response.credential);
-        this.user = {
-          name: userInfo.name,
+        this.$emit('google-login-success', {
+          fullName: userInfo.name,
           email: userInfo.email,
           picture: userInfo.picture,
-        };
-        this.$toast.success('User signed in:', userInfo);
+          credential: response.credential,
+        });
+        this.$toast.success('Google Sign-In successful');
       }
     },
     decodeJWT(token) {

@@ -44,6 +44,7 @@ class SecurityConfig(
             "http://localhost:3030",
             "http://localhost:8080",
             "https://www.agribackup.com",
+            "https://dev.eudr.agribackup.com/",
             "https://cron-job.org"
         )
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")

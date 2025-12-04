@@ -145,7 +145,7 @@ ipfs:
 gfw:
   api:
     base-url: ${GFW_API_BASE_URL:https://data-api.globalforestwatch.org}
-    key: ${GFW_API_KEY}
+    key: 792ac27e-920f-4b6b-bfda-d40df10438f0
 
 # Deforestation Monitoring Configuration
 deforestation:

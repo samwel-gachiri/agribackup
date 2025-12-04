@@ -1,233 +1,288 @@
 <template>
   <v-app>
-    <v-main>
-      <div class="minimal-bg">
-        <!-- Minimal SVG background graphic -->
-        <svg
-          class="minimal-bg-svg"
-          viewBox="0 0 800 600"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <ellipse
-            cx="400"
-            cy="300"
-            rx="320"
-            ry="180"
-            fill="#1976d2"
-            fill-opacity="0.08"
-          />
-          <ellipse
-            cx="600"
-            cy="100"
-            rx="120"
-            ry="60"
-            fill="#43a047"
-            fill-opacity="0.1"
-          />
-          <ellipse
-            cx="200"
-            cy="500"
-            rx="100"
-            ry="40"
-            fill="#fffde7"
-            fill-opacity="0.13"
-          />
-        </svg>
-      </div>
-      <v-container class="fill-height" fluid>
-        <v-row align="center" justify="center">
-          <v-col cols="12" sm="10" md="6">
-            <v-card
-              class="pa-6"
-              elevation="12"
-              rounded="xl"
-              >
-              <!-- :class="{ 'expensive-exporter-card': isExporter }" -->
-              <v-card-title class="justify-center">
-                <v-avatar size="64">
-                  <v-img src="@/assets/images/happy-farmer.jpg" alt="Happy Farmer" />
+    <v-main class="professional-signin">
+      <v-container fluid class="fill-height tw-pa-0">
+        <v-row no-gutters class="fill-height">
+          <!-- Left Panel - Branding & Info -->
+          <v-col
+            cols="12"
+            md="6"
+            class="branding-panel d-none d-md-flex"
+          >
+            <div class="branding-content">
+              <!-- Logo & Company Name -->
+              <div class="brand-header">
+                <v-avatar size="64" class="mb-4">
+                  <v-img src="@/assets/images/happy-farmer.jpg" alt="AgriBackup" />
                 </v-avatar>
-              </v-card-title>
-              <v-card-subtitle class="text-center text-h5 font-weight-bold mb-2">
-                {{ getPortalTitle() }}
-              </v-card-subtitle>
-              <!-- Portal Context Display -->
-              <div v-if="portalContext" class="text-center mb-4">
-                <v-chip
-                  :color="getPortalColor()"
-                  text-color="white"
-                  small
-                  class="ma-1"
-                >
-                  <v-icon left small>{{ getPortalIcon() }}</v-icon>
-                  {{ getPortalDisplayName() }}
-                </v-chip>
+                <h1 class="company-name">AgriBackup</h1>
+                <p class="company-tagline">
+                  EUDR-Compliant Supply Chain Platform
+                </p>
               </div>
-              <v-card-text>
-                <v-btn-toggle v-model="inputType" class="mb-4" mandatory>
-                  <v-btn value="email" variant="outlined">Email</v-btn>
-                  <v-btn value="phone" variant="outlined">Phone</v-btn>
-                </v-btn-toggle>
-                <div v-if="inputType === 'email'">
-                  <v-text-field
-                    v-model="emailOrPhone"
-                    label="Email"
-                    type="email"
-                    prepend-inner-icon="mdi-email-outline"
-                    outlined
-                    dense
-                    required
-                    autocomplete="email"
-                    name="email"
-                  />
+
+              <!-- Features List -->
+              <div class="features-list">
+                <div class="feature-item">
+                  <v-icon color="white" size="24">mdi-shield-check</v-icon>
+                  <div>
+                    <h3>Secure & Compliant</h3>
+                    <p>Enterprise-grade security with EUDR compliance</p>
+                  </div>
                 </div>
-                <div v-else class="tw-mb-6">
-                  <vue-phone-number-input
-                    v-model="phoneNumber"
-                    :default-country-code="'KE'"
-                    :preferred-countries="['KE', 'US', 'GB']"
-                    class="w-100"
-                    show-code-on-list
-                    aria-label="Phone"
-                    @update="onPhoneUpdate"
-                    autocomplete="tel"
-                    name="phone"
-                  />
+                <div class="feature-item">
+                  <v-icon color="white" size="24">mdi-chart-line</v-icon>
+                  <div>
+                    <h3>Real-time Tracking</h3>
+                    <p>Monitor your supply chain from farm to export</p>
+                  </div>
                 </div>
+                <div class="feature-item">
+                  <v-icon color="white" size="24">mdi-account-group</v-icon>
+                  <div>
+                    <h3>Trusted by Thousands</h3>
+                    <p>Join farmers, buyers, and exporters worldwide</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer Info -->
+              <div class="brand-footer">
+                <p>&copy; 2024 AgriBackup. All rights reserved.</p>
+              </div>
+            </div>
+          </v-col>
+
+          <!-- Right Panel - Sign In Form -->
+          <v-col
+            cols="12"
+            md="6"
+            class="form-panel"
+          >
+            <div class="form-container">
+              <!-- Mobile Logo (shown only on mobile) -->
+              <div class="mobile-logo d-md-none text-center mb-8">
+                <v-avatar size="56" class="mb-3">
+                  <v-img src="@/assets/images/happy-farmer.jpg" alt="AgriBackup" />
+                </v-avatar>
+                <h2 class="text-h5 font-weight-bold" style="color: #2e7d32;">
+                  AgriBackup
+                </h2>
+              </div>
+
+              <!-- Form Header -->
+              <div class="form-header">
+                <h2 class="form-title">Sign in to your account</h2>
+                <p class="form-subtitle">
+                  Welcome back! Please enter your details.
+                </p>
+
+                <!-- Portal Badge -->
+                <div v-if="portalContext" class="mt-4">
+                  <v-chip
+                    :color="getPortalColor()"
+                    text-color="white"
+                    small
+                    class="portal-badge"
+                  >
+                    <v-icon left x-small>{{ getPortalIcon() }}</v-icon>
+                    {{ getPortalDisplayName() }}
+                  </v-chip>
+                </div>
+              </div>
+
+              <!-- Google Sign In -->
+              <div class="mb-6">
+                <GoogleSignIn @google-login-success="handleGoogleLogin" />
+              </div>
+
+              <!-- Divider -->
+              <div class="divider-section mb-6">
+                <v-divider></v-divider>
+                <span class="divider-text">OR</span>
+                <v-divider></v-divider>
+              </div>
+
+              <!-- Input Type Selector -->
+              <div class="input-type-selector mb-4">
+                <v-btn
+                  :outlined="inputType !== 'phone'"
+                  :color="inputType === 'phone' ? 'primary' : 'grey'"
+                  :class="{ 'active-input-type': inputType === 'phone' }"
+                  class="flex-grow-1"
+                  @click="inputType = 'phone'"
+                >
+                  <v-icon left small>mdi-phone</v-icon>
+                  Phone
+                </v-btn>
+                <v-btn
+                  :outlined="inputType !== 'email'"
+                  :color="inputType === 'email' ? 'primary' : 'grey'"
+                  :class="{ 'active-input-type': inputType === 'email' }"
+                  class="flex-grow-1 ml-2"
+                  @click="inputType = 'email'"
+                >
+                  <v-icon left small>mdi-email</v-icon>
+                  Email
+                </v-btn>
+              </div>
+
+              <!-- Email Input -->
+              <div v-if="inputType === 'email'" class="mb-4">
+                <label class="input-label">Email address</label>
+                <v-text-field
+                  v-model="emailOrPhone"
+                  type="email"
+                  placeholder="Enter your email"
+                  outlined
+                  dense
+                  hide-details="auto"
+                  autocomplete="email"
+                  name="email"
+                  class="professional-input"
+                />
+              </div>
+
+              <!-- Phone Input -->
+              <div v-else class="mb-4">
+                <label class="input-label">Phone number</label>
+                <vue-phone-number-input
+                  v-model="phoneNumber"
+                  :default-country-code="'KE'"
+                  :preferred-countries="['KE', 'US', 'GB']"
+                  class="w-100 professional-phone"
+                  show-code-on-list
+                  @update="onPhoneUpdate"
+                  autocomplete="tel"
+                  name="phone"
+                />
+              </div>
+
+              <!-- Password Input -->
+              <div class="mb-2">
+                <label class="input-label">Password</label>
                 <v-text-field
                   v-model="password"
                   :type="showPassword ? 'text' : 'password'"
-                  label="Password"
-                  prepend-inner-icon="mdi-lock-outline"
-                  :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                  placeholder="Enter your password"
+                  :append-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
                   outlined
                   dense
-                  required
+                  hide-details="auto"
                   autocomplete="current-password"
                   name="password"
-                  class="mt-2"
+                  class="professional-input"
                   @keydown.enter="signIn"
-                  @click:append-inner="showPassword = !showPassword"
+                  @click:append="showPassword = !showPassword"
                 />
-                <v-btn
-                  color="primary"
-                  class="mt-4"
-                  block
-                  large
-                  rounded
-                  :loading="isLoading"
-                  @click="signIn"
-                >
-                  <v-icon left>mdi-login</v-icon>
-                  Sign In
-                </v-btn>
-                <!-- Sign In{{ portalContext ? ` to ${getPortalDisplayName()}` : '' }} -->
-                <!-- Error message display -->
-                <v-alert
-                  v-if="errorMessage"
-                  type="error"
-                  class="mt-4"
-                  dense
-                  outlined
-                >
-                  <div class="d-flex align-center">
-                    <!-- <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon> -->
-                    <span>{{ errorMessage }}</span>
-                  </div>
-                  <div v-if="showCreateAccountBtn" class="mt-3">
-                    <v-btn
-                      color="success"
-                      rounded
-                      block
-                      @click="goToSignUp"
-                    >
-                      <v-icon left>mdi-account-plus</v-icon>
-                      Create Account
-                    </v-btn>
-                  </div>
-                  <div v-else-if="showCreateRoleBtn" class="mt-3">
-                    <v-btn
-                      color="warning"
-                      rounded
-                      block
-                      @click="goToSignUp"
-                    >
-                      <v-icon left>mdi-account-cog</v-icon>
-                      Create {{ roleName }} Role
-                    </v-btn>
-                  </div>
-                  <div v-if="showRetryBtn" class="mt-3">
-                    <v-btn
-                      color="primary"
-                      rounded
-                      block
-                      outlined
-                      @click="retrySignIn"
-                    >
-                      <v-icon left>mdi-refresh</v-icon>
-                      Try Again
-                    </v-btn>
-                  </div>
-                </v-alert>
+              </div>
 
-                <!-- Success message display -->
-                <v-alert
-                  v-if="successMessage"
-                  type="success"
-                  class="mt-4"
-                  dense
-                  outlined
+              <!-- Forgot Password -->
+              <div class="text-right mb-4">
+                <v-btn
+                  text
+                  x-small
+                  color="primary"
+                  class="forgot-password-btn"
+                  @click="$router.push({ name: 'ForgotPassword' })"
                 >
-                  <div class="d-flex align-center">
-                    <!-- <v-icon color="success" class="mr-2">mdi-check-circle</v-icon> -->
-                    <span>{{ successMessage }}</span>
-                  </div>
-                </v-alert>
-                <div class="mt-3 text-center">
-                  <span class="text-caption">Forgot password?</span>
+                  Forgot password?
+                </v-btn>
+              </div>
+
+              <!-- Sign In Button -->
+              <v-btn
+                color="primary"
+                class="signin-btn mb-4"
+                block
+                large
+                depressed
+                :loading="isLoading"
+                @click="signIn"
+              >
+                Sign in
+              </v-btn>
+
+              <!-- Error Alert -->
+              <v-alert
+                v-if="errorMessage"
+                type="error"
+                dense
+                text
+                class="mb-4 professional-alert"
+              >
+                {{ errorMessage }}
+                <div v-if="showCreateAccountBtn" class="mt-3">
+                  <v-btn
+                    color="success"
+                    small
+                    depressed
+                    @click="goToSignUp"
+                  >
+                    <v-icon left small>mdi-account-plus</v-icon>
+                    Create Account
+                  </v-btn>
+                </div>
+                <div v-else-if="showCreateRoleBtn" class="mt-3">
+                  <v-btn
+                    color="warning"
+                    small
+                    depressed
+                    @click="goToSignUp"
+                  >
+                    <v-icon left small>mdi-account-cog</v-icon>
+                    Create {{ roleName }} Role
+                  </v-btn>
+                </div>
+              </v-alert>
+
+              <!-- Success Alert -->
+              <v-alert
+                v-if="successMessage"
+                type="success"
+                dense
+                text
+                class="mb-4 professional-alert"
+              >
+                {{ successMessage }}
+              </v-alert>
+
+              <!-- Sign Up Link -->
+              <div class="signup-section text-center">
+                <p class="signup-text">
+                  Don't have an account?
                   <v-btn
                     text
                     color="primary"
-                    class="ml-1"
-                    small
-                    @click="$router.push({ name: 'ForgotPassword' })"
-                  >Reset</v-btn>
-                </div>
-                <div class="mt-4 text-center">
-                  <v-btn
-                    outlined
-                    color="success"
-                    large
-                    block
+                    class="signup-link"
                     @click="$router.push({ name: 'SignUp' })"
                   >
-                    <v-icon left>mdi-account-plus</v-icon>
-                    Create account
+                    Sign up
                   </v-btn>
-                </div>
+                </p>
+              </div>
 
-                <!-- Contact Information -->
-                <div class="mt-4 text-center">
-                  <span class="text-caption text--secondary">Need help? Contact us:</span>
-                  <br>
-                  <v-btn
-                    text
-                    color="primary"
-                    small
-                    href="tel:+254705644805"
-                    class="mt-1"
-                  >
-                    <v-icon left small>mdi-phone</v-icon>
-                    +254 705 644 805
-                  </v-btn>
-                </div>
-              </v-card-text>
-            </v-card>
+              <!-- Support -->
+              <div class="support-section text-center mt-6">
+                <p class="support-text">Need help?</p>
+                <v-btn
+                  text
+                  x-small
+                  color="grey darken-1"
+                  href="tel:+254705644805"
+                >
+                  <v-icon left x-small>mdi-phone</v-icon>
+                  +254 705 644 805
+                </v-btn>
+              </div>
+            </div>
           </v-col>
         </v-row>
       </v-container>
     </v-main>
+
+    <!-- Role Selection Dialog -->
+    <RoleSelectionDialog ref="roleSelectionDialog" />
   </v-app>
 </template>
 
@@ -236,6 +291,9 @@ import axios from 'axios';
 import VuePhoneNumberInput from 'vue-phone-number-input';
 import 'vue-phone-number-input/dist/vue-phone-number-input.css';
 import { getCurrentUserRole } from '@/utils/roles.js';
+import GoogleSignIn from '@/components/auth/GoogleSignIn.vue';
+import RoleSelectionDialog from '@/components/auth/RoleSelectionDialog.vue';
+import AnalyticsMixin from '@/mixins/analyticsMixin.js';
 
 export default {
   name: 'SignInView',
@@ -273,10 +331,16 @@ export default {
       },
     ],
   },
-  components: { VuePhoneNumberInput },
+  components: {
+    VuePhoneNumberInput,
+    GoogleSignIn,
+    // eslint-disable-next-line vue/no-unused-components
+    RoleSelectionDialog,
+  },
+  mixins: [AnalyticsMixin],
   data() {
     return {
-      inputType: 'email',
+      inputType: 'phone',
       emailOrPhone: '',
       phoneNumber: '',
       fullPhoneNumber: '',
@@ -309,16 +373,7 @@ export default {
   },
   mounted() {
     // Check for portal context from route or store
-    if (!this.portalContext) {
-      this.$toast.info('Please select a portal to sign in');
-      const currentPath = window.location.pathname + window.location.search + window.location.hash;
-      this.$router.push({
-        name: 'Home',
-        query: {
-          redirect: btoa(currentPath),
-        },
-      });
-    } else {
+    if (this.portalContext) {
       this.successMessage = `Welcome to ${this.getPortalDisplayName()}`;
       setTimeout(() => {
         this.successMessage = '';
@@ -330,6 +385,99 @@ export default {
       // Get the full international number with country code
       this.fullPhoneNumber = phoneData.e164 || phoneData.formatInternational;
       this.emailOrPhone = this.fullPhoneNumber;
+    },
+    async handleGoogleLogin(user) {
+      this.isLoading = true;
+      this.errorMessage = '';
+      this.successMessage = '';
+
+      try {
+        const response = await axios.post('/api/auth/google-login', {
+          credential: user.credential,
+        });
+
+        if (response.data.success) {
+          const data = response.data.data;
+
+          // Check if new user needs to complete registration
+          if (data.roleSpecificData?.needsRegistration) {
+            this.isLoading = false;
+            this.successMessage = 'Account created! Please complete your registration.';
+
+            // // Redirect to sign-up page with pre-filled data
+            // setTimeout(() => {
+            //   this.$router.push({
+            //     name: 'SignUp',
+            //     query: {
+            //       email: data.roleSpecificData.email,
+            //       fullName: data.roleSpecificData.fullName,
+            //       fromGoogle: 'true',
+            //     },
+            //   });
+            // }, 1500);
+            // return;
+          }
+
+          // Check if role selection is required
+          if (data.requiresRoleSelection && data.availableRoles) {
+            // User has multiple roles - show selection dialog
+            this.isLoading = false;
+            const selectedRole = await this.$refs.roleSelectionDialog.show(data.availableRoles);
+
+            // Complete login with selected role
+            this.isLoading = true;
+            await this.completeGoogleLoginWithRole(user.credential, selectedRole);
+          } else if (data.token) {
+            // Single role - auto-login
+            await this.completeLogin(data);
+          } else {
+            this.handleSignInError('Invalid login response');
+          }
+        }
+      } catch (error) {
+        const msg = error.response?.data?.message || error.message || 'Google Login failed';
+        this.handleSignInError(msg);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    async completeGoogleLoginWithRole(credential, selectedRole) {
+      try {
+        const response = await axios.post('/api/auth/google-login', {
+          credential,
+          selectedRole,
+        });
+
+        if (response.data.success) {
+          await this.completeLogin(response.data.data);
+        } else {
+          // eslint-disable-next-line sonarjs/no-duplicate-string
+          this.handleSignInError(response.data.msg || 'Login failed');
+        }
+      } catch (error) {
+        const msg = error.response?.data?.message || error.message || 'Login failed';
+        this.handleSignInError(msg);
+      }
+    },
+    async completeLogin(data) {
+      await this.$store.dispatch('auth/setPortalContext', {
+        portal: this.portalContext,
+        role: this.roleContext,
+      });
+
+      await this.$store.dispatch('auth/signIn', { data });
+
+      this.successMessage = 'Sign in successful! Redirecting...';
+
+      setTimeout(() => {
+        // After smart role detection, user always has a specific role
+        // Redirect directly to dashboard
+        this.$router.push({ name: 'Dashboard' });
+      }, 1500);
+
+      this.trackFormSubmit('signin_google', true, {
+        portal_type: this.portalContext,
+      });
     },
     async signIn() {
       if (!this.isFormValid) {
@@ -346,7 +494,8 @@ export default {
       this.roleName = '';
 
       try {
-        const roleType = this.getRoleForAuth();
+        // Smart role detection: only send roleType if portal context is set
+        const roleType = this.portalContext ? this.getRoleForAuth() : null;
         const payload = {
           emailOrPhone: this.emailOrPhone.trim(),
           password: this.password,
@@ -359,7 +508,19 @@ export default {
         if (response.data.success) {
           const data = response.data.data;
 
-          // Store portal and role context
+          // Check if role selection is required (multi-role user)
+          if (data.requiresRoleSelection && data.availableRoles) {
+            // User has multiple roles - show selection dialog
+            this.isLoading = false;
+            const selectedRole = await this.$refs.roleSelectionDialog.show(data.availableRoles);
+
+            // Retry login with selected role
+            this.isLoading = true;
+            await this.signInWithRole(selectedRole);
+            return;
+          }
+
+          // Single role or specific role - proceed with login
           await this.$store.dispatch('auth/setPortalContext', {
             portal: this.portalContext,
             role: this.roleContext,
@@ -371,18 +532,15 @@ export default {
 
           // Redirect after a short delay
           setTimeout(() => {
-            // const redirect = this.$route.query.redirect;
-            // if (redirect) {
-            //   try {
-            //     this.$router.push(atob(redirect));
-            //   } catch {
-            //     this.$router.push({ name: 'Dashboard' });
-            //   }
-            // } else {
-            //   this.$router.push({ name: 'Dashboard' });
-            // }
             this.$router.push({ name: 'Dashboard' });
           }, 1500);
+
+          // Track successful login
+          this.trackFormSubmit('signin', true, {
+            portal_type: this.portalContext,
+            role_type: roleType,
+            input_type: this.inputType,
+          });
         } else {
           this.handleSignInError(response.data.msg || 'Login failed');
         }
@@ -391,6 +549,32 @@ export default {
         this.handleSignInError(msg);
       } finally {
         this.isLoading = false;
+      }
+
+      // Track login attempt
+      this.trackFormInteraction('signin', 'attempt', {
+        portal_type: this.portalContext,
+        input_type: this.inputType,
+      });
+    },
+    async signInWithRole(selectedRole) {
+      try {
+        const payload = {
+          emailOrPhone: this.emailOrPhone.trim(),
+          password: this.password,
+          roleType: selectedRole,
+        };
+
+        const response = await axios.post('/api/auth/login', payload);
+
+        if (response.data.success) {
+          await this.completeLogin(response.data.data);
+        } else {
+          this.handleSignInError(response.data.msg || 'Login failed');
+        }
+      } catch (error) {
+        const msg = error.response?.data?.message || error.message || 'Login failed';
+        this.handleSignInError(msg);
       }
     },
     handleSignInError(msg) {
@@ -417,6 +601,14 @@ export default {
       if (/network|timeout|connection/i.test(msg) && this.retryCount < this.maxRetries) {
         this.showRetryBtn = true;
       }
+
+      // Track login failure
+      this.trackFormSubmit('signin', false, {
+        portal_type: this.portalContext,
+        // eslint-disable-next-line no-nested-ternary
+        error_type: this.showCreateAccountBtn ? 'user_not_found'
+          : this.showCreateRoleBtn ? 'missing_role' : 'auth_failed',
+      });
     },
 
     retrySignIn() {
@@ -424,6 +616,8 @@ export default {
     },
 
     goToSignUp() {
+      this.trackNavigation('create_account_from_signin', 'signup_page');
+
       const query = {};
       if (this.portalContext) query.portal = this.portalContext;
       if (this.roleContext) query.role = this.roleContext;
@@ -516,73 +710,332 @@ export default {
         importer: 'IMPORTER',
       };
 
-      return roleMap[this.portalContext] || 'FARMER';
+      return roleMap[this.portalContext] || 'USER';
     },
   },
 };
 </script>
 
 <style scoped>
-/* Vuetify handles most styling. Custom styles for vue-phone-number-input: */
-.vue-phone-number-input__input-wrapper {
-  display: flex;
-  gap: 0.5rem;
-}
-.vue-phone-number-input__country-selector {
-  border-radius: 20px !important;
-  border: 1px solid #d1d5db;
-  background: #fff;
-  margin: 0.5rem 0.75rem;
-}
-.input-tel input-phone-number {
-  border-radius: 0.75rem;
-  border: 1px solid #0e5acc;
-  background: #fff;
-  padding: 0.5rem 0.75rem;
-  flex: 1;
-}
-.vue-phone-number-input__country-selector:focus,
-.vue-phone-number-input__input:focus {
-  border-color: #1976d2;
-  box-shadow: 0 0 0 2px #1976d2;
-  outline: none;
+/* Professional Enterprise Sign-In Styles */
+.professional-signin {
+  background: #f8f9fa;
+  min-height: 100vh;
 }
 
-/* Minimal background graphic styles */
-.minimal-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  width: 100vw;
-  height: 100vh;
+/* Left Branding Panel */
+.branding-panel {
+  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
   overflow: hidden;
 }
-.minimal-bg-svg {
-  position: absolute;
-  width: 100vw;
-  height: 100vh;
-  left: 0;
-  top: 0;
-  z-index: 0;
-  display: block;
-}
 
-/* Expensive styling for exporter role */
-.expensive-exporter-card {
-  background: linear-gradient(135deg, #f7e9a0 0%, #e3c888 100%);
-  border: 2px solid #bfa14a;
-  box-shadow: 0 8px 32px 0 rgba(191, 161, 74, 0.25);
-  color: #7c6a2c;
-  position: relative;
-}
-.expensive-exporter-card::after {
+.branding-panel::before {
   content: '';
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  animation: pulse 15s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.1); opacity: 0.5; }
+}
+
+.branding-content {
+  position: relative;
+  z-index: 1;
+  max-width: 500px;
+  padding: 60px 40px;
+}
+
+.brand-header {
+  margin-bottom: 60px;
+}
+
+.company-name {
+  font-size: 42px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
+
+.company-tagline {
+  font-size: 18px;
+  opacity: 0.9;
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+/* Features List */
+.features-list {
+  margin-bottom: 60px;
+}
+
+.feature-item {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 32px;
+  align-items: flex-start;
+}
+
+.feature-item h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.feature-item p {
+  font-size: 14px;
+  opacity: 0.85;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.brand-footer {
+  opacity: 0.7;
+  font-size: 13px;
+}
+
+/* Right Form Panel */
+.form-panel {
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 24px;
+}
+
+/* Form Header */
+.form-header {
+  margin-bottom: 32px;
+}
+
+.form-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.form-subtitle {
+  font-size: 15px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.portal-badge {
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* Divider */
+.divider-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.divider-text {
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Input Type Selector */
+.input-type-selector {
+  display: flex;
+  gap: 0;
+}
+
+.input-type-selector .v-btn {
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.active-input-type {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Input Labels */
+.input-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+/* Professional Inputs */
+.professional-input >>> .v-input__control {
+  font-size: 15px;
+}
+
+.professional-input >>> .v-input__slot {
+  min-height: 44px !important;
+  border-radius: 8px !important;
+}
+
+.professional-input >>> fieldset {
+  border-color: #d1d5db !important;
+  border-width: 1.5px !important;
+}
+
+.professional-input >>> .v-input__slot:hover fieldset {
+  border-color: #9ca3af !important;
+}
+
+.professional-input.v-input--is-focused >>> fieldset {
+  border-color: #1976d2 !important;
+  border-width: 2px !important;
+}
+
+.professional-input >>> input::placeholder {
+  color: #9ca3af;
+  opacity: 1;
+}
+
+/* Phone Input */
+.professional-phone >>> .vue-phone-number-input {
+  border-radius: 8px;
+}
+
+.professional-phone >>> .select-country-container {
+  border-radius: 8px 0 0 8px;
+  border: 1.5px solid #d1d5db;
+  border-right: none;
+}
+
+.professional-phone >>> .input-tel {
+  border-radius: 0 8px 8px 0;
+  border: 1.5px solid #d1d5db;
+}
+
+/* Forgot Password */
+.forgot-password-btn {
+  text-transform: none;
+  font-size: 13px;
+  letter-spacing: 0;
+  padding: 0 !important;
+  min-width: auto !important;
+  height: auto !important;
+}
+
+/* Sign In Button */
+.signin-btn {
+  text-transform: none;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  height: 48px !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.signin-btn:hover {
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3) !important;
+}
+
+/* Alerts */
+.professional-alert {
+  border-radius: 8px !important;
+  font-size: 14px;
+}
+
+/* Sign Up Section */
+.signup-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.signup-text {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.signup-link {
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0;
+  padding: 0 4px !important;
+  min-width: auto !important;
+  height: auto !important;
+  vertical-align: baseline;
+}
+
+/* Support Section */
+.support-section {
+  padding-top: 16px;
+}
+
+.support-text {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+/* Mobile Logo */
+.mobile-logo {
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive Design */
+@media (max-width: 959px) {
+  .form-container {
+    max-width: 100%;
+    padding: 32px 20px;
+  }
+
+  .form-title {
+    font-size: 24px;
+  }
+
+  .company-name {
+    font-size: 32px;
+  }
+}
+
+/* Button Transitions */
+.v-btn {
+  transition: all 0.2s ease !important;
+}
+
+/* Loading State */
+.v-btn--loading {
   pointer-events: none;
-  border: 3px double #d4af37;
-  opacity: 0.5;
+}
+
+/* Focus Visible for Accessibility */
+.v-btn:focus-visible {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
 }
 </style>

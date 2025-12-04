@@ -31,22 +31,22 @@ class Aggregator(
     var organizationType: AggregatorType = AggregatorType.COOPERATIVE,
 
     @Column(name = "registration_number")
-    var registrationNumber: String?,
+    var registrationNumber: String? = "",
 
     @Column(name = "facility_address", nullable = false)
-    var facilityAddress: String,
+    var facilityAddress: String? = "unknown",
 
     @Column(name = "storage_capacity_tons")
-    var storageCapacityTons: BigDecimal?,
+    var storageCapacityTons: BigDecimal? = BigDecimal.ZERO,
 
     @Column(name = "collection_radius_km")
-    var collectionRadiusKm: BigDecimal?,
+    var collectionRadiusKm: BigDecimal? = BigDecimal.ZERO,
 
     @Column(name = "primary_commodities", columnDefinition = "TEXT")
-    var primaryCommodities: String?, // JSON array of commodities
+    var primaryCommodities: String? = "", // JSON array of commodities
 
     @Column(name = "certification_details", columnDefinition = "TEXT")
-    var certificationDetails: String?,
+    var certificationDetails: String? = "",
 
     @Enumerated(EnumType.STRING)
     @Column(name = "verification_status")
@@ -59,7 +59,7 @@ class Aggregator(
     var totalBatchesCollected: Int = 0,
 
     @Column(name = "hedera_account_id")
-    var hederaAccountId: String?,
+    var hederaAccountId: String? = "",
 
     @CreationTimestamp
     @Column(name = "created_at")

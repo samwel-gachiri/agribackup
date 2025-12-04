@@ -345,6 +345,15 @@ const routes = [
     },
   },
   {
+    path: "/what-is-eudr",
+    name: "EUDRInfo",
+    component: () => import("../views/EUDRInfo.vue"),
+    meta: {
+      title: "What is EUDR? - AgriBackup",
+      metaDescription: "Learn about the EU Deforestation Regulation and how AgriBackup helps you comply",
+    },
+  },
+  {
     path: "/pickup-routes",
     name: "PickupRoutes",
     component: () => import("../views/PickupRoutes.vue"),
@@ -376,6 +385,15 @@ const routes = [
     name: "SignUp",
     beforeEnter: ifNotAuthenticated,
     component: () => import("../views/auth/SignUp.vue"),
+  },
+  {
+    path: "/role-selection",
+    name: "RoleSelection",
+    component: () => import("../views/auth/RoleSelection.vue"),
+    meta: {
+      title: "Select Role",
+      requiresAuth: true,
+    },
   },
   {
     path: "/forgot-password",

@@ -1,0 +1,38 @@
+databaseChangeLog:
+  # Fix role data consistency - remove ROLE_ prefix and add missing roles
+  
+  - changeSet:
+      id: 025-1-update-incorrect-role-names
+      author: system
+      comment: "Fix role names that incorrectly have ROLE_ prefix to match RoleTypeEnum convention"
+      changes:
+        # Update ROLE_AGGREGATOR to AGGREGATOR
+        - sql:
+            sql: >
+              UPDATE roles 
+              SET name = 'AGGREGATOR',
+                  description = 'Aggregator - Collects produce from farmers and manages collection batches'
+              WHERE name = 'ROLE_AGGREGATOR';
+        
+        # Update ROLE_PROCESSOR to PROCESSOR
+        - sql:
+            sql: >
+              UPDATE roles 
+              SET name = 'PROCESSOR',
+                  description = 'Processor - Processes agricultural products in certified facilities'
+              WHERE name = 'ROLE_PROCESSOR';
+        
+        # Update ROLE_IMPORTER to IMPORTER
+        - sql:
+            sql: >
+              UPDATE roles 
+              SET name = 'IMPORTER',
+                  description = 'Importer - Imports products into EU market with EUDR compliance'
+              WHERE name = 'ROLE_IMPORTER';
+        
+        # Remove unused ROLE_ADMIN role (id='4') since ADMIN role (id='7') already exists
+        - sql:
+            sql: >
+              DELETE FROM roles 
+              WHERE name = 'ROLE_ADMIN' 
+              AND id = '4';

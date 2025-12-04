@@ -350,7 +350,7 @@ class AggregatorService(
             organizationName = aggregator.organizationName,
             organizationType = aggregator.organizationType,
             registrationNumber = aggregator.registrationNumber,
-            facilityAddress = aggregator.facilityAddress,
+            facilityAddress = aggregator.facilityAddress!!,
             storageCapacityTons = aggregator.storageCapacityTons,
             collectionRadiusKm = aggregator.collectionRadiusKm,
             primaryCommodities = aggregator.primaryCommodities?.split(","),

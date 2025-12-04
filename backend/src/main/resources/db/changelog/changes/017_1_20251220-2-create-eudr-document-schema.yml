@@ -1,0 +1,293 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-eudr-documents-table
+      author: EUDR Implementation
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: eudr_documents
+      changes:
+        - createTable:
+            tableName: eudr_documents
+            columns:
+              - column:
+                  name: document_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: owner_entity_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: owner_entity_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: batch_id
+                  type: VARCHAR(36)
+              - column:
+                  name: document_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: issuer
+                  type: VARCHAR(200)
+              - column:
+                  name: issue_date
+                  type: DATE
+              - column:
+                  name: expiry_date
+                  type: DATE
+              - column:
+                  name: s3_key
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mime_type
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: checksum_sha256
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_size
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: uploader_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: uploaded_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: exif_latitude
+                  type: DOUBLE PRECISION
+              - column:
+                  name: exif_longitude
+                  type: DOUBLE PRECISION
+              - column:
+                  name: exif_timestamp
+                  type: TIMESTAMP
+              - column:
+                  name: tags
+                  type: JSON
+              - column:
+                  name: retention_until
+                  type: DATE
+              - column:
+                  name: visibility
+                  type: VARCHAR(20)
+                  defaultValue: PRIVATE
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(100)
+              - column:
+                  name: hedera_hash_record
+                  type: VARCHAR(100)
+        - addForeignKeyConstraint:
+            baseTableName: eudr_documents
+            baseColumnNames: batch_id
+            referencedTableName: eudr_batches
+            referencedColumnNames: batch_id
+            constraintName: fk_eudr_documents_batch
+        - createIndex:
+            tableName: eudr_documents
+            indexName: idx_eudr_documents_owner
+            columns:
+              - column:
+                  name: owner_entity_id
+              - column:
+                  name: owner_entity_type
+        - createIndex:
+            tableName: eudr_documents
+            indexName: idx_eudr_documents_batch
+            columns:
+              - column:
+                  name: batch_id
+        - createIndex:
+            tableName: eudr_documents
+            indexName: idx_eudr_documents_type
+            columns:
+              - column:
+                  name: document_type
+        - createIndex:
+            tableName: eudr_documents
+            indexName: idx_eudr_documents_checksum
+            columns:
+              - column:
+                  name: checksum_sha256
+
+  - changeSet:
+      id: create-audit-logs-table
+      author: EUDR Implementation
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: audit_logs
+      changes:
+        - createTable:
+            tableName: audit_logs
+            columns:
+              - column:
+                  name: log_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: entity_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: entity_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: action
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actor_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actor_role
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: timestamp
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: details_json
+                  type: JSON
+              - column:
+                  name: record_hash
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(100)
+        - createIndex:
+            tableName: audit_logs
+            indexName: idx_audit_logs_entity
+            columns:
+              - column:
+                  name: entity_type
+              - column:
+                  name: entity_id
+        - createIndex:
+            tableName: audit_logs
+            indexName: idx_audit_logs_actor
+            columns:
+              - column:
+                  name: actor_id
+        - createIndex:
+            tableName: audit_logs
+            indexName: idx_audit_logs_timestamp
+            columns:
+              - column:
+                  name: timestamp
+        - createIndex:
+            tableName: audit_logs
+            indexName: idx_audit_logs_action
+            columns:
+              - column:
+                  name: action
+
+  - changeSet:
+      id: create-batch-production-unit-relationship-table
+      author: EUDR Implementation
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: batch_production_units
+      changes:
+        - createTable:
+            tableName: batch_production_units
+            columns:
+              - column:
+                  name: relationship_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: batch_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: production_unit_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity_allocated
+                  type: DECIMAL(15,3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: percentage_contribution
+                  type: DECIMAL(5,2)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: batch_production_units
+            baseColumnNames: batch_id
+            referencedTableName: eudr_batches
+            referencedColumnNames: batch_id
+            constraintName: fk_batch_production_units_batch
+        - addForeignKeyConstraint:
+            baseTableName: batch_production_units
+            baseColumnNames: production_unit_id
+            referencedTableName: production_units
+            referencedColumnNames: unit_id
+            constraintName: fk_batch_production_units_unit
+        - addUniqueConstraint:
+            tableName: batch_production_units
+            columnNames: batch_id, production_unit_id
+            constraintName: uk_batch_production_unit
+        - createIndex:
+            tableName: batch_production_units
+            indexName: idx_batch_production_units_batch
+            columns:
+              - column:
+                  name: batch_id
+        - createIndex:
+            tableName: batch_production_units
+            indexName: idx_batch_production_units_unit
+            columns:
+              - column:
+                  name: production_unit_id

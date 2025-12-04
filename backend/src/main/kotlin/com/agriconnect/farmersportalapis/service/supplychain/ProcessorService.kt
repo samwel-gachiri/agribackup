@@ -264,7 +264,7 @@ class ProcessorService(
         return ProcessorResponseDto(
             id = processor.id,
             facilityName = processor.facilityName,
-            facilityAddress = processor.facilityAddress,
+            facilityAddress = processor.facilityAddress!!,
             processorType = null,
             processingCapabilities = processor.processingCapabilities,
             capacityPerDayKg = null,

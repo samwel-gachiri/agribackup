@@ -26,6 +26,7 @@ import './plugins/vuetify-money.js';
 
 import App from './App.vue';
 import './registerServiceWorker.js';
+import analytics from './plugins/analytics.js';
 
 Vue.config.productionTip = false;
 
@@ -45,6 +46,12 @@ Vue.use(VueIziToast, { position: 'topRight', timeout: 5000 });
 Vue.use(InfiniteLoading);
 
 Vue.use(Avatar);
+
+// Initialize Google Analytics with router integration
+Vue.use(analytics, {
+  router,
+  enableInDev: false, // Set to true to enable tracking in development
+});
 
 initialize.init(router, store);
 new Vue({

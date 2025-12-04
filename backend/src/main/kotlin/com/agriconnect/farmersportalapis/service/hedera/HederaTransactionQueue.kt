@@ -2,7 +2,6 @@ package com.agriconnect.farmersportalapis.service.hedera
 
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -69,7 +68,7 @@ class HederaTransactionQueue(
         }
     }
 
-    @Scheduled(fixedDelay = 30000) // Process queue every 30 seconds
+//    @Scheduled(fixedDelay = 30000) // Process queue every 30 seconds
     fun processQueueScheduled() {
         if (!transactionQueue.isEmpty()) {
             processQueueAsync()

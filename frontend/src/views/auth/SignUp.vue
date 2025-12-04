@@ -1,7 +1,16 @@
 <template>
   <v-app>
     <v-main>
-      <div class="signup-background tw-flex tw-border-2 tw-justify-center tw-items-center tw-pt-4">
+      <!-- Generic Sign Up (Full Screen Design) -->
+      <UserSignUp
+        v-if="!portalContext && !showPortalSelection"
+        @user-registered="handleRegistrationSuccess"
+        @go-to-signin="goToSignIn"
+        @show-portal-selection="showPortalSelection = true"
+      />
+
+      <!-- Portal Specific Sign Up or Selection (Card Design) -->
+      <div v-else class="signup-background tw-flex tw-border-2 tw-justify-center tw-items-center tw-pt-4">
           <div>
             <v-card
               class="pa-6 signup-card"
@@ -59,90 +68,103 @@
                   @importer-registered="handleRegistrationSuccess"
                 />
 
-                <!-- Fallback: Portal Selection -->
-                <div v-else class="text-center">
-                  <v-icon size="64" color="grey lighten-2" class="mb-4">mdi-account-plus</v-icon>
-                  <h3 class="text-h6 mb-4">Select Portal to Register</h3>
-                  <p class="text--secondary mb-6">Choose which portal you'd like to create an account for:</p>
+                <!-- Portal Selection -->
+                <div v-else>
+                  <div class="text-center">
+                    <v-icon size="64" color="grey lighten-2" class="mb-4">mdi-account-plus</v-icon>
+                    <h3 class="text-h6 mb-4">Select Portal to Register</h3>
+                    <p class="text--secondary mb-6">Choose which portal you'd like to create an account for:</p>
 
-                  <v-row>
-                    <v-col cols="12" sm="4">
+                    <v-row>
+                      <v-col cols="12" sm="4">
+                        <v-btn
+                          block
+                          large
+                          color="green"
+                          @click="selectPortal('farmer')"
+                          class="mb-3"
+                        >
+                          <v-icon left>mdi-barn</v-icon>
+                          Farmer Portal
+                        </v-btn>
+                      </v-col>
+                      <v-col cols="12" sm="4">
+                        <v-btn
+                          block
+                          large
+                          color="blue"
+                          @click="selectPortal('buyer')"
+                          class="mb-3"
+                        >
+                          <v-icon left>mdi-cart</v-icon>
+                          Buyer Portal
+                        </v-btn>
+                      </v-col>
+                      <v-col cols="12" sm="4">
+                        <v-btn
+                          block
+                          large
+                          color="purple"
+                          @click="selectPortal('exporter')"
+                          class="mb-3"
+                        >
+                          <v-icon left>mdi-crown</v-icon>
+                          Exporter Portal
+                        </v-btn>
+                      </v-col>
+                      <v-col cols="12" sm="4">
+                        <v-btn
+                          block
+                          large
+                          color="orange"
+                          @click="selectPortal('aggregator')"
+                          class="mb-3"
+                        >
+                          <v-icon left>mdi-warehouse</v-icon>
+                          Aggregator Portal
+                        </v-btn>
+                      </v-col>
+                      <v-col cols="12" sm="4">
+                        <v-btn
+                          block
+                          large
+                          color="teal"
+                          @click="selectPortal('processor')"
+                          class="mb-3"
+                        >
+                          <v-icon left>mdi-factory</v-icon>
+                          Processor Portal
+                        </v-btn>
+                      </v-col>
+                      <v-col cols="12" sm="4">
+                        <v-btn
+                          block
+                          large
+                          color="indigo"
+                          @click="selectPortal('importer')"
+                          class="mb-3"
+                        >
+                          <v-icon left>mdi-ship-wheel</v-icon>
+                          Importer Portal
+                        </v-btn>
+                      </v-col>
+                    </v-row>
+
+                    <div class="text-center mt-4">
                       <v-btn
-                        block
-                        large
-                        color="green"
-                        @click="selectPortal('farmer')"
-                        class="mb-3"
+                        text
+                        color="primary"
+                        small
+                        @click="showPortalSelection = false"
                       >
-                        <v-icon left>mdi-barn</v-icon>
-                        Farmer Portal
+                        Back to General Sign Up
                       </v-btn>
-                    </v-col>
-                    <v-col cols="12" sm="4">
-                      <v-btn
-                        block
-                        large
-                        color="blue"
-                        @click="selectPortal('buyer')"
-                        class="mb-3"
-                      >
-                        <v-icon left>mdi-cart</v-icon>
-                        Buyer Portal
-                      </v-btn>
-                    </v-col>
-                    <v-col cols="12" sm="4">
-                      <v-btn
-                        block
-                        large
-                        color="purple"
-                        @click="selectPortal('exporter')"
-                        class="mb-3"
-                      >
-                        <v-icon left>mdi-crown</v-icon>
-                        Exporter Portal
-                      </v-btn>
-                    </v-col>
-                    <v-col cols="12" sm="4">
-                      <v-btn
-                        block
-                        large
-                        color="orange"
-                        @click="selectPortal('aggregator')"
-                        class="mb-3"
-                      >
-                        <v-icon left>mdi-warehouse</v-icon>
-                        Aggregator Portal
-                      </v-btn>
-                    </v-col>
-                    <v-col cols="12" sm="4">
-                      <v-btn
-                        block
-                        large
-                        color="teal"
-                        @click="selectPortal('processor')"
-                        class="mb-3"
-                      >
-                        <v-icon left>mdi-factory</v-icon>
-                        Processor Portal
-                      </v-btn>
-                    </v-col>
-                    <v-col cols="12" sm="4">
-                      <v-btn
-                        block
-                        large
-                        color="indigo"
-                        @click="selectPortal('importer')"
-                        class="mb-3"
-                      >
-                        <v-icon left>mdi-ship-wheel</v-icon>
-                        Importer Portal
-                      </v-btn>
-                    </v-col>
-                  </v-row>
+                    </div>
+                  </div>
                 </div>
 
-                <!-- Navigation Links -->
-                <div class="mt-6 text-center">
+                <!-- Navigation Links (Only show in card mode) -->
+                <div class="mt-6 text-center" v-if="portalContext || showPortalSelection">
                   <span class="text-caption">Already have an account?</span>
                   <v-btn
                     text
@@ -187,6 +209,7 @@ import ExporterSignUp from '@/components/auth/ExporterSignUp.vue';
 import AggregatorSignUp from '@/components/auth/AggregatorSignUp.vue';
 import ProcessorSignUp from '@/components/auth/ProcessorSignUp.vue';
 import ImporterSignUp from '@/components/auth/ImporterSignUp.vue';
+import UserSignUp from '@/components/auth/UserSignUp.vue';
 // import CardTitle from '@/components/shared/CardTitle.vue';
 
 export default {
@@ -233,6 +256,13 @@ export default {
     AggregatorSignUp,
     ProcessorSignUp,
     ImporterSignUp,
+    UserSignUp,
+  },
+  mixins: [require('@/mixins/analyticsMixin.js').default],
+  data() {
+    return {
+      showPortalSelection: false,
+    };
   },
   computed: {
     portalContext() {
@@ -252,6 +282,8 @@ export default {
   },
   methods: {
     selectPortal(portal) {
+      this.trackPortalSelection(portal, 'signup_portal_selection');
+      
       if (portal === 'exporter') {
         // For exporter, redirect to Home to select role first
         this.$router.push({ name: 'Home' });
@@ -265,6 +297,11 @@ export default {
     },
 
     handleRegistrationSuccess() {
+      this.trackFormSubmit(`signup_${this.portalContext || 'generic'}`, true, {
+        portal_type: this.portalContext,
+        role_context: this.roleContext,
+      });
+      
       this.$toast.success('Account created successfully! Please sign in');
 
       // Redirect to sign in with portal context
@@ -279,6 +316,8 @@ export default {
     },
 
     goToSignIn() {
+      this.trackNavigation('go_to_signin', 'signin_page');
+      
       const query = {};
       if (this.portalContext) query.portal = this.portalContext;
       if (this.roleContext) query.role = this.roleContext;

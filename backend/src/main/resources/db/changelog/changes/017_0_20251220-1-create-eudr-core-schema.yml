@@ -1,0 +1,407 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-eudr-batches-table
+      author: EUDR Implementation
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: eudr_batches
+      changes:
+        - createTable:
+            tableName: eudr_batches
+            columns:
+              - column:
+                  name: batch_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: batch_code
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: commodity_description
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hs_code
+                  type: VARCHAR(20)
+              - column:
+                  name: quantity
+                  type: DECIMAL(15,3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: unit
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: country_of_production
+                  type: VARCHAR(3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: country_risk_level
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: harvest_date
+                  type: DATE
+              - column:
+                  name: harvest_period_start
+                  type: DATE
+              - column:
+                  name: harvest_period_end
+                  type: DATE
+              - column:
+                  name: created_by
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: CREATED
+                  constraints:
+                    nullable: false
+              - column:
+                  name: risk_level
+                  type: VARCHAR(20)
+              - column:
+                  name: risk_rationale
+                  type: TEXT
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(100)
+              - column:
+                  name: hedera_consensus_timestamp
+                  type: TIMESTAMP
+        - createIndex:
+            tableName: eudr_batches
+            indexName: idx_eudr_batches_batch_code
+            columns:
+              - column:
+                  name: batch_code
+        - createIndex:
+            tableName: eudr_batches
+            indexName: idx_eudr_batches_country
+            columns:
+              - column:
+                  name: country_of_production
+        - createIndex:
+            tableName: eudr_batches
+            indexName: idx_eudr_batches_status
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            tableName: eudr_batches
+            indexName: idx_eudr_batches_risk_level
+            columns:
+              - column:
+                  name: risk_level
+
+  - changeSet:
+      id: create-production-units-table
+      author: EUDR Implementation
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: production_units
+      changes:
+        - createTable:
+            tableName: production_units
+            columns:
+              - column:
+                  name: unit_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: farmer_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: unit_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: parcel_geojson
+                  type: POLYGON
+              - column:
+                  name: area_hectares
+                  type: DECIMAL(10,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: wgs84_coordinates
+                  type: TEXT
+              - column:
+                  name: administrative_region
+                  type: VARCHAR(200)
+              - column:
+                  name: last_verified_at
+                  type: TIMESTAMP
+              - column:
+                  name: hedera_hash
+                  type: VARCHAR(100)
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(100)
+        - addForeignKeyConstraint:
+            baseTableName: production_units
+            baseColumnNames: farmer_id
+            referencedTableName: farmers
+            referencedColumnNames: farmer_id
+            constraintName: fk_production_units_farmer
+        - createIndex:
+            tableName: production_units
+            indexName: idx_production_units_farmer
+            columns:
+              - column:
+                  name: farmer_id
+
+  - changeSet:
+      id: create-processors-table
+      author: EUDR Implementation
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: processors
+      changes:
+        - createTable:
+            tableName: processors
+            columns:
+              - column:
+                  name: processor_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: facility_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: facility_address
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processing_capabilities
+                  type: TEXT
+              - column:
+                  name: certification_details
+                  type: TEXT
+              - column:
+                  name: verification_status
+                  type: VARCHAR(20)
+                  defaultValue: PENDING
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: processors
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_processors_user
+        - createIndex:
+            tableName: processors
+            indexName: idx_processors_status
+            columns:
+              - column:
+                  name: verification_status
+
+  - changeSet:
+      id: create-supply-chain-events-table
+      author: EUDR Implementation
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: supply_chain_events
+      changes:
+        - createTable:
+            tableName: supply_chain_events
+            columns:
+              - column:
+                  name: event_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: batch_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: from_entity_id
+                  type: VARCHAR(36)
+              - column:
+                  name: from_entity_type
+                  type: VARCHAR(50)
+              - column:
+                  name: to_entity_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: to_entity_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: action_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: event_timestamp
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: location_coordinates
+                  type: VARCHAR(100)
+              - column:
+                  name: transport_method
+                  type: VARCHAR(100)
+              - column:
+                  name: document_references
+                  type: TEXT
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(100)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: supply_chain_events
+            baseColumnNames: batch_id
+            referencedTableName: eudr_batches
+            referencedColumnNames: batch_id
+            constraintName: fk_supply_chain_events_batch
+        - createIndex:
+            tableName: supply_chain_events
+            indexName: idx_supply_chain_events_batch
+            columns:
+              - column:
+                  name: batch_id
+        - createIndex:
+            tableName: supply_chain_events
+            indexName: idx_supply_chain_events_timestamp
+            columns:
+              - column:
+                  name: event_timestamp
+
+  - changeSet:
+      id: create-processing-events-table
+      author: EUDR Implementation
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: processing_events
+      changes:
+        - createTable:
+            tableName: processing_events
+            columns:
+              - column:
+                  name: event_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: batch_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processor_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processing_type
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: input_quantity
+                  type: DECIMAL(15,3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: output_quantity
+                  type: DECIMAL(15,3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processing_date
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processing_notes
+                  type: TEXT
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(100)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: processing_events
+            baseColumnNames: batch_id
+            referencedTableName: eudr_batches
+            referencedColumnNames: batch_id
+            constraintName: fk_processing_events_batch
+        - addForeignKeyConstraint:
+            baseTableName: processing_events
+            baseColumnNames: processor_id
+            referencedTableName: processors
+            referencedColumnNames: processor_id
+            constraintName: fk_processing_events_processor
+        - createIndex:
+            tableName: processing_events
+            indexName: idx_processing_events_batch
+            columns:
+              - column:
+                  name: batch_id
+        - createIndex:
+            tableName: processing_events
+            indexName: idx_processing_events_processor
+            columns:
+              - column:
+                  name: processor_id

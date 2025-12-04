@@ -1,0 +1,55 @@
+databaseChangeLog:
+  - changeSet:
+      id: fix_exporter_aggregator_connections_foreign_key
+      author: Samwel
+      preConditions:
+        - onFail: MARK_RAN
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: exporter_aggregator_connections
+            constraintName: fk_exp_agg_exporter
+        - addForeignKeyConstraint:
+            baseTableName: exporter_aggregator_connections
+            baseColumnNames: exporter_id
+            referencedTableName: exporters
+            referencedColumnNames: exporter_id
+            constraintName: fk_exp_agg_exporter
+            onDelete: CASCADE
+
+  - changeSet:
+      id: fix_exporter_processor_connections_foreign_key
+      author: Samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - foreignKeyConstraintExists:
+            foreignKeyName: fk_exp_proc_exporter
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: exporter_processor_connections
+            constraintName: fk_exp_proc_exporter
+        - addForeignKeyConstraint:
+            baseTableName: exporter_processor_connections
+            baseColumnNames: exporter_id
+            referencedTableName: exporters
+            referencedColumnNames: exporter_id
+            constraintName: fk_exp_proc_exporter
+            onDelete: CASCADE
+
+  - changeSet:
+      id: fix_exporter_importer_connections_foreign_key
+      author: Samwel
+      preConditions:
+        - onFail: MARK_RAN
+        - foreignKeyConstraintExists:
+            foreignKeyName: fk_exp_imp_exporter
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: exporter_importer_connections
+            constraintName: fk_exp_imp_exporter
+        - addForeignKeyConstraint:
+            baseTableName: exporter_importer_connections
+            baseColumnNames: exporter_id
+            referencedTableName: exporters
+            referencedColumnNames: exporter_id
+            constraintName: fk_exp_imp_exporter
+            onDelete: CASCADE

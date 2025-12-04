@@ -72,7 +72,7 @@ export default {
           });
         }
         this.$store.commit('setClient', []);
-        this.$router.push({ name: 'Home' });
+        this.$router.push({ name: 'SignIn' });
       });
     },
   },

@@ -152,7 +152,8 @@ class RedirectFollowingClient : Client {
 }
 
 data class GfwQueryRequest(
-    val sql: String
+    val sql: String,
+    val geometry: Any? = null
 )
 
 data class GfwQueryResponse(

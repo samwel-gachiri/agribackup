@@ -219,16 +219,19 @@ class DeforestationAlertService(
             """.trimIndent()
 
             logger.debug("Fetching GLAD alerts count with SQL: $sql")
-            
+
+            // Parse GeoJSON string to object for the request body
+            val geometryObj = objectMapper.readValue(geoJson, Any::class.java)
+
             val response = gfwClient.queryDataset(
                 datasetId = GLAD_DATASET_ID,
                 version = GLAD_VERSION,
                 apiKey = gfwApiKey,
-                request = GfwQueryRequest(sql)
+                request = GfwQueryRequest(sql, geometryObj)
             )
-            
+
             logger.debug("GLAD response: ${response.data?.size ?: 0} rows")
-            
+
             response.data?.get(0)?.get("alert_count")?.toString()?.toIntOrNull() ?: 0
         } catch (e: Exception) {
             logger.warn("Failed to fetch GLAD alerts count for geometry check", e)
@@ -249,16 +252,16 @@ class DeforestationAlertService(
             """.trimIndent()
 
             logger.debug("Fetching VIIRS alerts count with SQL: $sql")
-            
+
             val response = gfwClient.queryDataset(
                 datasetId = VIIRS_DATASET_ID,
                 version = VIIRS_VERSION,
                 apiKey = gfwApiKey,
                 request = GfwQueryRequest(sql)
             )
-            
+
             logger.debug("VIIRS response: ${response.data?.size ?: 0} rows")
-            
+
             response.data?.get(0)?.get("alert_count")?.toString()?.toIntOrNull() ?: 0
         } catch (e: Exception) {
             logger.warn("Failed to fetch VIIRS alerts count for geometry check", e)
@@ -279,16 +282,19 @@ class DeforestationAlertService(
             """.trimIndent()
 
             logger.debug("Fetching tree cover loss alerts count with SQL: $sql")
-            
+
+            // Parse GeoJSON string to object for the request body
+            val geometryObj = objectMapper.readValue(geoJson, Any::class.java)
+
             val response = gfwClient.queryDataset(
                 datasetId = TREE_COVER_LOSS_DATASET_ID,
                 version = TREE_COVER_LOSS_VERSION,
                 apiKey = gfwApiKey,
-                request = GfwQueryRequest(sql)
+                request = GfwQueryRequest(sql, geometryObj)
             )
-            
+
             logger.debug("Tree cover loss response: ${response.data?.size ?: 0} rows")
-            
+
             response.data?.get(0)?.get("alert_count")?.toString()?.toIntOrNull() ?: 0
         } catch (e: Exception) {
             logger.warn("Failed to fetch tree cover loss alerts count for geometry check", e)
@@ -322,13 +328,16 @@ class DeforestationAlertService(
             logger.debug("GLAD SQL Query: $sql")
             logger.debug("GeoJSON: $geoJson")
 
+            // Parse GeoJSON string to object for the request body
+            val geometryObj = objectMapper.readValue(geoJson, Any::class.java)
+
             val response = gfwClient.queryDataset(
                 datasetId = GLAD_DATASET_ID,
                 version = GLAD_VERSION,
                 apiKey = gfwApiKey,
-                request = GfwQueryRequest(sql)
+                request = GfwQueryRequest(sql, geometryObj)
             )
-            
+
             logger.debug("GLAD API Response: ${response.data?.size ?: 0} alerts")
 
             parseGladAlertsResponse(response, productionUnit)
@@ -348,11 +357,11 @@ class DeforestationAlertService(
             val geoJson = convertGeometryToGeoJson(geometry)
 
             val sql = """
-                SELECT latitude, longitude, confidence, alert_date, bright_ti4
+                SELECT latitude, longitude, confidence__cat, alert__date, bright_ti4__K
                 FROM data 
                 WHERE ST_Intersects(geometry, ST_GeomFromGeoJSON('$geoJson'))
-                AND alert_date >= '${LocalDateTime.now().minusDays(7).format(DATE_FORMATTER)}'
-                ORDER BY alert_date DESC
+                AND alert__date >= '${LocalDateTime.now().minusHours(24).format(DATE_FORMATTER)}'
+                ORDER BY alert__date DESC
                 LIMIT 100
             """.trimIndent()
 
@@ -364,7 +373,7 @@ class DeforestationAlertService(
                 apiKey = gfwApiKey,
                 request = GfwQueryRequest(sql)
             )
-            
+
             logger.debug("VIIRS API Response: ${response.data?.size ?: 0} alerts")
 
             parseViirsAlertsResponse(response, productionUnit)
@@ -388,19 +397,22 @@ class DeforestationAlertService(
                 SELECT umd_tree_cover_loss__year, umd_tree_cover_loss__ha
                 FROM data 
                 WHERE ST_Intersects(geometry, ST_GeomFromGeoJSON('$geoJson'))
-                AND umd_tree_cover_loss__year >= ${currentYear - 2}
+                AND umd_tree_cover_loss__year >= 2021
                 ORDER BY umd_tree_cover_loss__year DESC
             """.trimIndent()
 
             logger.debug("Tree cover loss SQL Query: $sql")
 
+            // Parse GeoJSON string to object for the request body
+            val geometryObj = objectMapper.readValue(geoJson, Any::class.java)
+
             val response = gfwClient.queryDataset(
                 datasetId = TREE_COVER_LOSS_DATASET_ID,
                 version = TREE_COVER_LOSS_VERSION,
                 apiKey = gfwApiKey,
-                request = GfwQueryRequest(sql)
+                request = GfwQueryRequest(sql, geometryObj)
             )
-            
+
             logger.debug("Tree cover loss API Response: ${response.data?.size ?: 0} alerts")
 
             parseTreeLossResponse(response, productionUnit)
@@ -488,7 +500,21 @@ class DeforestationAlertService(
         return try {
             val latitude = (alertData["latitude"] ?: alertData["lat"])?.toString()?.toDoubleOrNull() ?: return null
             val longitude = (alertData["longitude"] ?: alertData["lng"])?.toString()?.toDoubleOrNull() ?: return null
-            val confidence = (alertData["confidence"])?.toString()?.toDoubleOrNull() ?: 0.0
+
+            // Handle both numerical confidence and categorical confidence (VIIRS)
+            val confidence = if (alertData.containsKey("confidence")) {
+                alertData["confidence"]?.toString()?.toDoubleOrNull() ?: 0.0
+            } else if (alertData.containsKey("confidence_cat")) {
+                when (alertData["confidence_cat"]?.toString()?.lowercase()) {
+                    "h", "high" -> 0.9
+                    "n", "nominal" -> 0.6
+                    "l", "low" -> 0.3
+                    else -> 0.0
+                }
+            } else {
+                0.0
+            }
+
             val alertDate = (alertData["alert_date"] ?: alertData["date"])?.toString()?.let {
                 try {
                     LocalDateTime.parse(it, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
@@ -759,6 +785,24 @@ class DeforestationAlertService(
         } else {
             deforestationAlertRepository.countByIsReviewedFalse()
         }
+    }
+
+    /**
+     * Check if a production unit is EUDR compliant
+     * Compliance requires no deforestation (tree loss) after Dec 31, 2020
+     */
+    fun checkEudrCompliance(productionUnit: ProductionUnit): Boolean {
+        logger.info("Checking EUDR compliance for unit ${productionUnit.id}")
+        
+        // 1. Check for historical deforestation since 2021 (EUDR Cutoff)
+        val treeLossAlerts = fetchTreeLossAlerts(productionUnit)
+        if (treeLossAlerts.isNotEmpty()) {
+            logger.warn("EUDR Non-Compliance detected: Tree loss found on unit ${productionUnit.id} since 2021")
+            return false
+        }
+        
+        logger.info("Unit ${productionUnit.id} is EUDR compliant (no post-2020 deforestation found)")
+        return true
     }
 
     data class AlertSummary(

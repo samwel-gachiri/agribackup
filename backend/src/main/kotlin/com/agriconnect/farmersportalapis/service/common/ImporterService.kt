@@ -111,8 +111,8 @@ class ImporterService(
                 hederaConsensusService.recordImporterCreation(
                     importerId = savedImporter.id,
                     companyName = savedImporter.companyName,
-                    importLicenseNumber = savedImporter.importLicenseNumber,
-                    destinationCountry = savedImporter.destinationCountry
+                    importLicenseNumber = savedImporter.importLicenseNumber!!,
+                    destinationCountry = savedImporter.destinationCountry!!
                 )
             } catch (e: Exception) {
                 println("Failed to store Hedera credentials, associate NFT, or record on HCS: ${e.message}")
@@ -436,9 +436,9 @@ class ImporterService(
         return ImporterResponseDto(
             id = importer.id,
             companyName = importer.companyName,
-            importLicenseNumber = importer.importLicenseNumber,
-            companyAddress = importer.companyAddress,
-            destinationCountry = importer.destinationCountry,
+            importLicenseNumber = importer.importLicenseNumber!!,
+            companyAddress = importer.companyAddress!!,
+            destinationCountry = importer.destinationCountry!!,
             destinationPort = importer.destinationPort,
             importCategories = importer.importCategories?.split(","),
             eudrComplianceOfficer = importer.eudrComplianceOfficer,

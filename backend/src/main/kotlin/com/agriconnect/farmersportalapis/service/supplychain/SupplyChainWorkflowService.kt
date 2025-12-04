@@ -346,8 +346,8 @@ class SupplyChainWorkflowService(
             
             // Extract origin country from processor facility address (fallback to "Unknown")
             val originCountry = processor.facilityAddress
-                .split(",")
-                .lastOrNull()
+                ?.split(",")
+                ?.lastOrNull()
                 ?.trim() ?: "Unknown"
             
             val hederaTransactionId = hederaMainService.recordImportShipment(

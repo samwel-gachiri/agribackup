@@ -9,5 +9,6 @@ enum class RoleType {
     IMPORTER,
     ADMIN,
     SYSTEM_ADMIN,
-    ZONE_SUPERVISOR
+    ZONE_SUPERVISOR,
+    USER
 }

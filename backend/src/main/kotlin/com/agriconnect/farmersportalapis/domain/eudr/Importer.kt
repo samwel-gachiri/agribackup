@@ -28,25 +28,25 @@ class Importer(
     var companyName: String,
 
     @Column(name = "import_license_number", nullable = false)
-    var importLicenseNumber: String,
+    var importLicenseNumber: String? = "",
 
     @Column(name = "company_address", nullable = false)
-    var companyAddress: String,
+    var companyAddress: String? = "",
 
     @Column(name = "destination_country", nullable = false)
-    var destinationCountry: String,
+    var destinationCountry: String? = "",
 
     @Column(name = "destination_port")
-    var destinationPort: String?,
+    var destinationPort: String? = "",
 
     @Column(name = "import_categories", columnDefinition = "TEXT")
-    var importCategories: String?, // JSON array of product categories
+    var importCategories: String? = "", // JSON array of product categories
 
     @Column(name = "eudr_compliance_officer")
-    var eudrComplianceOfficer: String?,
+    var eudrComplianceOfficer: String? = "",
 
     @Column(name = "certification_details", columnDefinition = "TEXT")
-    var certificationDetails: String?,
+    var certificationDetails: String? = "",
 
     @Enumerated(EnumType.STRING)
     @Column(name = "verification_status")
@@ -59,7 +59,7 @@ class Importer(
     var totalImportVolumeKg: BigDecimal = BigDecimal.ZERO,
 
     @Column(name = "hedera_account_id")
-    var hederaAccountId: String?,
+    var hederaAccountId: String? = "",
 
     @CreationTimestamp
     @Column(name = "created_at")

@@ -21,13 +21,13 @@ class Processor(
     var facilityName: String,
 
     @Column(name = "facility_address", nullable = false)
-    var facilityAddress: String,
+    var facilityAddress: String? = "",
 
     @Column(name = "processing_capabilities", columnDefinition = "TEXT")
-    var processingCapabilities: String?,
+    var processingCapabilities: String? = "",
 
     @Column(name = "certification_details", columnDefinition = "TEXT")
-    var certificationDetails: String?,
+    var certificationDetails: String? = "",
 
     @Enumerated(EnumType.STRING)
     @Column(name = "verification_status")
