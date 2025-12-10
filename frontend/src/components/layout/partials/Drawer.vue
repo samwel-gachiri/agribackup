@@ -1,81 +1,86 @@
 <!-- eslint-disable vue/no-use-v-if-with-v-for -->
 <template>
-  <div class="">
-    <div class="app-drawer-glass">
-      <!-- Header: Brand + User (minimal) -->
-      <div class="app-drawer-header">
-        <div class="app-brand-row">
-          <logo-title class="app-brand" />
-        </div>
-        <div class="app-user-mini tw-w-full" v-if="displayName || userRole">
-          <span class="app-portal-badge">Portal</span>
-<!--          <avatar class="mr-2" />-->
-          <div class="app-user-info tw-flex tw-flex-row tw-border-r tw-py-2 tw-px-4 tw-rounded-lg">
-            <!-- <div class="app-user-name">{{ displayName || 'User' }}</div> -->
-            <div class="app-role-chip">
-              <span>{{ userRole || 'Guest' }}</span>
-            </div>
-          </div>
-        </div>
-        <role-indicator />
+  <div class="modern-drawer">
+    <!-- Header Section -->
+    <div class="drawer-header">
+      <div class="brand-section">
+        <logo-title class="brand-logo" />
+        <span class="portal-tag">Portal</span>
       </div>
 
-      <!-- Navigation (comprehensive, role-based) -->
-      <nav class="app-nav-list">
+      <!-- User Info -->
+      <div v-if="displayName || userRole" class="user-card">
+        <div class="user-avatar">
+          <v-icon color="white" size="20">mdi-account</v-icon>
+        </div>
+        <div class="user-details">
+          <span class="user-name">{{ displayName || 'User' }}</span>
+          <span class="user-role">{{ userRole || 'Guest' }}</span>
+        </div>
+      </div>
+
+      <role-indicator />
+    </div>
+
+    <!-- Navigation Section -->
+    <nav class="drawer-nav">
+      <div class="nav-scroll">
         <template v-for="(item, i) in navigationItems">
-          <!-- Section with children (collapsible) -->
-          <div v-if="item.isSection && canView(item)" :key="`section-${i}`" class="app-nav-section">
-            <div class="app-nav-section-header" @click="toggleSection(item.text)">
-              <span class="app-nav-icon">
-                <v-icon :color="item.iconColor || 'primary'">{{ item.icon }}</v-icon>
-              </span>
-              <span class="app-nav-text">{{ item.text }}</span>
-              <v-icon class="app-nav-expand-icon" :class="{ 'app-nav-expanded': isSectionExpanded(item.text) }">
+          <!-- Section with children -->
+          <div v-if="item.isSection && canView(item)" :key="`section-${i}`" class="nav-group">
+            <button
+              class="nav-group-header"
+              @click="toggleSection(item.text)"
+            >
+              <v-icon size="20" :color="item.iconColor || '#2e7d32'">{{ item.icon }}</v-icon>
+              <span class="nav-label">{{ item.text }}</span>
+              <v-icon
+                size="18"
+                class="expand-icon"
+                :class="{ 'expanded': isSectionExpanded(item.text) }"
+              >
                 mdi-chevron-down
               </v-icon>
-            </div>
-            <transition name="app-nav-expand">
-              <div v-show="isSectionExpanded(item.text)" class="app-nav-children">
+            </button>
+            <transition name="expand">
+              <div v-show="isSectionExpanded(item.text)" class="nav-children">
                 <router-link
                   v-for="(child, j) in item.children"
                   v-if="canView(child)"
                   :key="`${i}-${j}`"
                   :to="child.link"
-                  class="app-nav-item app-nav-child"
-                  active-class="app-nav-active"
+                  class="nav-link nav-child"
+                  active-class="nav-active"
                   exact
                 >
-                  <span class="app-nav-icon">
-                    <v-icon :color="child.iconColor || 'primary'">{{ child.icon }}</v-icon>
-                  </span>
-                  <span class="app-nav-text">{{ child.text }}</span>
+                  <v-icon size="18" :color="child.iconColor || '#666'">{{ child.icon }}</v-icon>
+                  <span>{{ child.text }}</span>
                 </router-link>
               </div>
             </transition>
           </div>
+
           <!-- Regular navigation item -->
           <router-link
             v-else-if="!item.isSection && canView(item)"
             :key="`item-${i}`"
             :to="item.link"
-            class="app-nav-item"
-            active-class="app-nav-active"
+            class="nav-link"
+            active-class="nav-active"
             exact
           >
-            <span class="app-nav-icon">
-              <v-icon :color="item.iconColor || 'primary'">{{ item.icon }}</v-icon>
-            </span>
-            <span class="app-nav-text">{{ item.text }}</span>
+            <v-icon size="20" :color="item.iconColor || '#2e7d32'">{{ item.icon }}</v-icon>
+            <span class="nav-label">{{ item.text }}</span>
           </router-link>
         </template>
-      </nav>
+      </div>
+    </nav>
 
-      <!-- Feedback (minimal) -->
-      <div v-if="false" class="app-feedback-section">
-        <v-btn block text color="primary" class="app-feedback-btn" @click="$emit('openFeedback')">
-          <v-icon left>mdi-lightbulb-outline</v-icon>
-          Suggest Improvement
-        </v-btn>
+    <!-- Footer Section -->
+    <div class="drawer-footer">
+      <div class="footer-info">
+        <v-icon size="16" color="#94a3b8">mdi-shield-check</v-icon>
+        <span>EUDR Compliant</span>
       </div>
     </div>
   </div>
@@ -89,63 +94,25 @@ import LogoTitle from '@/components/shared/LogoText.vue';
 import Avatar from '@/components/layout/partials/nav/Avatar.vue';
 // eslint-disable-next-line no-unused-vars
 import RoleIndicator from '@/components/shared/RoleIndicator.vue';
+import { getCurrentUserId } from '@/utils/roles';
 
 export default {
   name: 'AppDrawer',
-  // eslint-disable-next-line vue/no-unused-components
-  components: { LogoTitle, Avatar, RoleIndicator },
+  components: {
+    // eslint-disable-next-line vue/no-unused-components
+    LogoTitle, Avatar, RoleIndicator, getCurrentUserId,
+  },
   data: () => ({
-    expandedSections: [], // Default expanded sections
+    expandedSections: [],
     navigationItems: [
       // Common: Dashboard for all roles
       {
-        icon: 'mdi-apps-box',
+        icon: 'mdi-view-dashboard',
         text: 'Dashboard',
         link: { name: 'Dashboard' },
         roles: ['FARMER', 'BUYER', 'EXPORTER', 'SYSTEM_ADMIN', 'ZONE_SUPERVISOR', 'AGGREGATOR'],
-        iconColor: '#222',
+        iconColor: '#2e7d32',
       },
-
-      // === FARMER PORTAL (NON-EUDR - COMMENTED OUT) ===
-      // {
-      //   icon: 'mdi-barn',
-      //   text: 'My Farm',
-      //   get link() {
-      //     const id = getCurrentUserId();
-      //     return id ? { name: 'MyFarm', params: { farmerId: id } } : { name: 'MyFarm' };
-      //   },
-      //   roles: ['FARMER'],
-      //   iconColor: '#16a34a',
-      // },
-      // {
-      //   icon: 'mdi-sprout-outline',
-      //   text: 'Harvest & Yields',
-      //   link: { name: 'HarvestAndYields' },
-      //   roles: ['FARMER'],
-      //   iconColor: '#f97316',
-      // },
-      // {
-      //   icon: 'mdi-format-list-bulleted-square',
-      //   text: 'Listings',
-      //   link: { name: 'Listings' },
-      //   roles: ['FARMER'],
-      //   iconColor: '#6366f1',
-      // },
-      // {
-      //   icon: 'mdi-truck-delivery-outline',
-      //   text: 'Orders',
-      //   link: { name: 'FarmerOrders' },
-      //   roles: ['FARMER'],
-      //   iconColor: '#0ea5e9',
-      // },
-      // {
-      //   icon: 'mdi-chart-line',
-      //   text: 'Reports',
-      //   link: { name: 'FarmerReports' },
-      //   roles: ['FARMER'],
-      //   iconColor: '#8b5cf6',
-      // },
-
       // === FARMER EUDR SECTION ===
       {
         icon: 'mdi-map-marker-radius',
@@ -154,12 +121,31 @@ export default {
         roles: ['FARMER'],
         iconColor: '#16a34a',
       },
+
+      // === FARMER PORTAL (NON-EUDR - COMMENTED OUT) ===
       {
-        icon: 'mdi-file-document-multiple',
-        text: 'My Documents',
-        link: { name: 'FarmerDocuments' },
+        icon: 'mdi-barn',
+        text: 'My Produces',
+        get link() {
+          const id = getCurrentUserId();
+          return id ? { name: 'MyFarm', params: { farmerId: id } } : { name: 'MyFarm' };
+        },
         roles: ['FARMER'],
-        iconColor: '#0ea5e9',
+        iconColor: '#16a34a',
+      },
+      {
+        icon: 'mdi-format-list-bulleted-square',
+        text: 'Listings',
+        link: { name: 'Listings' },
+        roles: ['FARMER'],
+        iconColor: '#6366f1',
+      },
+      {
+        icon: 'mdi-chart-line',
+        text: 'Reports',
+        link: { name: 'FarmerReports' },
+        roles: ['FARMER'],
+        iconColor: '#8b5cf6',
       },
 
       // === AGGREGATOR EUDR SECTION ===
@@ -211,43 +197,6 @@ export default {
         roles: ['SYSTEM_ADMIN'],
         iconColor: '#8b5cf6',
       },
-
-      // === BUYER PORTAL (NON-EUDR - COMMENTED OUT) ===
-      // {
-      //   icon: 'mdi-account-group',
-      //   text: 'My Farmers',
-      //   link: { name: 'MyFarmers' },
-      //   roles: ['BUYER'],
-      //   iconColor: '#16a34a',
-      // },
-      // {
-      //   icon: 'mdi-magnify',
-      //   text: 'Browse Listings',
-      //   link: { name: 'BrowseListings' },
-      //   roles: ['BUYER'],
-      //   iconColor: '#6366f1',
-      // },
-      // {
-      //   icon: 'mdi-cart-outline',
-      //   text: 'My Orders',
-      //   link: { name: 'BuyerOrders' },
-      //   roles: ['BUYER'],
-      //   iconColor: '#0ea5e9',
-      // },
-      // {
-      //   icon: 'mdi-map-marker-path',
-      //   text: 'Pickup Planning',
-      //   link: { name: 'PickupPlanning' },
-      //   roles: ['BUYER'],
-      //   iconColor: '#f59e0b',
-      // },
-      // {
-      //   icon: 'mdi-chart-areaspline',
-      //   text: 'Analytics',
-      //   link: { name: 'BuyerAnalytics' },
-      //   roles: ['BUYER'],
-      //   iconColor: '#8b5cf6',
-      // },
 
       // === EXPORTER PORTAL (EUDR Management) ===
       {
@@ -329,75 +278,6 @@ export default {
         roles: ['EXPORTER', 'SYSTEM_ADMIN'],
         iconColor: '#10b981',
       },
-
-      // === ZONE SUPERVISOR PORTAL (NON-EUDR - COMMENTED OUT) ===
-      // {
-      //   icon: 'mdi-map-marker-path',
-      //   text: 'Zone Management',
-      //   link: { name: 'ZoneManagement' },
-      //   roles: ['ZONE_SUPERVISOR'],
-      //   iconColor: '#f59e42',
-      // },
-      // {
-      //   icon: 'mdi-account-multiple',
-      //   text: 'Zone Farmers',
-      //   link: { name: 'ZoneFarmers' },
-      //   roles: ['ZONE_SUPERVISOR'],
-      //   iconColor: '#16a34a',
-      // },
-      // {
-      //   icon: 'mdi-truck-delivery',
-      //   text: 'Zone Pickups',
-      //   link: { name: 'ZonePickups' },
-      //   roles: ['ZONE_SUPERVISOR'],
-      //   iconColor: '#0ea5e9',
-      // },
-
-      // === ADMIN PORTAL (NON-EUDR - COMMENTED OUT) ===
-      // {
-      //   icon: 'mdi-file-document-check',
-      //   text: 'License Review',
-      //   link: { name: 'LicenseReview' },
-      //   roles: ['ADMIN'],
-      //   iconColor: '#f59e0b',
-      // },
-      // {
-      //   icon: 'mdi-account-group',
-      //   text: 'Users Report',
-      //   link: { name: 'UsersReport' },
-      //   roles: ['ADMIN'],
-      //   iconColor: '#6366f1',
-      // },
-      // {
-      //   icon: 'mdi-file-document-outline',
-      //   text: 'Orders Report',
-      //   link: { name: 'OrdersReport' },
-      //   roles: ['ADMIN'],
-      //   iconColor: '#0ea5e9',
-      // },
-      // {
-      //   icon: 'mdi-chart-line',
-      //   text: 'System Reports',
-      //   link: { name: 'SystemReports' },
-      //   roles: ['ADMIN'],
-      //   iconColor: '#8b5cf6',
-      // },
-      // {
-      //   icon: 'mdi-cog',
-      //   text: 'System Settings',
-      //   link: { name: 'SystemSettings' },
-      //   roles: ['ADMIN'],
-      //   iconColor: '#64748b',
-      // },
-
-      // === COMMON: Settings for all users (except FARMER for EUDR focus) ===
-      // {
-      //   icon: 'mdi-cog-outline',
-      //   text: 'Settings',
-      //   link: { name: 'Settings' },
-      //   roles: ['BUYER', 'EXPORTER', 'SYSTEM_ADMIN', 'ZONE_SUPERVISOR', 'ADMIN', 'AGGREGATOR', 'PROCESSOR', 'IMPORTER'],
-      //   iconColor: '#64748b',
-      // },
     ],
   }),
   computed: {
@@ -449,278 +329,257 @@ export default {
 </script>
 
 <style scoped>
-.app-drawer-wrap {
-  position: relative;
+/* Main Drawer Container */
+.modern-drawer {
+  display: flex;
+  flex-direction: column;
   height: 100vh;
-  min-width: 300px;
-  max-width: 360px;
+  width: 280px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-right: 1px solid #e2e8f0;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Header Section */
+.drawer-header {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: white;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.brand-logo {
+  flex: 1;
+}
+
+.portal-tag {
+  background: linear-gradient(135deg, #2e7d32, #4caf50);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+}
+
+/* User Card */
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 12px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2e7d32, #4caf50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role {
+  font-size: 12px;
+  font-weight: 500;
+  color: #2e7d32;
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
+}
+
+/* Navigation Section */
+.drawer-nav {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+/* Navigation Groups */
+.nav-group {
+  margin-bottom: 8px;
+}
+
+.nav-group-header {
   width: 100%;
   display: flex;
-  flex-direction: column;
-  z-index: 20;
-  right: 0;
-  box-shadow: -4px 0 32px rgba(46, 125, 50, 0.12);
-  background: linear-gradient(135deg, rgba(247, 245, 238, 0.95), rgba(230, 244, 234, 0.95));
-}
-.app-drawer-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-.app-drawer-shape {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(48px);
-  opacity: 0.15;
-  animation: app-drawer-float 18s ease-in-out infinite;
-}
-.app-drawer-shape.shape-1 {
-  width: 180px; height: 180px; top: -40px; right: -40px;
-  background: radial-gradient(circle at 70% 30%, #bbf7d0 0%, #86efac 80%, transparent 100%);
-  animation-delay: 0s;
-}
-.app-drawer-shape.shape-2 {
-  width: 120px; height: 120px; bottom: 10%; right: 10%;
-  background: radial-gradient(circle at 80% 80%, #dcfce7 0%, #bbf7d0 80%, transparent 100%);
-  animation-delay: 2.5s;
-}
-@keyframes app-drawer-float {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(18px) scale(1.03); }
-}
-.app-drawer-glass {
-  position: relative;
-  z-index: 1;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: rgba(255,255,255,0.92);
-  border-left: 2px solid rgba(230, 225, 195, 0.4);
-  box-shadow: -4px 0 32px rgba(46, 125, 50, 0.08);
-  backdrop-filter: blur(16px) saturate(160%);
-  border-top-right-radius: 24px;
-  overflow: hidden;
-  border-image: linear-gradient(135deg, rgba(46, 125, 50, 0.2), rgba(76, 175, 80, 0.2)) 1;
-}
-.app-drawer-header {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  padding: 24px 18px 12px 18px;
-  border-bottom: 2px solid rgba(230, 225, 195, 0.4);
-  background: rgba(255,255,255,0.98);
-  z-index: 2;
-  backdrop-filter: blur(8px);
-  border-top-right-radius: 24px;
-}
-.app-brand-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.app-brand {
-  margin-bottom: 2px;
-}
-.app-portal-badge {
-  background: linear-gradient(135deg, #2e7d32, #4caf50);
-  color: #fff;
-  font-size: 0.85rem;
-  font-weight: 700;
-  border-radius: 12px;
-  padding: 4px 12px;
-  margin-left: 4px;
-  letter-spacing: 0.02em;
-  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-.app-user-mini {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(247, 245, 238, 0.9));
-  border: 2px solid rgba(230, 225, 195, 0.4);
-  box-shadow: 0 4px 16px rgba(46, 125, 50, 0.08);
-  backdrop-filter: blur(8px);
-}
-.app-user-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.app-user-name {
-  font-weight: 800;
-  font-size: 1.05rem;
-  color: #2e7d32;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-.app-role-chip {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.82rem;
-  color: #4caf50;
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(46, 125, 50, 0.1));
-  border: 2px solid rgba(76, 175, 80, 0.2);
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  box-shadow: 0 2px 6px rgba(46, 125, 50, 0.08);
-}
-.app-nav-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 0 0 0;
-  flex: 1 1 auto;
-  overflow-y: auto;
-}
-.app-nav-section {
-  display: flex;
-  flex-direction: column;
-  margin: 0 8px;
-}
-.app-nav-section-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  color: #2e7d32;
-  font-weight: 700;
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-  background: rgba(255,255,255,0.8);
-  backdrop-filter: blur(4px);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.02);
-  letter-spacing: 0.01em;
-  user-select: none;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
 }
-.app-nav-section-header:hover {
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(46, 125, 50, 0.15));
-  color: #2e7d32;
-  border-color: rgba(76, 175, 80, 0.3);
-  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.12);
+
+.nav-group-header:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
 }
-.app-nav-expand-icon {
+
+.expand-icon {
   margin-left: auto;
-  transition: transform 0.3s ease;
+  transition: transform 0.2s ease;
 }
-.app-nav-expanded {
+
+.expand-icon.expanded {
   transform: rotate(180deg);
 }
-.app-nav-children {
+
+/* Navigation Links */
+.nav-link {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 0;
-  margin-left: 12px;
-  border-left: 2px solid rgba(76, 175, 80, 0.2);
-  padding-left: 8px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  background: white;
 }
-.app-nav-child {
-  font-size: 0.95rem !important;
-  padding: 5px 10px !important;
+
+.nav-link:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #e2e8f0;
 }
-.app-nav-expand-enter-active,
-.app-nav-expand-leave-active {
+
+.nav-link.nav-active {
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+  color: #166534;
+  font-weight: 600;
+  border-color: #86efac;
+  box-shadow: 0 1px 3px rgba(22, 101, 52, 0.1);
+}
+
+.nav-label {
+  flex: 1;
+}
+
+/* Navigation Children */
+.nav-children {
+  padding: 8px 0 8px 16px;
+  border-left: 2px solid #e2e8f0;
+  margin-left: 28px;
+  margin-top: 4px;
+}
+
+.nav-child {
+  font-size: 13px;
+  padding: 8px 12px;
+}
+
+/* Expand Animation */
+.expand-enter-active,
+.expand-leave-active {
   transition: all 0.3s ease;
   max-height: 500px;
   overflow: hidden;
 }
-.app-nav-expand-enter-from,
-.app-nav-expand-leave-to {
+
+.expand-enter-from,
+.expand-leave-to {
   max-height: 0;
   opacity: 0;
 }
-.app-nav-item {
+
+/* Footer Section */
+.drawer-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #e2e8f0;
+  background: white;
+}
+
+.footer-info {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px 6px 12px;
-  border-radius: 6px;
-  color: #2e7d32;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  margin: 0 8px;
-  border: 2px solid transparent;
-  background: rgba(255,255,255,0.6);
-  backdrop-filter: blur(4px);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.02);
-  letter-spacing: 0.01em;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
 }
-.app-nav-item:hover {
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(46, 125, 50, 0.1));
-  color: #2e7d32;
-  border-color: rgba(76, 175, 80, 0.3);
-  /* transform: translateX(4px); */
-  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.12);
+
+/* Scrollbar Styling */
+.nav-scroll::-webkit-scrollbar {
+  width: 6px;
 }
-.app-nav-active {
-  background: linear-gradient(135deg, rgba(46, 125, 50, 0.15), rgba(76, 175, 80, 0.15)) !important;
-  color: #2e7d32 !important;
-  font-weight: 800 !important;
-  border-color: rgba(46, 125, 50, 0.4) !important;
-  box-shadow: 0 8px 25px rgba(46, 125, 50, 0.15) !important;
-  /* transform: translateX(6px); */
+
+.nav-scroll::-webkit-scrollbar-track {
+  background: transparent;
 }
-.app-nav-icon {
-  display: flex;
-  align-items: center;
-  /* font-size: 1.4em; */
-  color: #4caf50;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.05);
+
+.nav-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
 }
-.app-nav-item:hover .app-nav-icon {
-  color: #2e7d32;
-  transform: scale(1.1);
+
+.nav-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
-.app-nav-active .app-nav-icon {
-  color: #2e7d32 !important;
-}
-.app-nav-text {
-  font-size: 1.02rem;
-  font-weight: light;
-  letter-spacing: 0.01em;
-  line-height: 1.3;
-}
-.app-feedback-section {
-  padding: 20px 18px 20px 18px;
-  margin-top: auto;
-  border-top: 2px solid rgba(230, 225, 195, 0.4);
-  background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(247, 245, 238, 0.98));
-  box-shadow: 0 -4px 16px rgba(46, 125, 50, 0.06);
-  backdrop-filter: blur(8px);
-}
-.app-feedback-btn {
-  font-weight: 700;
-  font-size: 1.02rem;
-  letter-spacing: 0.01em;
-  border-radius: 14px;
-  padding: 12px 0;
-  text-transform: none;
-  background: linear-gradient(135deg, #2e7d32, #4caf50) !important;
-  color: white !important;
-  box-shadow: 0 4px 16px rgba(46, 125, 50, 0.2);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  transition: all 0.3s ease;
-}
-.app-feedback-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(46, 125, 50, 0.3) !important;
-  background: linear-gradient(135deg, #4caf50, #2e7d32) !important;
-}
-@media (max-width: 1200px) {
-  .app-drawer-wrap { min-width: 220px; }
-}
+
+/* Responsive */
 @media (max-width: 960px) {
-  .app-drawer-wrap { min-width: 0; max-width: 100vw; }
-  .app-nav-text { font-size: 0.98rem; }
-  .app-nav-item { min-height: 42px; padding: 12px 20px; }
+  .modern-drawer {
+    width: 240px;
+  }
+
+  .user-name {
+    font-size: 13px;
+  }
+
+  .nav-link,
+  .nav-group-header {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
 }
 </style>

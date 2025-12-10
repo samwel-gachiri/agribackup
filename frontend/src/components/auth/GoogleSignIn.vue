@@ -15,7 +15,7 @@ export default {
   mounted() {
     const clientId = process.env.VUE_APP_GOOGLE_CLIENT_ID;
     if (!clientId) {
-      console.error('Google Client ID is missing. Please set VUE_APP_GOOGLE_CLIENT_ID in your .env file.');
+      this.$toast.error('Google Client ID is missing. Please set VUE_APP_GOOGLE_CLIENT_ID in your .env file.');
     }
     window.google.accounts.id.initialize({
       client_id: clientId,

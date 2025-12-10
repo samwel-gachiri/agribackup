@@ -2089,6 +2089,7 @@ class AuthService(
                         if (exporterRepository.findByUserProfile(user.id).isEmpty) {
                             val exporter =
                                     Exporter(
+                                            id=UUID.randomUUID().toString(),
                                             userProfile = user,
                                             companyName = "",
                                             licenseId = "PENDING",

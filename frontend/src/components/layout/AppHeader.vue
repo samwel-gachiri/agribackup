@@ -11,6 +11,12 @@
         >
           What is EUDR?
         </button>
+        <button
+          class="nav-link"
+          @click="$router.push({ name: 'Documentation' })"
+        >
+          Documentation
+        </button>
       </div>
       <div class="navbar-actions">
         <button

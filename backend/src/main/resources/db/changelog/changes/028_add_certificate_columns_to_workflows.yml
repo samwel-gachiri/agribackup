@@ -1,0 +1,81 @@
+databaseChangeLog:
+  - changeSet:
+      id: 028-add-certificate-columns-to-workflows
+      author: system
+      comment: Add EUDR Compliance Certificate NFT tracking columns to supply_chain_workflows table
+      changes:
+        - addColumn:
+            tableName: supply_chain_workflows
+            columns:
+              - column:
+                  name: compliance_certificate_nft_id
+                  type: varchar(50)
+                  remarks: Hedera Token ID of the issued EUDR Compliance Certificate NFT
+              - column:
+                  name: compliance_certificate_serial_number
+                  type: bigint
+                  remarks: Serial number of the minted NFT certificate (unique per workflow)
+              - column:
+                  name: compliance_certificate_transaction_id
+                  type: varchar(100)
+                  remarks: Hedera transaction ID of the certificate issuance
+              - column:
+                  name: current_owner_account_id
+                  type: varchar(50)
+                  remarks: Current Hedera account holding the certificate NFT (exporter or importer)
+              - column:
+                  name: certificate_status
+                  type: varchar(50)
+                  defaultValue: NOT_CREATED
+                  remarks: Status of the certificate lifecycle (NOT_CREATED, PENDING_VERIFICATION, COMPLIANT, IN_TRANSIT, TRANSFERRED_TO_IMPORTER, CUSTOMS_VERIFIED, DELIVERED, FROZEN, EXPIRED)
+              - column:
+                  name: certificate_issued_at
+                  type: timestamp
+                  remarks: Timestamp when the certificate was issued
+        
+        - createIndex:
+            indexName: idx_workflow_certificate_nft_id
+            tableName: supply_chain_workflows
+            columns:
+              - column:
+                  name: compliance_certificate_nft_id
+        
+        - createIndex:
+            indexName: idx_workflow_certificate_status
+            tableName: supply_chain_workflows
+            columns:
+              - column:
+                  name: certificate_status
+        
+        - createIndex:
+            indexName: idx_workflow_current_owner
+            tableName: supply_chain_workflows
+            columns:
+              - column:
+                  name: current_owner_account_id
+
+      rollback:
+        - dropIndex:
+            indexName: idx_workflow_current_owner
+            tableName: supply_chain_workflows
+        - dropIndex:
+            indexName: idx_workflow_certificate_status
+            tableName: supply_chain_workflows
+        - dropIndex:
+            indexName: idx_workflow_certificate_nft_id
+            tableName: supply_chain_workflows
+        - dropColumn:
+            tableName: supply_chain_workflows
+            columns:
+              - column:
+                  name: compliance_certificate_nft_id
+              - column:
+                  name: compliance_certificate_serial_number
+              - column:
+                  name: compliance_certificate_transaction_id
+              - column:
+                  name: current_owner_account_id
+              - column:
+                  name: certificate_status
+              - column:
+                  name: certificate_issued_at

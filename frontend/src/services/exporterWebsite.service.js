@@ -15,7 +15,7 @@ export default {
             const response = await apiClient.get(`${API_BASE}/${exporterId}/public`);
             return response.data;
         } catch (error) {
-            console.error('Error fetching exporter profile:', error);
+            this.$toast.error('Error fetching exporter profile:', error.message);
             throw error;
         }
     },
@@ -31,7 +31,7 @@ export default {
             const response = await apiClient.get(`/api/eudr/public/exporter/${exporterId}/batches`);
             return response.data;
         } catch (error) {
-            console.error('Error fetching exporter products:', error);
+            this.$toast.error('Error fetching exporter products:', error.message);
             // Return empty array if not accessible
             return { success: true, data: [] };
         }
@@ -53,7 +53,7 @@ export default {
             );
             return { success: true, data: certificates };
         } catch (error) {
-            console.error('Error fetching exporter certificates:', error);
+            this.$toast.error('Error fetching exporter certificates:', error.message);
             return { success: true, data: [] };
         }
     },
@@ -77,7 +77,7 @@ export default {
                 certificates: certificates.data || []
             };
         } catch (error) {
-            console.error('Error fetching exporter website data:', error);
+            this.$toast.error('Error fetching exporter website data:', error.message);
             throw error;
         }
     }

@@ -36,7 +36,15 @@ data class WorkflowResponseDto(
     val collectionEventCount: Int,
     val consolidationEventCount: Int,
     val processingEventCount: Int,
-    val shipmentEventCount: Int
+    val shipmentEventCount: Int,
+    
+    // Certificate information
+    val certificateStatus: String?,
+    val complianceCertificateNftId: String?,
+    val complianceCertificateSerialNumber: Long?,
+    val complianceCertificateTransactionId: String?,
+    val certificateIssuedAt: LocalDateTime?,
+    val currentOwnerAccountId: String?
 )
 
 // ===== COLLECTION EVENTS =====

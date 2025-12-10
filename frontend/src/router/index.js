@@ -32,6 +32,15 @@ const ifNotAuthenticated = (_to, _from, next) => {
 
 const routes = [
   {
+    path: "/documentation",
+    name: "Documentation",
+    component: () => import("../views/common/Documentation.vue"),
+    meta: {
+      title: "Documentation | AgriBackup",
+      requiresAuth: false,
+    },
+  },
+  {
     path: "/harvest-yields",
     name: "HarvestAndYields",
     component: () => import("../views/HarvestAndYields.vue"),

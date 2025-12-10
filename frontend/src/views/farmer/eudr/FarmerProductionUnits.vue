@@ -147,7 +147,7 @@
     </v-container>
 
     <!-- Add/Edit Production Unit Dialog -->
-    <v-dialog v-model="showAddDialog" max-width="90vw" max-height="90vh" persistent scrollable>
+    <v-dialog fullscreen v-model="showAddDialog" max-width="90vw" max-height="90vh" persistent scrollable>
       <v-card class="tw-rounded-xl tw-h-full tw-flex tw-flex-col">
         <!-- Header -->
         <div class="tw-text-white tw-px-6 tw-py-4 tw-flex tw-items-center tw-justify-between tw-bg-gradient-to-r tw-from-green-600 tw-to-green-700 tw-rounded-t-xl">

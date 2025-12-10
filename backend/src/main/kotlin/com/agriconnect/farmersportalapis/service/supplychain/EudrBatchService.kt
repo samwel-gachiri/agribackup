@@ -7,6 +7,7 @@ import com.agriconnect.farmersportalapis.domain.eudr.BatchStatus
 import com.agriconnect.farmersportalapis.domain.eudr.EudrBatch
 import com.agriconnect.farmersportalapis.infrastructure.repositories.CountryRiskRepository
 import com.agriconnect.farmersportalapis.infrastructure.repositories.EudrBatchRepository
+import com.agriconnect.farmersportalapis.infrastructure.repositories.ExporterRepository
 import com.agriconnect.farmersportalapis.infrastructure.repositories.ProductionUnitRepository
 import com.agriconnect.farmersportalapis.service.hedera.HederaConsensusServices
 import com.agriconnect.farmersportalapis.service.hedera.HederaMainService
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
+import kotlin.jvm.optionals.getOrNull
 
 @Service
 class EudrBatchService(
@@ -22,6 +24,7 @@ class EudrBatchService(
     private val countryRiskRepository: CountryRiskRepository,
     private val hederaConsensusService: HederaConsensusServices,
     private val hederaMainService: HederaMainService,
+    private val exporterRepository: ExporterRepository,
 ) {
 
     private val logger = LoggerFactory.getLogger(EudrBatchService::class.java)
@@ -39,6 +42,7 @@ class EudrBatchService(
         val countryRisk = countryRiskRepository.findByCountryCode(request.countryOfProduction)
             ?: throw IllegalArgumentException("Country ${request.countryOfProduction} not found in risk database")
 
+        val exporter = exporterRepository.findByUserProfile(createdBy).getOrNull()
         // Create the batch
         val batch = EudrBatch(
             batchCode = request.batchCode,
@@ -51,7 +55,7 @@ class EudrBatchService(
             harvestDate = request.harvestDate,
             harvestPeriodStart = request.harvestPeriodStart,
             harvestPeriodEnd = request.harvestPeriodEnd,
-            createdBy = createdBy,
+            createdBy = exporter?.id ?: createdBy,
             status = BatchStatus.CREATED,
             riskLevel = null,
             riskRationale = null,

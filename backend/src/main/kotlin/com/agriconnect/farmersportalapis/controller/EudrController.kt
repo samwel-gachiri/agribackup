@@ -7,10 +7,7 @@ import com.agriconnect.farmersportalapis.domain.eudr.BatchStatus
 import com.agriconnect.farmersportalapis.domain.eudr.RiskLevel
 import com.agriconnect.farmersportalapis.service.common.RiskAssessmentService
 import com.agriconnect.farmersportalapis.service.hedera.HederaTokenService
-import com.agriconnect.farmersportalapis.service.supplychain.DossierFormat
-import com.agriconnect.farmersportalapis.service.supplychain.DossierService
-import com.agriconnect.farmersportalapis.service.supplychain.EudrBatchService
-import com.agriconnect.farmersportalapis.service.supplychain.SupplierComplianceService
+import com.agriconnect.farmersportalapis.service.supplychain.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpHeaders
@@ -28,7 +25,8 @@ class EudrController(
     private val dossierService: DossierService,
     private val supplierComplianceService: SupplierComplianceService,
     private val eudrBatchService: EudrBatchService,
-    private val hederaTokenService: HederaTokenService
+    private val hederaTokenService: HederaTokenService,
+    private val supplyChainWorkflowService: SupplyChainWorkflowService
 ) {
 
     @PostMapping("/assess")
@@ -308,14 +306,16 @@ class EudrController(
     }
 
         @GetMapping("/certificates")
-        @PreAuthorize("hasAnyRole('EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR')")
-        @Operation(summary = "Get all EUDR compliance certificates", description = "Retrieve all EUDR batches with certificate info")
+        @PreAuthorize("hasAnyRole('EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR', 'IMPORTER')")
+        @Operation(summary = "Get all EUDR compliance certificates", description = "Retrieve all certificates from both EUDR batches and supply chain workflows")
         fun getCertificates(): ResponseEntity<Any> {
             return try {
+                // Get certificates from EUDR batches (legacy)
                 val batches = eudrBatchService.getAllBatches()
-                val certificates = batches.map { batch ->
+                val batchCertificates = batches.map { batch ->
                     mapOf(
                         "id" to batch.id,
+                        "certificateType" to "BATCH",
                         "batchCode" to batch.batchCode,
                         "commodityDescription" to batch.commodityDescription,
                         "countryOfProduction" to batch.countryOfProduction,
@@ -330,10 +330,43 @@ class EudrController(
                         "complianceCertificateTransactionId" to try { batch.javaClass.getDeclaredField("complianceCertificateTransactionId").get(batch) } catch (e: Exception) { null }
                     )
                 }
+
+                // Get certificates from supply chain workflows (new proper implementation)
+                val workflows = supplyChainWorkflowService.getAllWorkflows()
+                val workflowCertificates = workflows.map { workflow ->
+                    mapOf(
+                        "id" to workflow.id,
+                        "certificateType" to "WORKFLOW",
+                        "workflowName" to workflow.workflowName,
+                        "produceType" to workflow.produceType,
+                        "totalQuantityKg" to workflow.totalQuantityKg,
+                        "exporterId" to workflow.exporter.id,
+                        "exporterCompanyName" to workflow.exporter.companyName,
+                        "createdAt" to workflow.createdAt,
+                        "completedAt" to workflow.completedAt,
+                        "status" to workflow.status.name,
+                        "currentStage" to workflow.currentStage.name,
+                        "certificateStatus" to workflow.certificateStatus.name,
+                        "complianceCertificateNftId" to workflow.complianceCertificateNftId,
+                        "complianceCertificateSerialNumber" to workflow.complianceCertificateSerialNumber,
+                        "complianceCertificateTransactionId" to workflow.complianceCertificateTransactionId,
+                        "currentOwnerAccountId" to workflow.currentOwnerAccountId,
+                        "certificateIssuedAt" to workflow.certificateIssuedAt
+                    )
+                }
+
+                // Combine both types
+                val allCertificates = batchCertificates + workflowCertificates
+
                 ResponseEntity.ok(mapOf(
                     "success" to true,
-                    "data" to certificates,
-                    "message" to "Certificates retrieved successfully"
+                    "data" to allCertificates,
+                    "message" to "Certificates retrieved successfully",
+                    "counts" to mapOf(
+                        "total" to allCertificates.size,
+                        "batchCertificates" to batchCertificates.size,
+                        "workflowCertificates" to workflowCertificates.size
+                    )
                 ))
             } catch (e: Exception) {
                 ResponseEntity.internalServerError().body(mapOf(

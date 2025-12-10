@@ -42,6 +42,26 @@ class SupplyChainWorkflow(
     @Column(name = "completed_at")
     var completedAt: LocalDateTime? = null,
 
+    // EUDR Compliance Certificate NFT tracking
+    @Column(name = "compliance_certificate_nft_id", length = 50)
+    var complianceCertificateNftId: String? = null,
+
+    @Column(name = "compliance_certificate_serial_number")
+    var complianceCertificateSerialNumber: Long? = null,
+
+    @Column(name = "compliance_certificate_transaction_id", length = 100)
+    var complianceCertificateTransactionId: String? = null,
+
+    @Column(name = "current_owner_account_id", length = 50)
+    var currentOwnerAccountId: String? = null,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "certificate_status", length = 50)
+    var certificateStatus: CertificateStatus = CertificateStatus.NOT_CREATED,
+
+    @Column(name = "certificate_issued_at")
+    var certificateIssuedAt: LocalDateTime? = null,
+
     @OneToMany(mappedBy = "workflow", cascade = [CascadeType.ALL], orphanRemoval = true)
     var collectionEvents: MutableList<WorkflowCollectionEvent> = mutableListOf(),
 
@@ -67,4 +87,16 @@ enum class WorkflowStage {
     PROCESSING,
     SHIPMENT,
     COMPLETED
+}
+
+enum class CertificateStatus {
+    NOT_CREATED,           // Certificate hasn't been issued yet
+    PENDING_VERIFICATION,  // Workflow data collected, awaiting compliance checks
+    COMPLIANT,             // Certificate issued and valid
+    IN_TRANSIT,            // Certificate with exporter during transit
+    TRANSFERRED_TO_IMPORTER, // Certificate transferred to importer
+    CUSTOMS_VERIFIED,      // Customs authority verified the certificate
+    DELIVERED,             // Goods delivered, certificate archived
+    FROZEN,                // Certificate revoked due to fraud
+    EXPIRED                // Certificate validity period expired
 }

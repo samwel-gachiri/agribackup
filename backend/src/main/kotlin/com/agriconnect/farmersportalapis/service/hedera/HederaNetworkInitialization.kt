@@ -143,16 +143,15 @@ class HederaNetworkInitialization(
             val transaction = TokenCreateTransaction()
                 .setTokenName(tokenName)
                 .setTokenSymbol(symbol)
+                .setTokenType(TokenType.NON_FUNGIBLE_UNIQUE)  // Set BEFORE freezeWith()
                 .setDecimals(0)
                 .setInitialSupply(0)
+                .setMaxTransactionFee(Hbar.from(50))  // Increase fee for NFT creation (default is too low)
                 .setTreasuryAccountId(operatorAccountId)
                 .setAdminKey(operatorPrivateKey.publicKey)
                 .setSupplyKey(operatorPrivateKey.publicKey)
                 .freezeWith(client)
                 .sign(operatorPrivateKey)
-
-            // setting the tokentype here because java is preventing use of method to set the token type
-            transaction.tokenType = TokenType.NON_FUNGIBLE_UNIQUE
 
             val response = transaction.execute(client)
             val receipt = response.getReceipt(client)

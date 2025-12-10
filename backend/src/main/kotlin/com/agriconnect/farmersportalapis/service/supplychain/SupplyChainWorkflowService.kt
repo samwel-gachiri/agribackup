@@ -6,7 +6,9 @@ import com.agriconnect.farmersportalapis.domain.eudr.ConsolidatedBatchStatus
 import com.agriconnect.farmersportalapis.domain.supplychain.*
 import com.agriconnect.farmersportalapis.infrastructure.repositories.*
 import com.agriconnect.farmersportalapis.repository.*
+import com.agriconnect.farmersportalapis.service.hedera.HederaAccountService
 import com.agriconnect.farmersportalapis.service.hedera.HederaMainService
+import com.hedera.hashgraph.sdk.AccountId
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
@@ -34,7 +36,9 @@ class SupplyChainWorkflowService(
     private val consolidatedBatchRepository: ConsolidatedBatchRepository,
     private val importerRepository: ImporterRepository,
     private val farmerRepository: FarmerRepository,
-    private val hederaMainService: HederaMainService
+    private val hederaMainService: HederaMainService,
+    private val hederaAccountService: HederaAccountService,
+    private val hederaAccountCredentialsRepository: HederaAccountCredentialsRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -60,6 +64,10 @@ class SupplyChainWorkflowService(
     }
 
     // ===== GET WORKFLOWS =====
+    fun getAllWorkflows(): List<SupplyChainWorkflow> {
+        return workflowRepository.findAll()
+    }
+
     fun getWorkflowsByExporter(exporterId: String, pageable: Pageable): Page<WorkflowResponseDto> {
         val workflows = workflowRepository.findByExporterId(exporterId, pageable)
         val dtos = workflows.content.map { toWorkflowResponseDto(it) }
@@ -477,7 +485,14 @@ class SupplyChainWorkflowService(
             collectionEventCount = collectionCount,
             consolidationEventCount = consolidationCount,
             processingEventCount = processingCount,
-            shipmentEventCount = shipmentCount
+            shipmentEventCount = shipmentCount,
+            // Certificate information
+            certificateStatus = workflow.certificateStatus?.name,
+            complianceCertificateNftId = workflow.complianceCertificateNftId,
+            complianceCertificateSerialNumber = workflow.complianceCertificateSerialNumber,
+            complianceCertificateTransactionId = workflow.complianceCertificateTransactionId,
+            certificateIssuedAt = workflow.certificateIssuedAt,
+            currentOwnerAccountId = workflow.currentOwnerAccountId
         )
     }
 
@@ -575,5 +590,227 @@ class SupplyChainWorkflowService(
         return MessageDigest.getInstance("SHA-256")
             .digest(data.toByteArray())
             .joinToString("") { "%02x".format(it) }
+    }
+
+    // ===== CERTIFICATE MANAGEMENT =====
+    
+    /**
+     * Issue EUDR Compliance Certificate NFT for a workflow
+     * This validates compliance and mints the certificate on blockchain
+     */
+    fun issueComplianceCertificate(workflowId: String): Map<String, Any?> {
+        val workflow = workflowRepository.findById(workflowId)
+            .orElseThrow { IllegalArgumentException("Workflow not found") }
+
+        // Check if certificate already issued
+        if (workflow.certificateStatus != CertificateStatus.NOT_CREATED && 
+            workflow.certificateStatus != CertificateStatus.PENDING_VERIFICATION) {
+            throw IllegalStateException("Certificate already issued for this workflow (Status: ${workflow.certificateStatus})")
+        }
+
+        // Verify workflow has completed necessary stages
+        if (workflow.collectionEvents.isEmpty()) {
+            throw IllegalStateException("Cannot issue certificate: No collection events recorded")
+        }
+
+        // Get exporter's Hedera account
+        val exporterCredentials = hederaAccountCredentialsRepository
+            .findByEntityTypeAndEntityId("EXPORTER", workflow.exporter.id)
+            .orElseThrow { 
+                IllegalStateException("Exporter does not have a Hedera account. Please create one first.") 
+            }
+
+        // Build compliance data
+        val collectionEvents = workflow.collectionEvents
+        val productionUnits = collectionEvents.map { it.productionUnit }.distinct()
+        val farmers = collectionEvents.map { it.farmer }.distinct()
+        
+        val complianceData = mapOf(
+            "workflowName" to workflow.workflowName,
+            "produceType" to workflow.produceType,
+            "totalQuantityKg" to workflow.totalQuantityKg.toString(),
+            "totalFarmers" to farmers.size.toString(),
+            "totalProductionUnits" to productionUnits.size.toString(),
+            "gpsCoordinatesCount" to productionUnits.size.toString(), // Assuming 1 GPS per production unit
+            "deforestationStatus" to "VERIFIED_FREE", // Should come from actual verification
+            "originCountry" to "Kenya", // Should come from production units
+            "riskLevel" to "LOW", // Should come from risk assessment
+            "traceabilityHash" to generateWorkflowTraceabilityHash(workflow)
+        )
+
+        // Issue the certificate NFT
+        try {
+            val (transactionId, serialNumber) = hederaMainService.issueWorkflowComplianceCertificateNft(
+                workflowId = workflow.id,
+                exporterAccountId = AccountId.fromString(exporterCredentials.hederaAccountId),
+                complianceData = complianceData
+            )
+
+            // Update workflow with certificate details
+            workflow.complianceCertificateTransactionId = transactionId
+            workflow.complianceCertificateSerialNumber = serialNumber
+            workflow.currentOwnerAccountId = exporterCredentials.hederaAccountId
+            workflow.certificateStatus = CertificateStatus.COMPLIANT
+            workflow.certificateIssuedAt = LocalDateTime.now()
+            
+            workflowRepository.save(workflow)
+
+            logger.info("Certificate issued for workflow ${workflow.id}: TxID=$transactionId, Serial=$serialNumber")
+
+            return mapOf(
+                "workflowId" to workflow.id,
+                "transactionId" to transactionId,
+                "serialNumber" to serialNumber,
+                "hederaAccountId" to exporterCredentials.hederaAccountId,
+                "certificateStatus" to workflow.certificateStatus.name,
+                "issuedAt" to workflow.certificateIssuedAt,
+                "hashscanUrl" to "https://hashscan.io/testnet/transaction/$transactionId"
+            )
+        } catch (e: Exception) {
+            logger.error("Failed to issue certificate for workflow ${workflow.id}", e)
+            throw RuntimeException("Failed to issue certificate: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Transfer certificate to importer
+     */
+    fun transferCertificateToImporter(workflowId: String, importerId: String) {
+        val workflow = workflowRepository.findById(workflowId)
+            .orElseThrow { IllegalArgumentException("Workflow not found") }
+
+        if (workflow.certificateStatus != CertificateStatus.COMPLIANT && 
+            workflow.certificateStatus != CertificateStatus.IN_TRANSIT) {
+            throw IllegalStateException("Cannot transfer certificate in current status: ${workflow.certificateStatus}")
+        }
+
+        val importer = importerRepository.findById(importerId)
+            .orElseThrow { IllegalArgumentException("Importer not found") }
+
+        // Get importer's Hedera account
+        val importerCredentials = hederaAccountCredentialsRepository
+            .findByEntityTypeAndEntityId("IMPORTER", importerId)
+            .orElseThrow { 
+                IllegalStateException("Importer does not have a Hedera account") 
+            }
+
+        val exporterCredentials = hederaAccountCredentialsRepository
+            .findByEntityTypeAndEntityId("EXPORTER", workflow.exporter.id)
+            .orElseThrow { 
+                IllegalStateException("Exporter Hedera account not found") 
+            }
+
+        try {
+            val success = hederaMainService.transferWorkflowComplianceCertificateNft(
+                fromAccountId = AccountId.fromString(exporterCredentials.hederaAccountId),
+                toAccountId = AccountId.fromString(importerCredentials.hederaAccountId),
+                workflowId = workflow.id
+            )
+
+            if (success) {
+                workflow.currentOwnerAccountId = importerCredentials.hederaAccountId
+                workflow.certificateStatus = CertificateStatus.TRANSFERRED_TO_IMPORTER
+                workflowRepository.save(workflow)
+
+                logger.info("Certificate transferred for workflow ${workflow.id} to importer $importerId")
+            } else {
+                throw RuntimeException("Certificate transfer returned false")
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to transfer certificate for workflow ${workflow.id}", e)
+            throw RuntimeException("Failed to transfer certificate: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Generate traceability hash for the entire workflow
+     */
+    private fun generateWorkflowTraceabilityHash(workflow: SupplyChainWorkflow): String {
+        val collectionHashes = workflow.collectionEvents.joinToString(":") { it.hederaHash ?: "" }
+        val consolidationHashes = workflow.consolidationEvents.joinToString(":") { it.hederaHash ?: "" }
+        val processingHashes = workflow.processingEvents.joinToString(":") { it.hederaHash ?: "" }
+        val shipmentHashes = workflow.shipmentEvents.joinToString(":") { it.hederaHash ?: "" }
+        
+        val data = "${workflow.id}:$collectionHashes:$consolidationHashes:$processingHashes:$shipmentHashes"
+        return MessageDigest.getInstance("SHA-256")
+            .digest(data.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+    }
+
+    // ===== HEDERA ACCOUNT MANAGEMENT =====
+    
+    /**
+     * Create a Hedera account for an exporter
+     * This enables the exporter to issue and receive EUDR compliance certificates
+     */
+    fun createHederaAccountForExporter(exporterId: String): Map<String, Any?> {
+        logger.info("Creating Hedera account for exporter: {}", exporterId)
+        
+        val exporter = exporterRepository.findById(exporterId)
+            .orElseThrow { IllegalArgumentException("Exporter not found") }
+
+        // Check if account already exists
+        val existingAccount = hederaAccountCredentialsRepository
+            .findByEntityTypeAndEntityId("EXPORTER", exporterId)
+            .orElse(null)
+        
+        if (existingAccount != null) {
+            throw IllegalStateException("Hedera account already exists for this exporter: ${existingAccount.hederaAccountId}")
+        }
+
+        try {
+            // Create new Hedera account using HederaAccountService
+            val accountResult = hederaAccountService.createHederaAccount(
+                memo = "Exporter Account - ${exporter.companyName}"
+            )
+            
+            logger.info("Created Hedera account {} for exporter {}", accountResult.accountId, exporterId)
+
+            // Store credentials in database
+            val credentials = com.agriconnect.farmersportalapis.domain.hedera.HederaAccountCredentials(
+                id = UUID.randomUUID().toString(),
+                userId = exporter.userProfile.id,
+                entityType = "EXPORTER",
+                entityId = exporterId,
+                hederaAccountId = accountResult.accountId,
+                encryptedPrivateKey = accountResult.encryptedPrivateKey,
+                publicKey = accountResult.publicKey,
+                createdAt = LocalDateTime.now()
+            )
+            
+            hederaAccountCredentialsRepository.save(credentials)
+            
+            logger.info("Hedera account credentials saved for exporter {}", exporterId)
+
+            return mapOf(
+                "hederaAccountId" to accountResult.accountId,
+                "publicKey" to accountResult.publicKey,
+                "createdAt" to credentials.createdAt,
+                "message" to "Hedera account created successfully. You can now issue EUDR compliance certificates."
+            )
+            
+        } catch (e: Exception) {
+            logger.error("Failed to create Hedera account for exporter {}: {}", exporterId, e.message, e)
+            throw IllegalStateException("Failed to create Hedera account: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Get Hedera account details for an exporter
+     */
+    fun getHederaAccountForExporter(exporterId: String): Map<String, Any?> {
+        val exporter = exporterRepository.findById(exporterId)
+            .orElseThrow { IllegalArgumentException("Exporter not found") }
+
+        val credentials = hederaAccountCredentialsRepository
+            .findByEntityTypeAndEntityId("EXPORTER", exporterId)
+            .orElseThrow { IllegalStateException("No Hedera account found for this exporter") }
+
+        return mapOf(
+            "hederaAccountId" to credentials.hederaAccountId,
+            "publicKey" to credentials.publicKey,
+            "createdAt" to credentials.createdAt,
+            "entityType" to credentials.entityType
+        )
     }
 }

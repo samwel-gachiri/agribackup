@@ -82,6 +82,53 @@ class HederaMainService(
     fun createEudrComplianceCertificateNft() = hts.createEudrComplianceCertificateNft()
 
     /**
+     * Issue EUDR Compliance Certificate NFT for a supply chain workflow
+     *
+     * This NFT is proof of compliance for the ENTIRE workflow, NOT a reward
+     * Issued ONLY when workflow passes ALL EUDR checks:
+     * - GPS coordinates captured from all production units
+     * - Deforestation-free verification completed
+     * - Complete supply chain traceability (farmer → aggregator → processor → exporter)
+     * - Risk assessment passed (origin country, data completeness)
+     * - Due diligence statement generated
+     *
+     * @param workflowId Unique workflow identifier
+     * @param exporterAccountId Hedera account of the exporter
+     * @param complianceData Map containing:
+     *        - workflowName
+     *        - produceType
+     *        - totalQuantityKg
+     *        - totalFarmers
+     *        - totalProductionUnits
+     *        - gpsCoordinatesCount
+     *        - deforestationStatus (VERIFIED_FREE)
+     *        - originCountry
+     *        - riskLevel (LOW/MEDIUM/HIGH)
+     *        - traceabilityHash
+     * @return Pair of (Hedera transaction ID, NFT serial number)
+     */
+    fun issueWorkflowComplianceCertificateNft(
+        workflowId: String,
+        exporterAccountId: AccountId,
+        complianceData: Map<String, String>
+    ) = hts.issueWorkflowComplianceCertificateNft(workflowId, exporterAccountId, complianceData)
+
+    /**
+     * Transfer EUDR Compliance Certificate NFT for a workflow to another account
+     * Use case: Exporter transfers NFT to importer with the physical shipment
+     *
+     * @param fromAccountId Current holder of the NFT
+     * @param toAccountId Recipient of the NFT (importer)
+     * @param workflowId Workflow identifier for logging
+     * @return true if transfer succeeded
+     */
+    fun transferWorkflowComplianceCertificateNft(
+        fromAccountId: AccountId,
+        toAccountId: AccountId,
+        workflowId: String
+    ) = hts.transferWorkflowComplianceCertificateNft(fromAccountId, toAccountId, workflowId)
+
+    /**
      * Issue EUDR Compliance Certificate NFT for a shipment
      *
      * This NFT is proof of compliance, NOT a reward

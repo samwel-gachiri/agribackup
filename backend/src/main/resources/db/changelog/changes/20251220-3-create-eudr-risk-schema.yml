@@ -356,112 +356,112 @@ databaseChangeLog:
               - column:
                   name: assigned_to
 
-  - changeSet:
-      id: insert-default-country-risk-data
-      author: EUDR Implementation
-      changes:
-        - insert:
-            tableName: country_risk_matrix
-            columns:
-              - column:
-                  name: country_code
-                  value: BRA
-              - column:
-                  name: country_name
-                  value: Brazil
-              - column:
-                  name: risk_level
-                  value: HIGH
-              - column:
-                  name: risk_justification
-                  value: High deforestation rates in Amazon region
-              - column:
-                  name: last_updated
-                  valueComputed: CURRENT_TIMESTAMP
-              - column:
-                  name: updated_by
-                  value: system
-        - insert:
-            tableName: country_risk_matrix
-            columns:
-              - column:
-                  name: country_code
-                  value: IDN
-              - column:
-                  name: country_name
-                  value: Indonesia
-              - column:
-                  name: risk_level
-                  value: HIGH
-              - column:
-                  name: risk_justification
-                  value: Significant palm oil related deforestation
-              - column:
-                  name: last_updated
-                  valueComputed: CURRENT_TIMESTAMP
-              - column:
-                  name: updated_by
-                  value: system
-        - insert:
-            tableName: country_risk_matrix
-            columns:
-              - column:
-                  name: country_code
-                  value: COD
-              - column:
-                  name: country_name
-                  value: Democratic Republic of Congo
-              - column:
-                  name: risk_level
-                  value: HIGH
-              - column:
-                  name: risk_justification
-                  value: High deforestation rates in Congo Basin
-              - column:
-                  name: last_updated
-                  valueComputed: CURRENT_TIMESTAMP
-              - column:
-                  name: updated_by
-                  value: system
-        - insert:
-            tableName: country_risk_matrix
-            columns:
-              - column:
-                  name: country_code
-                  value: USA
-              - column:
-                  name: country_name
-                  value: United States
-              - column:
-                  name: risk_level
-                  value: LOW
-              - column:
-                  name: risk_justification
-                  value: Strong forest protection regulations
-              - column:
-                  name: last_updated
-                  valueComputed: CURRENT_TIMESTAMP
-              - column:
-                  name: updated_by
-                  value: system
-        - insert:
-            tableName: country_risk_matrix
-            columns:
-              - column:
-                  name: country_code
-                  value: DEU
-              - column:
-                  name: country_name
-                  value: Germany
-              - column:
-                  name: risk_level
-                  value: LOW
-              - column:
-                  name: risk_justification
-                  value: Comprehensive forest management and protection
-              - column:
-                  name: last_updated
-                  valueComputed: CURRENT_TIMESTAMP
-              - column:
-                  name: updated_by
-                  value: system
+#  - changeSet:
+#      id: insert-default-country-risk-data
+#      author: EUDR Implementation
+#      changes:
+#        - insert:
+#            tableName: country_risk_matrix
+#            columns:
+#              - column:
+#                  name: country_code
+#                  value: BRA
+#              - column:
+#                  name: country_name
+#                  value: Brazil
+#              - column:
+#                  name: risk_level
+#                  value: HIGH
+#              - column:
+#                  name: risk_justification
+#                  value: High deforestation rates in Amazon region
+#              - column:
+#                  name: last_updated
+#                  valueComputed: CURRENT_TIMESTAMP
+#              - column:
+#                  name: updated_by
+#                  value: system
+#        - insert:
+#            tableName: country_risk_matrix
+#            columns:
+#              - column:
+#                  name: country_code
+#                  value: IDN
+#              - column:
+#                  name: country_name
+#                  value: Indonesia
+#              - column:
+#                  name: risk_level
+#                  value: HIGH
+#              - column:
+#                  name: risk_justification
+#                  value: Significant palm oil related deforestation
+#              - column:
+#                  name: last_updated
+#                  valueComputed: CURRENT_TIMESTAMP
+#              - column:
+#                  name: updated_by
+#                  value: system
+#        - insert:
+#            tableName: country_risk_matrix
+#            columns:
+#              - column:
+#                  name: country_code
+#                  value: COD
+#              - column:
+#                  name: country_name
+#                  value: Democratic Republic of Congo
+#              - column:
+#                  name: risk_level
+#                  value: HIGH
+#              - column:
+#                  name: risk_justification
+#                  value: High deforestation rates in Congo Basin
+#              - column:
+#                  name: last_updated
+#                  valueComputed: CURRENT_TIMESTAMP
+#              - column:
+#                  name: updated_by
+#                  value: system
+#        - insert:
+#            tableName: country_risk_matrix
+#            columns:
+#              - column:
+#                  name: country_code
+#                  value: USA
+#              - column:
+#                  name: country_name
+#                  value: United States
+#              - column:
+#                  name: risk_level
+#                  value: LOW
+#              - column:
+#                  name: risk_justification
+#                  value: Strong forest protection regulations
+#              - column:
+#                  name: last_updated
+#                  valueComputed: CURRENT_TIMESTAMP
+#              - column:
+#                  name: updated_by
+#                  value: system
+#        - insert:
+#            tableName: country_risk_matrix
+#            columns:
+#              - column:
+#                  name: country_code
+#                  value: DEU
+#              - column:
+#                  name: country_name
+#                  value: Germany
+#              - column:
+#                  name: risk_level
+#                  value: LOW
+#              - column:
+#                  name: risk_justification
+#                  value: Comprehensive forest management and protection
+#              - column:
+#                  name: last_updated
+#                  valueComputed: CURRENT_TIMESTAMP
+#              - column:
+#                  name: updated_by
+#                  value: system

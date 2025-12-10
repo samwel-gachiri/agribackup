@@ -12,8 +12,8 @@ databaseChangeLog:
   #     file: db/changelog/hedera-changelog.yml
 #  - include:
 #      file: db/changelog/hedera-changelog.yaml
-  # - includeAll:
-  #     path: db/changelog/changes
+  - includeAll:
+      path: db/changelog/changes
 
   # Feature request table was created in this file because it serves both the farmer and the buyer
   - changeSet:

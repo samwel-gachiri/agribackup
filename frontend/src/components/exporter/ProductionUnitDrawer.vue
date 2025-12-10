@@ -16,8 +16,8 @@
               :color="isDrawing ? 'primary' : 'default'"
               :disabled="isDrawing || loading"
               @click="startDrawing"
-              icon
             >
+              Draw plot area
               <v-icon small>mdi-pencil</v-icon>
             </v-btn>
           </template>

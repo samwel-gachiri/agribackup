@@ -44,13 +44,86 @@ class HederaTokenService(
             eudrComplianceCertificateNftId = tokenId
 
             // Record NFT collection creation on consensus service
-            hederaConsensusService.recordTokenCreation(tokenId, "EUDR_COMPLIANCE_CERTIFICATE_NFT")
+//            hederaConsensusService.recordTokenCreation(tokenId, "EUDR_COMPLIANCE_CERTIFICATE_NFT")
 
             logger.info("Created EUDR Compliance Certificate NFT collection: $tokenId")
             tokenId
         } catch (e: Exception) {
             logger.error("Failed to create EUDR compliance certificate NFT collection", e)
             throw RuntimeException("Failed to create EUDR compliance certificate NFT", e)
+        }
+    }
+
+    /**
+     * Issue EUDR Compliance Certificate NFT for a supply chain workflow
+     * 
+     * This NFT is proof of compliance for the ENTIRE workflow, NOT a reward
+     * Issued ONLY when workflow passes ALL EUDR checks:
+     * - GPS coordinates captured from all production units
+     * - Deforestation-free verification completed for all farms
+     * - Complete supply chain traceability (farmer → aggregator → processor → exporter)
+     * - Risk assessment passed (origin country, data completeness)
+     * - All collection events properly recorded
+     * 
+     * @param workflowId Unique workflow identifier
+     * @param exporterAccountId Hedera account of the exporter
+     * @param complianceData Map containing:
+     *        - workflowName
+     *        - produceType
+     *        - totalQuantityKg
+     *        - totalFarmers
+     *        - totalProductionUnits
+     *        - gpsCoordinatesCount
+     *        - deforestationStatus (VERIFIED_FREE)
+     *        - originCountry
+     *        - riskLevel (LOW/MEDIUM/HIGH)
+     *        - traceabilityHash
+     * @return Pair of (Hedera transaction ID, NFT serial number)
+     */
+    fun issueWorkflowComplianceCertificateNft(
+        workflowId: String,
+        exporterAccountId: AccountId,
+        complianceData: Map<String, String>
+    ): Pair<String, Long> {
+        val tokenId = eudrComplianceCertificateNftId ?: createEudrComplianceCertificateNft()
+
+        return try {
+            // Hedera NFT metadata limit: 100 bytes
+            // Store only essential identifier - full data is in consensus service
+            val metadata = "WORKFLOW:$workflowId".toByteArray()
+            
+            // Mint ONE unique NFT for this workflow
+            val transaction = TokenMintTransaction()
+                .setTokenId(tokenId)
+                .addMetadata(metadata) // NFTs require metadata (max 100 bytes)
+                .setMaxTransactionFee(Hbar.from(10))
+                .freezeWith(hederaNetworkInitialization.getClient())
+                .sign(hederaNetworkInitialization.getOperatorPrivateKey())
+
+            val response = transaction.execute(hederaNetworkInitialization.getClient())
+            val receipt = response.getReceipt(hederaNetworkInitialization.getClient())
+            val serialNumber = receipt.serials[0].toLong()
+
+            // Transfer NFT certificate to exporter's account
+            transferCertificateNft(tokenId, exporterAccountId, 1)
+
+//            // Record certificate issuance on consensus service with full compliance data
+//            hederaConsensusService.recordWorkflowComplianceCertificateIssuance(
+//                workflowId = workflowId,
+//                exporterAccountId = exporterAccountId,
+//                nftSerialNumber = serialNumber,
+//                complianceData = complianceData
+//            )
+
+            val transactionId = receipt.transactionId.toString()
+            logger.info("Issued EUDR Compliance Certificate NFT for workflow $workflowId to exporter $exporterAccountId")
+            logger.info("NFT Serial Number: $serialNumber")
+            logger.info("Certificate details: $complianceData")
+            
+            Pair(transactionId, serialNumber)
+        } catch (e: Exception) {
+            logger.error("Failed to issue compliance certificate NFT for workflow $workflowId", e)
+            throw RuntimeException("Failed to issue EUDR compliance certificate NFT for workflow", e)
         }
     }
 
@@ -85,24 +158,30 @@ class HederaTokenService(
         val tokenId = eudrComplianceCertificateNftId ?: createEudrComplianceCertificateNft()
 
         return try {
+            // Hedera NFT metadata limit: 100 bytes
+            // Store only essential identifier - full data is in consensus service
+            val metadata = "SHIPMENT:$shipmentId".toByteArray()
+            
             // Mint ONE unique NFT for this shipment
             val transaction = TokenMintTransaction()
                 .setTokenId(tokenId)
-                .setAmount(1) // ONE NFT per shipment (non-fungible)
+                .addMetadata(metadata) // NFTs require metadata (max 100 bytes)
+                .setMaxTransactionFee(Hbar.from(10))
                 .freezeWith(hederaNetworkInitialization.getClient())
                 .sign(hederaNetworkInitialization.getOperatorPrivateKey())
 
             val response = transaction.execute(hederaNetworkInitialization.getClient())
             val receipt = response.getReceipt(hederaNetworkInitialization.getClient())
+            val serialNumber = receipt.serials[0].toLong()
 
             // Transfer NFT certificate to exporter's account
-            transferCertificateNft(tokenId, exporterAccountId, 1)
+            transferCertificateNft(tokenId, exporterAccountId, serialNumber)
 
             // Record certificate issuance on consensus service with full compliance data
             hederaConsensusService.recordComplianceCertificateIssuance(
                 shipmentId = shipmentId,
                 exporterAccountId = AccountId.fromString(exporterAccountId.toString()),
-                nftSerialNumber = 1,
+                nftSerialNumber = serialNumber,
                 complianceData = complianceData
             )
 
@@ -113,6 +192,43 @@ class HederaTokenService(
         } catch (e: Exception) {
             logger.error("Failed to issue compliance certificate NFT for shipment $shipmentId", e)
             throw RuntimeException("Failed to issue EUDR compliance certificate NFT", e)
+        }
+    }
+
+    /**
+     * Transfer EUDR Compliance Certificate NFT to another account
+     * Use case: Exporter transfers NFT to importer with the physical shipment
+     * 
+     * @param fromAccountId Current holder of the NFT
+     * @param toAccountId Recipient of the NFT (importer)
+     * @param workflowId Workflow identifier for logging
+     * @return true if transfer succeeded
+     */
+    fun transferWorkflowComplianceCertificateNft(
+        fromAccountId: AccountId,
+        toAccountId: AccountId,
+        workflowId: String
+    ): Boolean {
+        val tokenId = eudrComplianceCertificateNftId ?: return false
+
+        return try {
+            val transaction = TransferTransaction()
+                .addTokenTransfer(tokenId, fromAccountId, -1)
+                .addTokenTransfer(tokenId, toAccountId, 1)
+                .freezeWith(hederaNetworkInitialization.getClient())
+                .sign(hederaNetworkInitialization.getOperatorPrivateKey())
+
+            transaction.execute(hederaNetworkInitialization.getClient())
+
+            // Record transfer on consensus service
+            hederaConsensusService.recordWorkflowCertificateTransfer(workflowId, fromAccountId, toAccountId)
+
+            logger.info("Transferred EUDR Compliance Certificate NFT for workflow $workflowId")
+            logger.info("From: $fromAccountId → To: $toAccountId")
+            true
+        } catch (e: Exception) {
+            logger.error("Failed to transfer compliance certificate NFT for workflow $workflowId", e)
+            false
         }
     }
 

@@ -170,4 +170,137 @@ class SupplyChainWorkflowController(
         val quantities = workflowService.getAvailableQuantitiesPerAggregator(workflowId)
         return ResponseEntity.ok(quantities)
     }
+
+    // ===== CERTIFICATE MANAGEMENT =====
+    @PostMapping("/{workflowId}/issue-certificate")
+    @Operation(
+        summary = "Issue EUDR Compliance Certificate NFT for workflow",
+        description = "Issues a blockchain-based EUDR compliance certificate NFT after all compliance checks pass"
+    )
+    @PreAuthorize("hasRole('EXPORTER') or hasRole('ADMIN')")
+    fun issueCertificate(
+        @PathVariable workflowId: String
+    ): ResponseEntity<Map<String, Any?>> {
+        return try {
+            val result = workflowService.issueComplianceCertificate(workflowId)
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "message" to "Certificate issued successfully",
+                "data" to result
+            ))
+        } catch (e: IllegalStateException) {
+            val isHederaAccountError = e.message?.contains("Hedera account", ignoreCase = true) == true
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message,
+                "error" to "COMPLIANCE_CHECK_FAILED",
+                "actionRequired" to if (isHederaAccountError) "CREATE_HEDERA_ACCOUNT" else null,
+                "actionUrl" to if (isHederaAccountError) "/api/v1/supply-chain/workflows/exporter/{exporterId}/hedera-account" else null
+            ))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message,
+                "error" to "INVALID_REQUEST"
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to issue certificate: ${e.message}",
+                "error" to "CERTIFICATE_ISSUANCE_FAILED"
+            ))
+        }
+    }
+
+    @PostMapping("/{workflowId}/transfer-certificate")
+    @Operation(
+        summary = "Transfer certificate to importer",
+        description = "Transfers the EUDR compliance certificate NFT to the importer's Hedera account"
+    )
+    @PreAuthorize("hasRole('EXPORTER') or hasRole('ADMIN')")
+    fun transferCertificate(
+        @PathVariable workflowId: String,
+        @RequestParam importerId: String
+    ): ResponseEntity<Map<String, Any?>> {
+        return try {
+            workflowService.transferCertificateToImporter(workflowId, importerId)
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "message" to "Certificate transferred successfully to importer"
+            ))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message,
+                "error" to "INVALID_REQUEST"
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to transfer certificate: ${e.message}",
+                "error" to "CERTIFICATE_TRANSFER_FAILED"
+            ))
+        }
+    }
+
+    @PostMapping("/exporter/{exporterId}/hedera-account")
+    @Operation(
+        summary = "Create Hedera account for exporter",
+        description = "Creates a new Hedera account for the exporter to enable certificate issuance"
+    )
+    @PreAuthorize("hasRole('EXPORTER') or hasRole('ADMIN')")
+    fun createHederaAccount(
+        @PathVariable exporterId: String
+    ): ResponseEntity<Map<String, Any?>> {
+        return try {
+            val accountData = workflowService.createHederaAccountForExporter(exporterId)
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "message" to "Hedera account created successfully",
+                "data" to accountData
+            ))
+        } catch (e: IllegalStateException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message,
+                "error" to "ACCOUNT_EXISTS_OR_CREATION_FAILED"
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to create Hedera account: ${e.message}",
+                "error" to "ACCOUNT_CREATION_FAILED"
+            ))
+        }
+    }
+
+    @GetMapping("/exporter/{exporterId}/hedera-account")
+    @Operation(
+        summary = "Check if exporter has Hedera account",
+        description = "Returns the exporter's Hedera account status and details if account exists"
+    )
+    @PreAuthorize("hasRole('EXPORTER') or hasRole('ADMIN')")
+    fun getHederaAccount(
+        @PathVariable exporterId: String
+    ): ResponseEntity<Map<String, Any?>> {
+        return try {
+            val accountData = workflowService.getHederaAccountForExporter(exporterId)
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "hasAccount" to true,
+                "data" to accountData
+            ))
+        } catch (e: IllegalStateException) {
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "hasAccount" to false,
+                "message" to "No Hedera account found for this exporter"
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to check Hedera account: ${e.message}"
+            ))
+        }
+    }
 }

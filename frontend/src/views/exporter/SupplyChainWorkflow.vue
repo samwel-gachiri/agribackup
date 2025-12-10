@@ -51,11 +51,20 @@
             </v-chip>
           </div>
 
-          <!-- Stage Badge -->
-          <div class="tw-mb-4">
+          <!-- Stage Badge & Certificate Status -->
+          <div class="tw-mb-4 tw-flex tw-items-center tw-gap-2">
             <v-chip small outlined :color="getStageColor(workflow.currentStage)">
               <v-icon left small>{{ getStageIcon(workflow.currentStage) }}</v-icon>
               {{ workflow.currentStage }}
+            </v-chip>
+            <v-chip
+              v-if="workflow.certificateStatus"
+              x-small
+              :color="getCertificateStatusColor(workflow.certificateStatus)"
+              text-color="white"
+            >
+              <v-icon left x-small>{{ getCertificateStatusIcon(workflow.certificateStatus) }}</v-icon>
+              {{ workflow.certificateStatus === 'NOT_CREATED' ? 'No Cert' : workflow.certificateStatus }}
             </v-chip>
           </div>
 
@@ -134,6 +143,29 @@
                 <span class="tw-font-bold tw-text-green-600 tw-ml-1">{{ selectedWorkflow.totalShipped.toFixed(0) }} kg</span>
               </div>
             </div>
+
+            <!-- Certificate Action Button -->
+            <v-btn
+              v-if="selectedWorkflow.certificateStatus === 'NOT_CREATED' && canIssueCertificate(selectedWorkflow)"
+              small
+              color="success"
+              depressed
+              @click.stop="openCertificateDialog"
+              class="tw-ml-4"
+            >
+              <v-icon left small>mdi-certificate</v-icon>
+              Issue Certificate
+            </v-btn>
+            <v-chip
+              v-else-if="selectedWorkflow.certificateStatus && selectedWorkflow.certificateStatus !== 'NOT_CREATED'"
+              small
+              :color="getCertificateStatusColor(selectedWorkflow.certificateStatus)"
+              text-color="white"
+              class="tw-ml-4"
+            >
+              <v-icon left small>{{ getCertificateStatusIcon(selectedWorkflow.certificateStatus) }}</v-icon>
+              {{ selectedWorkflow.certificateStatus }}
+            </v-chip>
 
             <v-btn icon @click="showWorkflowDetails = false" class="tw-ml-4">
               <v-icon>mdi-close</v-icon>
@@ -808,6 +840,181 @@
         </v-card>
       </v-dialog>
 
+      <!-- Certificate Issuance Dialog -->
+      <v-dialog v-model="showCertificateDialog" max-width="700px" persistent>
+        <v-card>
+          <v-card-title class="primary white--text">
+            <v-icon left color="white">mdi-certificate</v-icon>
+            Issue EUDR Compliance Certificate
+          </v-card-title>
+
+          <v-card-text class="pt-4">
+            <!-- Step 1: Pre-issuance Review -->
+            <div v-if="certificateStep === 1 && selectedWorkflow">
+              <v-alert type="info" outlined>
+                Review the workflow compliance status before issuing the certificate.
+              </v-alert>
+
+              <v-simple-table class="mt-4">
+                <tbody>
+                  <tr>
+                    <td><strong>Workflow Name:</strong></td>
+                    <td>{{ selectedWorkflow.workflowName }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Produce Type:</strong></td>
+                    <td>{{ selectedWorkflow.produceType }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Total Collected:</strong></td>
+                    <td>{{ selectedWorkflow.totalCollected.toFixed(2) }} kg</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Collection Events:</strong></td>
+                    <td>
+                      <v-chip small :color="selectedWorkflow.collectionEventCount > 0 ? 'success' : 'error'">
+                        {{ selectedWorkflow.collectionEventCount }} events
+                      </v-chip>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>Compliance Status:</strong></td>
+                    <td>
+                      <v-chip small :color="canIssueCertificate(selectedWorkflow) ? 'success' : 'warning'">
+                        {{ canIssueCertificate(selectedWorkflow) ? 'Ready' : 'Pending' }}
+                      </v-chip>
+                    </td>
+                  </tr>
+                </tbody>
+              </v-simple-table>
+
+              <v-alert v-if="!canIssueCertificate(selectedWorkflow)" type="warning" outlined class="mt-4">
+                <strong>Requirements not met:</strong>
+                <ul>
+                  <li v-if="selectedWorkflow.collectionEventCount === 0">No collection events recorded</li>
+                </ul>
+              </v-alert>
+
+              <v-alert type="warning" outlined class="mt-4">
+                <strong>Note:</strong> This will mint an NFT certificate on Hedera blockchain. This action cannot be undone.
+              </v-alert>
+            </div>
+
+            <!-- Step 2: Issuing (Loading) -->
+            <div v-if="certificateStep === 2">
+              <div class="text-center py-4">
+                <v-progress-circular
+                  indeterminate
+                  color="primary"
+                  size="64"
+                ></v-progress-circular>
+                <p class="mt-4">Minting certificate on Hedera blockchain...</p>
+                <p class="text-caption grey--text">This may take 5-10 seconds</p>
+              </div>
+            </div>
+
+            <!-- Step 3: Success -->
+            <div v-if="certificateStep === 3 && certificateData">
+              <v-alert type="success" outlined>
+                <strong>Certificate Issued Successfully!</strong>
+              </v-alert>
+
+              <v-simple-table class="mt-4">
+                <tbody>
+                  <tr>
+                    <td><strong>Transaction ID:</strong></td>
+                    <td><code>{{ certificateData.transactionId }}</code></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Serial Number:</strong></td>
+                    <td>{{ certificateData.serialNumber }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Status:</strong></td>
+                    <td>
+                      <v-chip small color="success">{{ certificateData.certificateStatus }}</v-chip>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>Issued At:</strong></td>
+                    <td>{{ formatDateTime(certificateData.issuedAt) }}</td>
+                  </tr>
+                </tbody>
+              </v-simple-table>
+
+              <v-btn
+                block
+                color="primary"
+                class="mt-4"
+                @click="viewOnHedera(certificateData.transactionId)"
+              >
+                <v-icon left>mdi-open-in-new</v-icon>
+                View on HashScan
+              </v-btn>
+            </div>
+
+            <!-- Step 4: Error -->
+            <div v-if="certificateStep === 4">
+              <v-alert type="error" outlined>
+                <strong>Failed to Issue Certificate</strong>
+                <br>{{ certificateError }}
+              </v-alert>
+
+              <!-- Show Hedera account creation option if that's the issue -->
+              <v-card v-if="needsHederaAccount" class="mt-4" outlined>
+                <v-card-title class="text-subtitle-1">
+                  <v-icon left color="primary">mdi-shield-account</v-icon>
+                  Hedera Account Required
+                </v-card-title>
+                <v-card-text>
+                  <p class="mb-3">
+                    To issue EUDR compliance certificates as NFTs on Hedera blockchain,
+                    you need a Hedera account.
+                  </p>
+                  <v-btn
+                    color="primary"
+                    @click="createHederaAccount"
+                    :loading="creatingAccount"
+                    block
+                  >
+                    <v-icon left>mdi-plus</v-icon>
+                    Create Hedera Account Now
+                  </v-btn>
+                  <p class="text-caption grey--text mt-2">
+                    This will create a new blockchain account for your organization.
+                    The process takes about 5-10 seconds.
+                  </p>
+                </v-card-text>
+              </v-card>
+            </div>
+          </v-card-text>
+
+          <v-divider></v-divider>
+
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn text @click="closeCertificateDialog" :disabled="certificateStep === 2">
+              {{ certificateStep === 3 ? 'Close' : 'Cancel' }}
+            </v-btn>
+            <v-btn
+              v-if="certificateStep === 1"
+              color="primary"
+              :disabled="!canIssueCertificate(selectedWorkflow)"
+              @click="issueCertificate"
+            >
+              Issue Certificate
+            </v-btn>
+            <v-btn
+              v-if="certificateStep === 4"
+              color="primary"
+              @click="certificateStep = 1"
+            >
+              Try Again
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
       <!-- Snackbar -->
       <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="4000" top right>
         <div class="tw-flex tw-items-center tw-gap-2">
@@ -860,7 +1067,15 @@ export default {
       showWorkflowDetails: false,
       showStageDialog: false,
       showConnectionDialog: false,
+      showCertificateDialog: false,
       currentStage: null,
+
+      // Certificate issuance
+      certificateStep: 1, // 1: Review, 2: Issuing, 3: Success, 4: Error
+      certificateData: null,
+      certificateError: null,
+      needsHederaAccount: false,
+      creatingAccount: false,
 
       // Connection Form
       connectionFormValid: false,
@@ -1356,6 +1571,153 @@ export default {
     downloadCertificate(workflow) {
       // TODO: Implement certificate download
       this.showSnackbar(`Certificate download for ${workflow.name} coming soon`, 'info');
+    },
+
+    canIssueCertificate(workflow) {
+      // Certificate can be issued if workflow has collection events
+      return workflow && workflow.collectionEventCount > 0;
+    },
+
+    openCertificateDialog() {
+      this.showCertificateDialog = true;
+      this.certificateStep = 1;
+      this.certificateError = null;
+    },
+
+    async issueCertificate() {
+      if (!this.selectedWorkflow) return;
+
+      this.certificateStep = 2; // Show loading
+      this.certificateError = null;
+      this.needsHederaAccount = false;
+
+      try {
+        const response = await axios.post(
+          `/api/v1/supply-chain/workflows/${this.selectedWorkflow.id}/issue-certificate`,
+        );
+
+        if (response.data.success) {
+          this.certificateData = response.data.data;
+          this.certificateStep = 3; // Show success
+
+          // Update workflow with certificate data
+          this.selectedWorkflow.certificateStatus = response.data.data.certificateStatus;
+          this.selectedWorkflow.complianceCertificateSerialNumber = response.data.data.serialNumber;
+          this.selectedWorkflow.complianceCertificateTransactionId = response.data.data.transactionId;
+          this.selectedWorkflow.certificateIssuedAt = response.data.data.issuedAt;
+
+          // Refresh workflows list
+          await this.loadWorkflows();
+
+          this.showSnackbar('Certificate issued successfully!', 'success');
+        } else {
+          this.certificateError = response.data.message;
+          this.certificateStep = 4; // Show error
+        }
+      } catch (error) {
+        console.error('Failed to issue certificate:', error);
+        const errorData = error.response?.data;
+        this.certificateError = errorData?.message || 'Failed to issue certificate. Please try again.';
+
+        // Check if error is due to missing Hedera account
+        this.needsHederaAccount = errorData?.actionRequired === 'CREATE_HEDERA_ACCOUNT';
+
+        this.certificateStep = 4; // Show error
+        this.showSnackbar('Failed to issue certificate', 'error');
+      }
+    },
+
+    async createHederaAccount() {
+      if (!this.selectedWorkflow) return;
+
+      this.creatingAccount = true;
+
+      try {
+        const exporterId = this.$store.state.auth?.user?.id;
+        const response = await axios.post(
+          `/api/v1/supply-chain/workflows/exporter/${exporterId}/hedera-account`,
+        );
+
+        if (response.data.success) {
+          this.showSnackbar('Hedera account created successfully!', 'success');
+
+          // Show success message with account details
+          this.$toast.success(
+            `Hedera Account Created: ${response.data.data.hederaAccountId}`,
+            { duration: 8000 },
+          );
+
+          // Close certificate dialog and allow retry
+          this.closeCertificateDialog();
+
+          // Optionally reopen the dialog after a short delay
+          setTimeout(() => {
+            this.openCertificateDialog();
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Failed to create Hedera account:', error);
+        const errorMessage = error.response?.data?.message || 'Failed to create Hedera account';
+        this.showSnackbar(errorMessage, 'error');
+      } finally {
+        this.creatingAccount = false;
+      }
+    },
+
+    closeCertificateDialog() {
+      this.showCertificateDialog = false;
+      this.certificateStep = 1;
+      this.certificateData = null;
+      this.certificateError = null;
+    },
+
+    viewOnHedera(transactionId) {
+      if (transactionId) {
+        const hederaExplorerUrl = `https://hashscan.io/testnet/transaction/${transactionId}`;
+        window.open(hederaExplorerUrl, '_blank');
+      }
+    },
+
+    getCertificateStatusColor(status) {
+      const colors = {
+        NOT_CREATED: 'grey',
+        PENDING_VERIFICATION: 'warning',
+        COMPLIANT: 'success',
+        IN_TRANSIT: 'info',
+        TRANSFERRED_TO_IMPORTER: 'purple',
+        CUSTOMS_VERIFIED: 'teal',
+        DELIVERED: 'success',
+        FROZEN: 'error',
+        EXPIRED: 'grey darken-2',
+      };
+      return colors[status] || 'grey';
+    },
+
+    getCertificateStatusIcon(status) {
+      const icons = {
+        NOT_CREATED: 'mdi-file-document-outline',
+        PENDING_VERIFICATION: 'mdi-clock-alert-outline',
+        COMPLIANT: 'mdi-check-circle',
+        IN_TRANSIT: 'mdi-truck-delivery',
+        TRANSFERRED_TO_IMPORTER: 'mdi-swap-horizontal',
+        CUSTOMS_VERIFIED: 'mdi-shield-check',
+        DELIVERED: 'mdi-package-variant-closed',
+        FROZEN: 'mdi-snowflake-alert',
+        EXPIRED: 'mdi-clock-remove',
+      };
+      return icons[status] || 'mdi-help-circle';
+    },
+
+    formatDateTime(dateString) {
+      if (!dateString) return 'N/A';
+      const date = new Date(dateString);
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
     },
 
     getConnectionTypeName() {

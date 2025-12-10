@@ -617,6 +617,64 @@ class HederaConsensusServices(
     }
 
     /**
+     * Record EUDR Compliance Certificate NFT issuance for a workflow
+     */
+    fun recordWorkflowComplianceCertificateIssuance(
+        workflowId: String,
+        exporterAccountId: AccountId,
+        nftSerialNumber: Long,
+        complianceData: Map<String, String>
+    ): String {
+        val message = createConsensusMessage(
+            eventType = "WORKFLOW_EUDR_CERTIFICATE_ISSUED",
+            entityId = workflowId,
+            entityType = "WorkflowComplianceCertificate",
+            data = mapOf(
+                "workflowId" to workflowId,
+                "exporterAccountId" to exporterAccountId.toString(),
+                "nftSerialNumber" to nftSerialNumber.toString(),
+                "certificateType" to "EUDR_WORKFLOW_COMPLIANCE",
+                "issuedAt" to Instant.now().toString(),
+                "workflowName" to (complianceData["workflowName"] ?: ""),
+                "produceType" to (complianceData["produceType"] ?: ""),
+                "totalQuantityKg" to (complianceData["totalQuantityKg"] ?: "0"),
+                "totalFarmers" to (complianceData["totalFarmers"] ?: "0"),
+                "totalProductionUnits" to (complianceData["totalProductionUnits"] ?: "0"),
+                "gpsCoordinatesCount" to (complianceData["gpsCoordinatesCount"] ?: "0"),
+                "deforestationStatus" to (complianceData["deforestationStatus"] ?: "UNKNOWN"),
+                "originCountry" to (complianceData["originCountry"] ?: ""),
+                "riskLevel" to (complianceData["riskLevel"] ?: "UNKNOWN"),
+                "traceabilityHash" to (complianceData["traceabilityHash"] ?: "")
+            )
+        )
+
+        return submitConsensusMessage(message)
+    }
+
+    /**
+     * Record EUDR Compliance Certificate NFT transfer for a workflow
+     */
+    fun recordWorkflowCertificateTransfer(
+        workflowId: String,
+        fromAccountId: AccountId,
+        toAccountId: AccountId
+    ): String {
+        val message = createConsensusMessage(
+            eventType = "WORKFLOW_CERTIFICATE_TRANSFERRED",
+            entityId = workflowId,
+            entityType = "WorkflowComplianceCertificate",
+            data = mapOf(
+                "workflowId" to workflowId,
+                "fromAccountId" to fromAccountId.toString(),
+                "toAccountId" to toAccountId.toString(),
+                "transferredAt" to Instant.now().toString()
+            )
+        )
+
+        return submitConsensusMessage(message)
+    }
+
+    /**
      * Record EUDR Compliance Certificate NFT issuance
      */
     fun recordComplianceCertificateIssuance(

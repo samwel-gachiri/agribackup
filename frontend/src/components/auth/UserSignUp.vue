@@ -1,17 +1,17 @@
 <template>
   <v-app>
     <v-main class="signup-wrapper">
-      <v-container fluid class="pa-0 fill-height">
+      <v-container fluid class="tw-pt-3 fill-height">
         <v-row no-gutters class="fill-height">
           <!-- Left Side: Brand & Testimonial -->
-          <v-col cols="12" md="5" lg="4" class="brand-column d-none d-md-flex flex-column justify-space-between pa-10 white--text">
+          <v-col cols="12" md="6" lg="4" class="brand-column d-none d-md-flex flex-column justify-space-between pa-10 white--text">
             <!-- Background Image/Gradient -->
             <div class="brand-bg"></div>
 
             <div class="brand-header tw-relative tw-z-10">
-              <div class="d-flex align-center">
+              <div class="tw-d-flex align-center">
                  <v-icon color="white" size="32" class="mr-3">mdi-leaf</v-icon>
-                 <span class="tw-text-h5 tw-font-bold tw-tracking-tight">AgriBackup</span>
+                 <span class="tw-text-2xl tw-font-bold tw-tracking-tight">AgriBackup</span>
               </div>
             </div>
 
@@ -47,7 +47,7 @@
           </v-col>
 
           <!-- Right Side: Form -->
-          <v-col cols="12" md="7" lg="8" class="form-column white">
+          <v-col cols="12" md="6" lg="8" class="form-column white">
             <div class="form-container">
               <!-- Header -->
               <div class="text-center mb-8">
@@ -259,20 +259,23 @@ export default {
         {
           roleType: 'FARMER', displayName: 'Farmer', description: 'I grow crops or raise livestock', icon: 'mdi-sprout', color: 'green darken-2',
         },
+        // {
+        //   roleType: 'BUYER', displayName: 'Buyer', description: 'I purchase agricultural produce', icon: 'mdi-cart', color: 'blue darken-2',
+        // },
+        // {
+        //   roleType: 'EXPORTER', displayName: 'Exporter', description: 'I export produce to international markets', icon: 'mdi-airplane', color: 'purple darken-2',
+        // },
+        // {
+        //   roleType: 'AGGREGATOR', displayName: 'Aggregator', description: 'I collect produce from farmers', icon: 'mdi-warehouse', color: 'orange darken-2',
+        // },
+        // {
+        //   roleType: 'PROCESSOR', displayName: 'Processor', description: 'I process raw produce', icon: 'mdi-factory', color: 'indigo darken-2',
+        // },
+        // {
+        //   roleType: 'IMPORTER', displayName: 'Importer', description: 'I import produce from other countries', icon: 'mdi-package-variant', color: 'teal darken-2',
+        // },
         {
-          roleType: 'BUYER', displayName: 'Buyer', description: 'I purchase agricultural produce', icon: 'mdi-cart', color: 'blue darken-2',
-        },
-        {
-          roleType: 'EXPORTER', displayName: 'Exporter', description: 'I export produce to international markets', icon: 'mdi-airplane', color: 'purple darken-2',
-        },
-        {
-          roleType: 'AGGREGATOR', displayName: 'Aggregator', description: 'I collect produce from farmers', icon: 'mdi-warehouse', color: 'orange darken-2',
-        },
-        {
-          roleType: 'PROCESSOR', displayName: 'Processor', description: 'I process raw produce', icon: 'mdi-factory', color: 'indigo darken-2',
-        },
-        {
-          roleType: 'IMPORTER', displayName: 'Importer', description: 'I import produce from other countries', icon: 'mdi-package-variant', color: 'teal darken-2',
+          roleType: 'EXPORTER', displayName: 'Exporter', description: 'I export produce to international markets and need EUDR compliance', icon: 'mdi-airplane', color: 'purple darken-2',
         },
       ],
       rules: {
@@ -415,7 +418,7 @@ export default {
           }
         }
       } catch (e) {
-        console.error('Auto-login failed', e);
+        this.$toast.error('Auto-login failed', e.message);
       }
     },
     async loginWithRole(roleType) {
@@ -443,7 +446,8 @@ export default {
 }
 
 .signup-wrapper {
-  background-color: #ffffff;
+  background: #f8f9fa;
+  min-height: 100vh;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 

@@ -328,7 +328,7 @@ databaseChangeLog:
                   name: source_batch_id
 
   - changeSet:
-      id: 023-add-certification-details-to    -importers
+      id: 023-add-certification-details-to-importers
       author: samwel
       preConditions:
         - onFail: MARK_RAN

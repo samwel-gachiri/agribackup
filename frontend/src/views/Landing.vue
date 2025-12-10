@@ -4,6 +4,41 @@
     <!-- Professional Navbar -->
     <AppHeader />
 
+    <!-- Above the Fold -->
+    <section class="tw-flex tw-flex-col md:tw-flex-row tw-items-center tw-justify-between tw-px-10 tw-pt-20 tw-pb-12 tw-max-w-6xl tw-mx-auto">
+      <div class="tw-flex-1 tw-mb-12 md:tw-mb-0">
+        <h1 class="tw-text-4xl md:tw-text-6xl tw-font-bold tw-text-green-900 tw-mb-6 tw-drop-shadow">
+          EUDR-Compliant Supply Chain Platform
+        </h1>
+        <p class="tw-text-xl tw-text-[#6b4f2c] tw-mr-3 tw-mb-8 tw-drop-shadow-sm">
+          Deforestation-free agriculture tracking powered by Hedera DLT. Full transparency from farm to export.
+        </p>
+        <div class="tw-flex tw-gap-6 tw-mb-6">
+          <button
+            @click="handleLogin"
+            class="tw-bg-green-900 hover:tw-bg-[#5e9442] tw-text-white tw-font-semibold tw-py-4 tw-px-10 tw-rounded-xl tw-shadow-lg tw-border tw-border-[#e6e1c3] tw-transition tw-text-xl"
+            aria-label="Join Now"
+          >
+            Join Now
+          </button>
+          <button
+            @click="showDialog = true"
+            class="tw-bg-[#f7e9b0] hover:tw-bg-[#f3d97c] tw-text-[#6b4f2c] tw-font-semibold tw-py-4 tw-px-10 tw-rounded-xl tw-shadow-lg tw-border tw-border-[#e6e1c3] tw-transition tw-text-xl"
+            aria-label="Learn How It Works"
+          >
+            Learn How It Works
+          </button>
+        </div>
+      </div>
+      <div class="tw-flex-1 tw-flex tw-justify-center">
+        <img
+          src="@/assets/images/happy-farmer.jpg"
+          alt="Smiling farmer using AgriBackup app"
+          class="tw-rounded-2xl tw-shadow-2xl tw-w-96 tw-h-96 tw-object-cover tw-bg-[#f7f5ee] tw-border-4 tw-border-[#e6e1c3]"
+        />
+      </div>
+    </section>
+
     <!-- Hero Section -->
     <section class="hero-section">
       <div class="hero-container">
@@ -25,7 +60,7 @@
           <div class="countdown-section">
             <div class="countdown-header">
               <v-icon color="error" class="mr-2">mdi-clock-alert-outline</v-icon>
-              <span class="countdown-title">EUDR Deadline: December 31, 2025</span>
+              <span class="countdown-title">EUDR Compliance Deadline Approaching: December 31, 2025</span>
             </div>
             <div class="countdown-timer">
               <div class="countdown-item">
@@ -90,8 +125,8 @@
               playsinline
               poster="/images/video-poster.png"
             >
-              <!-- <source src="/videos/eudr-compliance-globe.mp4" type="video/mp4"> -->
-              <source src="/videos/eudr-compliance-globe.webm" type="video/webm">
+              <source src="/videos/eudr-compliance-globe.mp4" type="video/mp4">
+              <!-- <source src="/videos/eudr-compliance-globe.webm" type="video/webm"> -->
               Your browser does not support the video tag.
             </video>
 
@@ -130,7 +165,7 @@
             poster="/images/platform-demo-poster.png"
           >
             <source src="/videos/platform-demo.mp4" type="video/mp4">
-            <source src="/videos/platform-demo.webm" type="video/webm">
+            <!-- <source src="/videos/platform-demo.webm" type="video/webm"> -->
             Your browser does not support the video tag.
           </video>
         </div>

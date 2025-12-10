@@ -129,17 +129,17 @@
 </template>
 
 <script>
-import ExporterWebsiteHome from '@/components/exporter/ExporterWebsiteHome.vue'
-import ExporterWebsiteAbout from '@/components/exporter/ExporterWebsiteAbout.vue'
-import ExporterWebsiteProducts from '@/components/exporter/ExporterWebsiteProducts.vue'
-import exporterWebsiteService from '@/services/exporterWebsite.service'
+import ExporterWebsiteHome from '@/components/exporter/ExporterWebsiteHome.vue';
+import ExporterWebsiteAbout from '@/components/exporter/ExporterWebsiteAbout.vue';
+import ExporterWebsiteProducts from '@/components/exporter/ExporterWebsiteProducts.vue';
+import exporterWebsiteService from '@/services/exporterWebsite.service';
 
 export default {
   name: 'ExporterWebsite',
   components: {
     ExporterWebsiteHome,
     ExporterWebsiteAbout,
-    ExporterWebsiteProducts
+    ExporterWebsiteProducts,
   },
   data() {
     return {
@@ -149,42 +149,41 @@ export default {
       exporterData: {
         profile: null,
         products: [],
-        certificates: []
-      }
-    }
+        certificates: [],
+      },
+    };
   },
   computed: {
     exporterId() {
-      return this.$route.params.exporterId
-    }
+      return this.$route.params.exporterId;
+    },
   },
   async created() {
-    await this.loadExporterData()
+    await this.loadExporterData();
   },
   methods: {
     async loadExporterData() {
       try {
-        this.loading = true
-        this.error = null
+        this.loading = true;
+        this.error = null;
 
-        const data = await exporterWebsiteService.getExporterWebsiteData(this.exporterId)
-        this.exporterData = data
-
+        const data = await exporterWebsiteService.getExporterWebsiteData(this.exporterId);
+        this.exporterData = data;
       } catch (error) {
-        console.error('Error loading exporter data:', error)
-        this.error = 'Failed to load exporter information. Please try again later.'
+        this.$toast.error('Error loading exporter data:', error);
+        this.error = 'Failed to load exporter information. Please try again later.';
       } finally {
-        this.loading = false
+        this.loading = false;
       }
-    }
+    },
   },
   watch: {
     '$route.params.exporterId': {
       handler: 'loadExporterData',
-      immediate: false
-    }
-  }
-}
+      immediate: false,
+    },
+  },
+};
 </script>
 
 <style scoped>
