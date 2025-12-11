@@ -46,6 +46,21 @@
         <liquibase-hibernate5.version>4.5.0</liquibase-hibernate5.version> -->
 	</properties>
 
+	<repositories>
+		<!-- GeoTools repository for geospatial libraries -->
+		<repository>
+			<id>osgeo</id>
+			<name>OSGeo Release Repository</name>
+			<url>https://repo.osgeo.org/repository/release/</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</repository>
+	</repositories>
+
 	<dependencies>
 		<dependency>
 			<groupId>net.bull.javamelody</groupId>
@@ -235,6 +250,45 @@
 			<version>0.18.1</version>
 		</dependency>
 		
+		<!-- Google Earth Engine for Sentinel-2 and Landsat imagery -->
+		<dependency>
+			<groupId>com.google.cloud</groupId>
+			<artifactId>google-cloud-storage</artifactId>
+			<version>2.30.1</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>com.google.auth</groupId>
+			<artifactId>google-auth-library-oauth2-http</artifactId>
+			<version>1.20.0</version>
+		</dependency>
+		
+		<!-- HTTP client for Earth Engine REST API -->
+		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>okhttp</artifactId>
+			<version>4.12.0</version>
+		</dependency>
+		
+		<!-- GeoTools for advanced geospatial processing -->
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-main</artifactId>
+			<version>30.0</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-epsg-hsql</artifactId>
+			<version>30.0</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-geojson</artifactId>
+			<version>30.0</version>
+		</dependency>
+		
 		<!-- Keep MySQL for backward compatibility during migration -->
 		<dependency>
 			<groupId>mysql</groupId>
@@ -338,11 +392,11 @@
 			<version>2.61.0</version>
 		</dependency>
 		
-		<!-- gRPC Netty transport for Hedera SDK -->
+		<!-- gRPC Netty transport for Hedera SDK - must match Hedera SDK's gRPC version -->
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-netty-shaded</artifactId>
-			<version>1.66.0</version>
+			<version>1.59.1</version>
 		</dependency>
 
 

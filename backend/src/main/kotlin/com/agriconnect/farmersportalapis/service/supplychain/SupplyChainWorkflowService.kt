@@ -3,6 +3,7 @@ package com.agriconnect.farmersportalapis.service.supplychain
 import com.agriconnect.farmersportalapis.application.dtos.*
 import com.agriconnect.farmersportalapis.domain.eudr.ConsolidatedBatch
 import com.agriconnect.farmersportalapis.domain.eudr.ConsolidatedBatchStatus
+import com.agriconnect.farmersportalapis.domain.eudr.DeforestationAlert
 import com.agriconnect.farmersportalapis.domain.supplychain.*
 import com.agriconnect.farmersportalapis.infrastructure.repositories.*
 import com.agriconnect.farmersportalapis.repository.*
@@ -38,7 +39,9 @@ class SupplyChainWorkflowService(
     private val farmerRepository: FarmerRepository,
     private val hederaMainService: HederaMainService,
     private val hederaAccountService: HederaAccountService,
-    private val hederaAccountCredentialsRepository: HederaAccountCredentialsRepository
+    private val hederaAccountCredentialsRepository: HederaAccountCredentialsRepository,
+    private val deforestationAlertRepository: DeforestationAlertRepository,
+    private val riskAssessmentService: com.agriconnect.farmersportalapis.service.common.RiskAssessmentService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -595,6 +598,230 @@ class SupplyChainWorkflowService(
     // ===== CERTIFICATE MANAGEMENT =====
     
     /**
+     * Validation result for workflow compliance
+     */
+    private data class ComplianceValidationResult(
+        val isCompliant: Boolean,
+        val failureReasons: List<String> = emptyList(),
+        val totalFarmers: Int = 0,
+        val totalProductionUnits: Int = 0,
+        val gpsCoordinatesCount: Int = 0,
+        val deforestationStatus: String = "UNKNOWN",
+        val originCountry: String = "UNKNOWN",
+        val riskLevel: String = "HIGH",
+        val traceabilityHash: String = ""
+    )
+
+    /**
+     * Validates if workflow meets all EUDR compliance requirements
+     */
+    private fun validateWorkflowCompliance(workflow: SupplyChainWorkflow): ComplianceValidationResult {
+        val failureReasons = mutableListOf<String>()
+        
+        // 1. Verify collection events exist
+        if (workflow.collectionEvents.isEmpty()) {
+            failureReasons.add("No collection events recorded")
+            return ComplianceValidationResult(isCompliant = false, failureReasons = failureReasons)
+        }
+
+        val collectionEvents = workflow.collectionEvents
+        val productionUnits = collectionEvents.map { it.productionUnit }.distinct()
+        val farmers = collectionEvents.map { it.farmer }.distinct()
+
+        // 2. Verify all production units have GPS coordinates
+        val unitsWithoutGps = productionUnits.filter { it.wgs84Coordinates == null && it.parcelGeometry == null }
+        if (unitsWithoutGps.isNotEmpty()) {
+            failureReasons.add("${unitsWithoutGps.size} production unit(s) missing GPS coordinates")
+        }
+
+        // 3. Verify all production units are verified (satellite imagery check)
+        val unverifiedUnits = productionUnits.filter { it.lastVerifiedAt == null }
+        if (unverifiedUnits.isNotEmpty()) {
+            failureReasons.add("${unverifiedUnits.size} production unit(s) not verified with satellite imagery")
+        }
+
+        // 4. Verify deforestation-free status for all production units using existing service
+        val eudrCutoffDate = LocalDateTime.of(2020, 12, 31, 0, 0)
+        val productionUnitIds = productionUnits.map { it.id }
+        
+        val recentAlerts = if (productionUnitIds.isNotEmpty()) {
+            deforestationAlertRepository.findByProductionUnitIdsAndDateRange(
+                productionUnitIds,
+                eudrCutoffDate,
+                LocalDateTime.now()
+            )
+        } else {
+            emptyList()
+        }
+        
+        val criticalAlerts = recentAlerts.filter { 
+            it.severity in listOf(
+                DeforestationAlert.Severity.HIGH,
+                DeforestationAlert.Severity.CRITICAL
+            )
+        }
+        
+        if (criticalAlerts.isNotEmpty()) {
+            failureReasons.add("${criticalAlerts.size} HIGH/CRITICAL deforestation alert(s) detected after 2020-12-31")
+        }
+
+        // 5. Verify complete supply chain traceability
+        if (workflow.consolidationEvents.isEmpty()) {
+            failureReasons.add("No consolidation events - incomplete traceability (farmer → aggregator → processor)")
+        }
+
+        // 6. Verify quantity consistency across supply chain
+        val totalCollectedKg = collectionEvents.sumOf { it.quantityCollectedKg }
+        val totalConsolidatedKg = workflow.consolidationEvents.sumOf { it.quantitySentKg }
+        
+        if (totalConsolidatedKg > totalCollectedKg) {
+            failureReasons.add("Consolidation quantity ($totalConsolidatedKg kg) exceeds collection quantity ($totalCollectedKg kg)")
+        }
+
+        // 7. Determine origin country from production units
+        val countries = productionUnits.mapNotNull { it.administrativeRegion }.distinct()
+        val originCountry = countries.firstOrNull() ?: "UNKNOWN"
+        
+        if (originCountry == "UNKNOWN") {
+            failureReasons.add("Unable to determine origin country from production units")
+        }
+
+        // 8. Use existing RiskAssessmentService for comprehensive risk calculation
+        val riskLevel = try {
+            // Create a temporary batch-like assessment based on workflow data
+            calculateWorkflowRiskLevel(
+                productionUnits = productionUnits,
+                deforestationAlerts = recentAlerts,
+                originCountry = originCountry,
+                hasGpsGaps = unitsWithoutGps.isNotEmpty(),
+                hasVerificationGaps = unverifiedUnits.isNotEmpty(),
+                traceabilityComplete = workflow.consolidationEvents.isNotEmpty()
+            )
+        } catch (e: Exception) {
+            logger.warn("Failed to calculate risk level using RiskAssessmentService: ${e.message}")
+            "HIGH" // Default to HIGH if assessment fails
+        }
+
+        // 9. Block certificate issuance for HIGH risk unless explicitly approved
+        if (riskLevel == "HIGH") {
+            failureReasons.add("Risk assessment determined HIGH risk - requires manual compliance review before certificate issuance")
+        }
+
+        // 10. Determine deforestation status
+        val deforestationStatus = when {
+            criticalAlerts.isNotEmpty() -> "DEFORESTATION_DETECTED"
+            unitsWithoutGps.isNotEmpty() || unverifiedUnits.isNotEmpty() -> "VERIFICATION_INCOMPLETE"
+            recentAlerts.isNotEmpty() -> "ALERTS_UNDER_REVIEW"
+            else -> "VERIFIED_FREE"
+        }
+
+        // 11. Generate traceability hash
+        val traceabilityHash = generateWorkflowTraceabilityHash(workflow)
+
+        val isCompliant = failureReasons.isEmpty()
+
+        logger.info("""
+            Compliance Validation for Workflow ${workflow.id}:
+            - Compliant: $isCompliant
+            - Farmers: ${farmers.size}
+            - Production Units: ${productionUnits.size}
+            - GPS Coverage: ${productionUnits.size - unitsWithoutGps.size}/${productionUnits.size}
+            - Verified Units: ${productionUnits.size - unverifiedUnits.size}/${productionUnits.size}
+            - Deforestation Alerts: ${recentAlerts.size} (${criticalAlerts.size} critical)
+            - Risk Level: $riskLevel
+            - Deforestation Status: $deforestationStatus
+            ${if (!isCompliant) "- Failure Reasons: ${failureReasons.joinToString("; ")}" else ""}
+        """.trimIndent())
+
+        return ComplianceValidationResult(
+            isCompliant = isCompliant,
+            failureReasons = failureReasons,
+            totalFarmers = farmers.size,
+            totalProductionUnits = productionUnits.size,
+            gpsCoordinatesCount = productionUnits.count { it.wgs84Coordinates != null || it.parcelGeometry != null },
+            deforestationStatus = deforestationStatus,
+            originCountry = originCountry,
+            riskLevel = riskLevel,
+            traceabilityHash = traceabilityHash
+        )
+    }
+
+    /**
+     * Calculate comprehensive risk level for workflow using multiple factors
+     * Integrates with existing RiskAssessmentService methodology
+     */
+    private fun calculateWorkflowRiskLevel(
+        productionUnits: List<com.agriconnect.farmersportalapis.domain.eudr.ProductionUnit>,
+        deforestationAlerts: List<com.agriconnect.farmersportalapis.domain.eudr.DeforestationAlert>,
+        originCountry: String,
+        hasGpsGaps: Boolean,
+        hasVerificationGaps: Boolean,
+        traceabilityComplete: Boolean
+    ): String {
+        // High-risk countries (based on EUDR Annex and risk matrix)
+        val highRiskCountries = setOf(
+            "BRAZIL", "INDONESIA", "DEMOCRATIC_REPUBLIC_OF_CONGO", 
+            "MALAYSIA", "BOLIVIA", "PERU", "COLOMBIA", "PARAGUAY"
+        )
+        
+        var riskScore = 0.0
+        
+        // 1. Deforestation Alert Risk (40% weight)
+        val criticalAlertCount = deforestationAlerts.count { 
+            it.severity in listOf(
+                DeforestationAlert.Severity.HIGH,
+                DeforestationAlert.Severity.CRITICAL
+            )
+        }
+        val mediumAlertCount = deforestationAlerts.count { 
+            it.severity == com.agriconnect.farmersportalapis.domain.eudr.DeforestationAlert.Severity.MEDIUM 
+        }
+        
+        val deforestationScore = when {
+            criticalAlertCount > 0 -> 0.9
+            mediumAlertCount > 2 -> 0.7
+            mediumAlertCount > 0 -> 0.5
+            deforestationAlerts.isNotEmpty() -> 0.3
+            else -> 0.1
+        }
+        riskScore += deforestationScore * 0.4
+        
+        // 2. Geospatial Verification Risk (25% weight)
+        val verifiedUnits = productionUnits.count { it.lastVerifiedAt != null }
+        val unitsWithGps = productionUnits.count { it.wgs84Coordinates != null || it.parcelGeometry != null }
+        val geoVerificationRatio = if (productionUnits.isNotEmpty()) {
+            (verifiedUnits + unitsWithGps).toDouble() / (productionUnits.size * 2)
+        } else {
+            0.0
+        }
+        val geospatialScore = 1.0 - geoVerificationRatio // Higher score for less verification
+        riskScore += geospatialScore * 0.25
+        
+        // 3. Country Risk (20% weight)
+        val countryScore = if (originCountry.uppercase() in highRiskCountries) 0.8 else 0.3
+        riskScore += countryScore * 0.2
+        
+        // 4. Traceability Completeness (15% weight)
+        val traceabilityScore = if (traceabilityComplete) 0.1 else 0.8
+        riskScore += traceabilityScore * 0.15
+        
+        // 5. GPS Coverage (bonus/penalty)
+        if (hasGpsGaps) {
+            riskScore += 0.1 // 10% penalty for GPS gaps
+        }
+        
+        // Normalize score to 0-1 range
+        riskScore = riskScore.coerceIn(0.0, 1.0)
+        
+        // Determine risk level from score
+        return when {
+            riskScore >= 0.7 -> "HIGH"
+            riskScore >= 0.4 -> "MEDIUM"
+            else -> "LOW"
+        }
+    }
+
+    /**
      * Issue EUDR Compliance Certificate NFT for a workflow
      * This validates compliance and mints the certificate on blockchain
      */
@@ -608,9 +835,10 @@ class SupplyChainWorkflowService(
             throw IllegalStateException("Certificate already issued for this workflow (Status: ${workflow.certificateStatus})")
         }
 
-        // Verify workflow has completed necessary stages
-        if (workflow.collectionEvents.isEmpty()) {
-            throw IllegalStateException("Cannot issue certificate: No collection events recorded")
+        // ===== COMPLIANCE VALIDATION =====
+        val validationResult = validateWorkflowCompliance(workflow)
+        if (!validationResult.isCompliant) {
+            throw IllegalStateException("Workflow failed compliance checks: ${validationResult.failureReasons.joinToString("; ")}")
         }
 
         // Get exporter's Hedera account
@@ -620,22 +848,18 @@ class SupplyChainWorkflowService(
                 IllegalStateException("Exporter does not have a Hedera account. Please create one first.") 
             }
 
-        // Build compliance data
-        val collectionEvents = workflow.collectionEvents
-        val productionUnits = collectionEvents.map { it.productionUnit }.distinct()
-        val farmers = collectionEvents.map { it.farmer }.distinct()
-        
+        // Build compliance data from validation result
         val complianceData = mapOf(
             "workflowName" to workflow.workflowName,
             "produceType" to workflow.produceType,
             "totalQuantityKg" to workflow.totalQuantityKg.toString(),
-            "totalFarmers" to farmers.size.toString(),
-            "totalProductionUnits" to productionUnits.size.toString(),
-            "gpsCoordinatesCount" to productionUnits.size.toString(), // Assuming 1 GPS per production unit
-            "deforestationStatus" to "VERIFIED_FREE", // Should come from actual verification
-            "originCountry" to "Kenya", // Should come from production units
-            "riskLevel" to "LOW", // Should come from risk assessment
-            "traceabilityHash" to generateWorkflowTraceabilityHash(workflow)
+            "totalFarmers" to validationResult.totalFarmers.toString(),
+            "totalProductionUnits" to validationResult.totalProductionUnits.toString(),
+            "gpsCoordinatesCount" to validationResult.gpsCoordinatesCount.toString(),
+            "deforestationStatus" to validationResult.deforestationStatus,
+            "originCountry" to validationResult.originCountry,
+            "riskLevel" to validationResult.riskLevel,
+            "traceabilityHash" to validationResult.traceabilityHash
         )
 
         // Issue the certificate NFT

@@ -17,6 +17,7 @@ spring:
     password: ${DB_PASS}
     driver-class-name: ${DB_DRIVER_CLASS:com.mysql.cj.jdbc.Driver}
   jpa:
+    open-in-view: false
     generate-ddl: false
     show-sql: true
     hibernate:
@@ -154,6 +155,35 @@ deforestation:
   buffer:
     distance:
       km: ${DEFORESTATION_BUFFER_DISTANCE_KM:5.0}
+  use-satellite-imagery: ${USE_SATELLITE_IMAGERY:true}  # true = Sentinel/Landsat, false = GFW
+
+# Google Earth Engine Configuration (for Sentinel-2 and Landsat)
+# IMPORTANT: Set these environment variables to enable satellite imagery:
+#   EARTH_ENGINE_ENABLED=true
+#   EARTH_ENGINE_PROJECT_ID=your-actual-gcp-project-id
+#   EARTH_ENGINE_CREDENTIALS_PATH=G:/source/key/agribackup-cloud.json
+earth-engine:
+  enabled: ${EARTH_ENGINE_ENABLED:false}  # Disabled by default - requires setup
+  project-id: ${EARTH_ENGINE_PROJECT_ID:}
+  credentials-path: ${EARTH_ENGINE_CREDENTIALS_PATH:}
+  api:
+    base-url: ${EARTH_ENGINE_API_URL:https://earthengine.googleapis.com}
+
+# Sentinel-2 Analysis Configuration
+sentinel:
+  analysis:
+    ndvi-deforestation-threshold: ${SENTINEL_NDVI_THRESHOLD:0.3}     # NDVI < 0.3 = deforested
+    ndvi-change-threshold: ${SENTINEL_NDVI_CHANGE_THRESHOLD:-0.2}    # 20% vegetation loss
+    baseline-months: ${SENTINEL_BASELINE_MONTHS:3}                   # Baseline period before EUDR cutoff
+    recent-days: ${SENTINEL_RECENT_DAYS:10}                          # Recent imagery period
+
+# Landsat 8/9 Analysis Configuration
+landsat:
+  analysis:
+    ndvi-deforestation-threshold: ${LANDSAT_NDVI_THRESHOLD:0.3}
+    ndvi-change-threshold: ${LANDSAT_NDVI_CHANGE_THRESHOLD:-0.2}
+    baseline-months: ${LANDSAT_BASELINE_MONTHS:3}
+    recent-days: ${LANDSAT_RECENT_DAYS:16}                           # Longer period due to 16-day revisit
 
 # Logging Configuration
 logging:

@@ -53,10 +53,10 @@ class DeforestationAlert(
     var metadata: String?,
 
     @Column(name = "hedera_transaction_id")
-    var hederaTransactionId: String?,
+    var hederaTransactionId: String? = null,
 
     @Column(name = "hedera_hash")
-    var hederaHash: String?,
+    var hederaHash: String? = null,
 
     @Column(name = "created_at")
     var createdAt: LocalDateTime? = null,
@@ -83,6 +83,7 @@ class DeforestationAlert(
     }
     
     enum class Severity {
+        CRITICAL,
         HIGH,
         MEDIUM,
         LOW,

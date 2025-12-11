@@ -457,14 +457,14 @@
             <div class="tw-w-16 tw-h-16 tw-bg-blue-100 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-mx-auto tw-mb-6">
               <v-icon size="32" color="blue darken-2">mdi-cart</v-icon>
             </div>
-            <h3 class="tw-text-xl tw-font-bold tw-text-gray-900 tw-mb-3">For Buyers</h3>
+            <h3 class="tw-text-xl tw-font-bold tw-text-gray-900 tw-mb-3">For Suppliers</h3>
             <p class="tw-text-gray-600 tw-mb-6 tw-text-sm">Source quality produce directly from verified farmers with full traceability.</p>
-            <button
+            <!-- <button
               @click="joinAsBuyer"
               class="tw-w-full tw-py-2 tw-px-4 tw-border-2 tw-border-blue-600 tw-text-blue-700 tw-font-semibold tw-rounded-lg hover:tw-bg-blue-50 tw-transition"
             >
               Join as Buyer
-            </button>
+            </button> -->
           </div>
 
           <!-- Exporter Card -->

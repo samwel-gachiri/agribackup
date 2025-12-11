@@ -1,16 +1,25 @@
 package com.agriconnect.farmersportalapis.infrastructure.feign
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import feign.Client
+import feign.FeignException
 import feign.Request
 import feign.Response
+import feign.codec.Decoder
+import org.springframework.beans.factory.ObjectFactory
+import org.springframework.boot.autoconfigure.http.HttpMessageConverters
 import org.springframework.cloud.openfeign.FeignClient
+import org.springframework.cloud.openfeign.support.ResponseEntityDecoder
+import org.springframework.cloud.openfeign.support.SpringDecoder
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import java.io.IOException
+import java.lang.reflect.Type
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -35,6 +44,48 @@ interface GlobalForestWatchClient {
         @Bean
         fun feignClient(): Client {
             return RedirectFollowingClient()
+        }
+
+        /**
+         * Custom decoder that handles application/octet-stream responses from GFW API
+         * by parsing them as JSON
+         */
+        @Bean
+        fun gfwDecoder(objectMapper: ObjectMapper): Decoder {
+            return GfwResponseDecoder(objectMapper)
+        }
+    }
+}
+
+/**
+ * Custom Feign decoder that handles GFW API responses
+ * including application/octet-stream content type which sometimes contains JSON
+ */
+class GfwResponseDecoder(private val objectMapper: ObjectMapper) : Decoder {
+
+    override fun decode(response: Response, type: Type): Any? {
+        if (response.body() == null) {
+            return GfwQueryResponse(data = emptyList(), status = "success")
+        }
+
+        val bodyBytes = response.body().asInputStream().readBytes()
+        val bodyString = String(bodyBytes)
+
+        // If empty body, return empty response
+        if (bodyString.isBlank()) {
+            return GfwQueryResponse(data = emptyList(), status = "success")
+        }
+
+        // Try to parse as JSON regardless of content type
+        return try {
+            objectMapper.readValue(bodyString, GfwQueryResponse::class.java)
+        } catch (e: Exception) {
+            // If parsing fails, wrap the raw response in an error response
+            GfwQueryResponse(
+                data = null,
+                status = "error",
+                message = "Failed to parse response: ${bodyString.take(200)}"
+            )
         }
     }
 }

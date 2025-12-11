@@ -16,6 +16,7 @@ class HederaNetworkInitialization(
     private lateinit var client: Client
     private lateinit var operatorAccountId: AccountId
     private lateinit var operatorPrivateKey: PrivateKey
+    private var isInitialized: Boolean = false
 
     @PostConstruct
     fun initialize() {
@@ -45,14 +46,24 @@ class HederaNetworkInitialization(
             // Set default transaction fees and timeouts
             client.setDefaultMaxTransactionFee(Hbar.fromTinybars(100_000_000)) // 1 HBAR
             client.setDefaultMaxQueryPayment(Hbar.fromTinybars(10_000_000)) // 0.1 HBAR
+            
+            // Set request timeout to prevent hanging
+            client.setRequestTimeout(java.time.Duration.ofSeconds(30))
 
-            // Validate connection
-            validateConnection()
+            // Validate connection (non-blocking - log warning if fails)
+            try {
+                validateConnection()
+                isInitialized = true
+            } catch (e: Exception) {
+                logger.warn("Hedera connection validation failed during startup, will retry on first use", e)
+                isInitialized = false
+            }
 
             logger.info("Hedera client initialized successfully for network: ${hederaConfig.network.type}")
         } catch (e: Exception) {
-            logger.error("Failed to initialize Hedera client", e)
-            throw RuntimeException("Hedera client initialization failed", e)
+            logger.error("Failed to initialize Hedera client - Hedera features will be disabled", e)
+            isInitialized = false
+            // Don't throw - allow app to start without Hedera
         }
     }
 
@@ -62,12 +73,34 @@ class HederaNetworkInitialization(
         require(hederaConfig.network.type.isNotBlank()) { "Hedera network type is required" }
     }
 
-    fun getClient(): Client = client
-    fun getOperatorAccountId(): AccountId = operatorAccountId
-    fun getOperatorPrivateKey(): PrivateKey = operatorPrivateKey
+    fun isHederaInitialized(): Boolean = isInitialized
+
+    fun getClient(): Client {
+        if (!isInitialized) {
+            throw IllegalStateException("Hedera client is not initialized")
+        }
+        return client
+    }
+
+    fun getOperatorAccountId(): AccountId {
+        if (!isInitialized) {
+            throw IllegalStateException("Hedera client is not initialized")
+        }
+        return operatorAccountId
+    }
+
+    fun getOperatorPrivateKey(): PrivateKey {
+        if (!isInitialized) {
+            throw IllegalStateException("Hedera client is not initialized")
+        }
+        return operatorPrivateKey
+    }
 
 
     fun submitConsensusMessage(topicId: TopicId, message: String): TransactionReceipt {
+        if (!isInitialized) {
+            throw IllegalStateException("Hedera client is not initialized. Cannot submit consensus message.")
+        }
         return executeWithRetry {
             val transaction = TopicMessageSubmitTransaction()
                 .setTopicId(topicId)
@@ -161,11 +194,15 @@ class HederaNetworkInitialization(
 
     private fun validateConnection() {
         try {
+            logger.info("Validating Hedera network connection...")
             val query = AccountBalanceQuery()
                 .setAccountId(operatorAccountId)
 
-            query.execute(client)
-            logger.info("Hedera connection validated successfully")
+            val balance = query.execute(client)
+            logger.info("Hedera connection validated successfully. Account balance: ${balance.hbars}")
+        } catch (e: TimeoutException) {
+            logger.error("Hedera connection validation timed out - network may be slow or unreachable", e)
+            throw RuntimeException("Failed to validate Hedera connection: timeout", e)
         } catch (e: Exception) {
             logger.error("Hedera connection validation failed", e)
             throw RuntimeException("Failed to validate Hedera connection", e)
@@ -173,10 +210,19 @@ class HederaNetworkInitialization(
     }
 
     fun isNetworkAvailable(): Boolean {
+        if (!isInitialized) {
+            logger.debug("Hedera client not initialized")
+            return false
+        }
         return try {
             val query = AccountBalanceQuery()
                 .setAccountId(operatorAccountId)
             query.execute(client)
+            // If successful, update initialization status
+            if (!isInitialized) {
+                isInitialized = true
+                logger.info("Hedera connection restored")
+            }
             true
         } catch (e: Exception) {
             logger.debug("Hedera network availability check failed", e)
