@@ -38,6 +38,9 @@ data class WorkflowResponseDto(
     val processingEventCount: Int,
     val shipmentEventCount: Int,
     
+    // Production units
+    val linkedProductionUnits: Int = 0,
+    
     // Certificate information
     val certificateStatus: String?,
     val complianceCertificateNftId: String?,
@@ -107,12 +110,22 @@ data class WorkflowConsolidationEventResponseDto(
 // ===== PROCESSING EVENTS =====
 data class AddProcessingEventRequestDto(
     val processorId: String,
-    val quantityProcessedKg: BigDecimal,
+    // Support both backend field name and frontend field name
+    val quantityProcessedKg: BigDecimal? = null,
+    val inputQuantityKg: BigDecimal? = null,
     val processingDate: LocalDateTime,
-    val processingType: String?,
-    val outputQuantityKg: BigDecimal?,
-    val processingNotes: String?
-)
+    val processingType: String? = null,
+    val processType: String? = null, // Frontend uses this name
+    val outputQuantityKg: BigDecimal? = null,
+    val processingNotes: String? = null,
+    val notes: String? = null, // Frontend uses this name
+    val batchNumber: String? = null
+) {
+    // Computed properties to get the actual values regardless of which field was used
+    fun getEffectiveQuantityProcessedKg(): BigDecimal = quantityProcessedKg ?: inputQuantityKg ?: BigDecimal.ZERO
+    fun getEffectiveProcessingType(): String? = processingType ?: processType
+    fun getEffectiveNotes(): String? = processingNotes ?: notes
+}
 
 data class WorkflowProcessingEventResponseDto(
     val id: String,
@@ -131,15 +144,18 @@ data class WorkflowProcessingEventResponseDto(
 
 // ===== SHIPMENT EVENTS =====
 data class AddShipmentEventRequestDto(
-    val processorId: String,
+    val processorId: String? = null,
     val importerId: String,
     val quantityShippedKg: BigDecimal,
-    val shipmentDate: LocalDateTime,
-    val expectedArrivalDate: LocalDateTime?,
-    val shippingCompany: String?,
-    val trackingNumber: String?,
-    val destinationPort: String?,
-    val shipmentNotes: String?
+    val shipmentDate: LocalDateTime? = null,
+    val expectedArrivalDate: LocalDateTime? = null,
+    val shippingCompany: String? = null,
+    val trackingNumber: String? = null,
+    val destinationPort: String? = null,
+    val destinationCountry: String? = null,
+    val billOfLading: String? = null,
+    val containerNumber: String? = null,
+    val shipmentNotes: String? = null
 )
 
 data class WorkflowShipmentEventResponseDto(
@@ -178,4 +194,29 @@ data class AvailableQuantityDto(
     val totalCollected: BigDecimal,
     val totalSent: BigDecimal,
     val available: BigDecimal
+)
+
+// ===== WORKFLOW PRODUCTION UNIT LINKING (Stage 1: PRODUCTION_REGISTRATION) =====
+data class LinkProductionUnitRequestDto(
+    val productionUnitId: String,
+    val notes: String? = null
+)
+
+data class WorkflowProductionUnitResponseDto(
+    val id: String,
+    val workflowId: String,
+    val productionUnitId: String,
+    val productionUnitName: String,
+    val farmerId: String?,
+    val farmerName: String?,
+    val administrativeRegion: String?,
+    val areaHectares: BigDecimal?,
+    val primaryCrops: String?,
+    val status: String,
+    val geolocationVerified: Boolean,
+    val deforestationChecked: Boolean,
+    val deforestationClear: Boolean?,
+    val notes: String?,
+    val linkedAt: LocalDateTime,
+    val lastVerifiedAt: LocalDateTime?
 )

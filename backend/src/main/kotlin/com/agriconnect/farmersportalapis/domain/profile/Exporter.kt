@@ -37,6 +37,12 @@ class Exporter(
     @Column(name = "export_license_form_url")
     var exportLicenseFormUrl: String? = null,
 
+    @Column(name = "origin_country", length = 100)
+    var originCountry: String? = null,
+
+    @Column(name = "origin_country_code", length = 3)
+    var originCountryCode: String? = null,
+
     @OneToMany(mappedBy = "exporter", cascade = [CascadeType.ALL], orphanRemoval = true)
     var zones: MutableList<Zone> = mutableListOf(),
 

@@ -1,0 +1,146 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-supplier-role
+      author: copilot
+      changes:
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: id
+                  value: role_supplier
+              - column:
+                  name: name
+                  value: SUPPLIER
+              - column:
+                  name: description
+                  value: Supply chain participant (aggregator, processor, distributor, transporter, etc.)
+      rollback:
+        - delete:
+            tableName: roles
+            where: id = 'role_supplier'
+
+  - changeSet:
+      id: add-supplier-permissions
+      author: copilot
+      changes:
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: id
+                  value: perm_manage_supply_chain
+              - column:
+                  name: name
+                  value: MANAGE_SUPPLY_CHAIN
+              - column:
+                  name: description
+                  value: Can manage supply chain connections and transactions
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: id
+                  value: perm_view_supply_chain
+              - column:
+                  name: name
+                  value: VIEW_SUPPLY_CHAIN
+              - column:
+                  name: description
+                  value: Can view supply chain information
+      rollback:
+        - delete:
+            tableName: permissions
+            where: id IN ('perm_manage_supply_chain', 'perm_view_supply_chain')
+
+  - changeSet:
+      id: create-supplier-invites-table
+      author: copilot
+      changes:
+        - createTable:
+            tableName: supplier_invites
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: supplier_name
+                  type: VARCHAR(255)
+              - column:
+                  name: supplier_type
+                  type: VARCHAR(50)
+              - column:
+                  name: inviter_id
+                  type: VARCHAR(36)
+              - column:
+                  name: inviter_name
+                  type: VARCHAR(255)
+              - column:
+                  name: message
+                  type: VARCHAR(1000)
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: PENDING
+                  constraints:
+                    nullable: false
+              - column:
+                  name: resent_count
+                  type: INT
+                  defaultValueNumeric: 0
+              - column:
+                  name: last_sent_at
+                  type: TIMESTAMP
+              - column:
+                  name: accepted_at
+                  type: TIMESTAMP
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            tableName: supplier_invites
+
+  - changeSet:
+      id: create-supplier-invites-indexes
+      author: copilot
+      changes:
+        - createIndex:
+            indexName: idx_supplier_invites_email
+            tableName: supplier_invites
+            columns:
+              - column:
+                  name: email
+        - createIndex:
+            indexName: idx_supplier_invites_inviter
+            tableName: supplier_invites
+            columns:
+              - column:
+                  name: inviter_id
+        - createIndex:
+            indexName: idx_supplier_invites_status
+            tableName: supplier_invites
+            columns:
+              - column:
+                  name: status
+      rollback:
+        - dropIndex:
+            indexName: idx_supplier_invites_email
+            tableName: supplier_invites
+        - dropIndex:
+            indexName: idx_supplier_invites_inviter
+            tableName: supplier_invites
+        - dropIndex:
+            indexName: idx_supplier_invites_status
+            tableName: supplier_invites

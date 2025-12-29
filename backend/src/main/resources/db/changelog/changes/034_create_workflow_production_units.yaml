@@ -1,0 +1,132 @@
+databaseChangeLog:
+  - changeSet:
+      id: 034-create-workflow-production-units-table
+      author: agriconnect
+      comment: Create table for linking production units to workflows for EUDR Stage 1 (PRODUCTION_REGISTRATION)
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: workflow_production_units
+      changes:
+        - createTable:
+            tableName: workflow_production_units
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workflow_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: production_unit_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  defaultValue: 'PENDING'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: geolocation_verified
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+              - column:
+                  name: deforestation_checked
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+              - column:
+                  name: deforestation_clear
+                  type: BOOLEAN
+              - column:
+                  name: notes
+                  type: TEXT
+              - column:
+                  name: linked_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: linked_by
+                  type: VARCHAR(36)
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+  - changeSet:
+      id: 034-add-workflow-production-units-unique-constraint
+      author: agriconnect
+      comment: Add unique constraint for workflow-production unit combination
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            indexExists:
+              indexName: uk_workflow_production_unit
+      changes:
+        - addUniqueConstraint:
+            tableName: workflow_production_units
+            columnNames: workflow_id, production_unit_id
+            constraintName: uk_workflow_production_unit
+
+  - changeSet:
+      id: 034-add-workflow-production-units-indexes
+      author: agriconnect
+      comment: Add indexes for workflow and production unit lookups
+      preConditions:
+        - onFail: MARK_RAN
+      changes:
+        - createIndex:
+            tableName: workflow_production_units
+            indexName: idx_workflow_prod_unit_workflow
+            columns:
+              - column:
+                  name: workflow_id
+        - createIndex:
+            tableName: workflow_production_units
+            indexName: idx_workflow_prod_unit_production_unit
+            columns:
+              - column:
+                  name: production_unit_id
+
+  - changeSet:
+      id: 034-add-workflow-production-units-fk-workflow
+      author: agriconnect
+      comment: Add foreign key to supply_chain_workflows
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: supply_chain_workflows
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: workflow_production_units
+            baseColumnNames: workflow_id
+            referencedTableName: supply_chain_workflows
+            referencedColumnNames: workflow_id
+            constraintName: fk_workflow_prod_unit_workflow
+            onDelete: CASCADE
+
+  - changeSet:
+      id: 034-add-workflow-production-units-fk-production-unit
+      author: agriconnect
+      comment: Add foreign key to production_units
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: production_units
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: workflow_production_units
+            baseColumnNames: production_unit_id
+            referencedTableName: production_units
+            referencedColumnNames: unit_id
+            constraintName: fk_workflow_prod_unit_production_unit
+            onDelete: CASCADE

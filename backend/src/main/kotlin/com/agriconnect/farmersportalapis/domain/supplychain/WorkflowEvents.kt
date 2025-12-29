@@ -1,8 +1,6 @@
 package com.agriconnect.farmersportalapis.domain.supplychain
 
-import com.agriconnect.farmersportalapis.domain.eudr.Aggregator
 import com.agriconnect.farmersportalapis.domain.eudr.Importer
-import com.agriconnect.farmersportalapis.domain.eudr.Processor
 import com.agriconnect.farmersportalapis.domain.eudr.ProductionUnit
 import com.agriconnect.farmersportalapis.domain.profile.Farmer
 import jakarta.persistence.*
@@ -25,8 +23,8 @@ class WorkflowCollectionEvent(
     var productionUnit: ProductionUnit,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "aggregator_id", nullable = false)
-    var aggregator: Aggregator,
+    @JoinColumn(name = "collector_supplier_id", nullable = false)
+    var collectorSupplier: SupplyChainSupplier,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "farmer_id", nullable = false)
@@ -66,12 +64,12 @@ class WorkflowConsolidationEvent(
     var workflow: SupplyChainWorkflow,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "aggregator_id", nullable = false)
-    var aggregator: Aggregator,
+    @JoinColumn(name = "source_supplier_id", nullable = false)
+    var sourceSupplier: SupplyChainSupplier,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "processor_id", nullable = false)
-    var processor: Processor,
+    @JoinColumn(name = "target_supplier_id", nullable = false)
+    var targetSupplier: SupplyChainSupplier,
 
     @Column(name = "quantity_sent_kg", nullable = false, precision = 15, scale = 2)
     var quantitySentKg: BigDecimal,
@@ -110,8 +108,8 @@ class WorkflowProcessingEvent(
     var workflow: SupplyChainWorkflow,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "processor_id", nullable = false)
-    var processor: Processor,
+    @JoinColumn(name = "processor_supplier_id", nullable = false)
+    var processorSupplier: SupplyChainSupplier,
 
     @Column(name = "quantity_processed_kg", nullable = false, precision = 15, scale = 2)
     var quantityProcessedKg: BigDecimal,
@@ -150,8 +148,8 @@ class WorkflowShipmentEvent(
     var workflow: SupplyChainWorkflow,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "processor_id", nullable = false)
-    var processor: Processor,
+    @JoinColumn(name = "shipper_supplier_id")
+    var shipperSupplier: SupplyChainSupplier? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "importer_id", nullable = false)

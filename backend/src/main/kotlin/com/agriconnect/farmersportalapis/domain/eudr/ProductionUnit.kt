@@ -17,6 +17,7 @@ class ProductionUnit(
     @Column(name = "unit_id", length = 36, nullable = false, unique = true)
     var id: String = "",
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "farmer_id", nullable = false)
     var farmer: Farmer,

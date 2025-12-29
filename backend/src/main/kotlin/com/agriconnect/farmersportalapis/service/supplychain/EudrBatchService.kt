@@ -111,8 +111,15 @@ class EudrBatchService(
         return eudrBatchRepository.findByBatchCode(batchCode)
     }
 
+    @Transactional(readOnly = true)
     fun getBatchesByCreator(createdBy: String): List<EudrBatch> {
         return eudrBatchRepository.findByCreatedBy(createdBy)
+    }
+
+    @Transactional(readOnly = true)
+    fun getBatchesByCreatorAsDto(createdBy: String): List<BatchResponseDto> {
+        val batches = eudrBatchRepository.findByCreatedBy(createdBy)
+        return batches.map { convertToResponseDto(it) }
     }
 
     fun getBatchesByStatus(status: BatchStatus): List<EudrBatch> {
@@ -175,6 +182,7 @@ class EudrBatchService(
         return eudrBatchRepository.findAll()
     }
 
+    @Transactional(readOnly = true)
     fun convertToResponseDto(batch: EudrBatch): BatchResponseDto {
         return BatchResponseDto(
             id = batch.id,

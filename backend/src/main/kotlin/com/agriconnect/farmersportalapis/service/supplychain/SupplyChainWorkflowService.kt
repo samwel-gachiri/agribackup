@@ -1,12 +1,12 @@
 package com.agriconnect.farmersportalapis.service.supplychain
 
 import com.agriconnect.farmersportalapis.application.dtos.*
-import com.agriconnect.farmersportalapis.domain.eudr.ConsolidatedBatch
-import com.agriconnect.farmersportalapis.domain.eudr.ConsolidatedBatchStatus
 import com.agriconnect.farmersportalapis.domain.eudr.DeforestationAlert
 import com.agriconnect.farmersportalapis.domain.supplychain.*
 import com.agriconnect.farmersportalapis.infrastructure.repositories.*
 import com.agriconnect.farmersportalapis.repository.*
+import com.agriconnect.farmersportalapis.service.common.ImporterService
+import com.agriconnect.farmersportalapis.service.hedera.AsyncHederaService
 import com.agriconnect.farmersportalapis.service.hedera.HederaAccountService
 import com.agriconnect.farmersportalapis.service.hedera.HederaMainService
 import com.hedera.hashgraph.sdk.AccountId
@@ -29,19 +29,21 @@ class SupplyChainWorkflowService(
     private val consolidationEventRepository: WorkflowConsolidationEventRepository,
     private val processingEventRepository: WorkflowProcessingEventRepository,
     private val shipmentEventRepository: WorkflowShipmentEventRepository,
+    private val workflowProductionUnitRepository: WorkflowProductionUnitRepository,
     private val exporterRepository: ExporterRepository,
     private val productionUnitRepository: ProductionUnitRepository,
-    private val aggregatorRepository: AggregatorRepository,
+    private val supplierRepository: SupplyChainSupplierRepository,  // Flexible supply chain supplier
     private val eudrBatchService: EudrBatchService,
-    private val processorRepository: ProcessorRepository,
     private val consolidatedBatchRepository: ConsolidatedBatchRepository,
     private val importerRepository: ImporterRepository,
+    private val importerService: ImporterService,  // For Hedera account management
     private val farmerRepository: FarmerRepository,
     private val hederaMainService: HederaMainService,
     private val hederaAccountService: HederaAccountService,
     private val hederaAccountCredentialsRepository: HederaAccountCredentialsRepository,
     private val deforestationAlertRepository: DeforestationAlertRepository,
-    private val riskAssessmentService: com.agriconnect.farmersportalapis.service.common.RiskAssessmentService
+    private val riskAssessmentService: com.agriconnect.farmersportalapis.service.common.RiskAssessmentService,
+    private val asyncHederaService: AsyncHederaService  // Async Hedera recording for non-blocking operations
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -99,7 +101,7 @@ class SupplyChainWorkflowService(
         )
     }
 
-    // ===== COLLECTION EVENTS (Production Unit → Aggregator) =====
+    // ===== COLLECTION EVENTS (Production Unit → Collector Supplier) =====
     fun addCollectionEvent(workflowId: String, request: AddCollectionEventRequestDto): WorkflowCollectionEventResponseDto {
         val workflow = workflowRepository.findById(workflowId)
             .orElseThrow { IllegalArgumentException("Workflow not found") }
@@ -107,8 +109,9 @@ class SupplyChainWorkflowService(
         val productionUnit = productionUnitRepository.findById(request.productionUnitId)
             .orElseThrow { IllegalArgumentException("Production unit not found") }
 
-        val aggregator = aggregatorRepository.findById(request.aggregatorId)
-            .orElseThrow { IllegalArgumentException("Aggregator not found") }
+        // Use flexible supply chain supplier instead of rigid aggregator
+        val collectorSupplier = supplierRepository.findById(request.aggregatorId)
+            .orElseThrow { IllegalArgumentException("Collector supplier not found: ${request.aggregatorId}") }
 
         val farmer = farmerRepository.findById(request.farmerId)
             .orElseThrow { IllegalArgumentException("Farmer not found") }
@@ -117,7 +120,7 @@ class SupplyChainWorkflowService(
             id = UUID.randomUUID().toString(),
             workflow = workflow,
             productionUnit = productionUnit,
-            aggregator = aggregator,
+            collectorSupplier = collectorSupplier,
             farmer = farmer,
             quantityCollectedKg = request.quantityCollectedKg,
             collectionDate = request.collectionDate,
@@ -128,26 +131,10 @@ class SupplyChainWorkflowService(
 
         val saved = collectionEventRepository.save(event)
 
-        // Record collection event on Hedera blockchain
-        try {
-            logger.info("Recording collection event ${saved.id} to Hedera blockchain")
-            val hederaTransactionId = hederaMainService.recordAggregationEvent(
-                eventId = saved.id,
-                aggregatorId = aggregator.id!!,
-                farmerId = farmer.id!!,
-                produceType = workflow.produceType,
-                quantityKg = request.quantityCollectedKg,
-                collectionDate = request.collectionDate.toLocalDate()
-            )
-            logger.info("Collection event ${saved.id} recorded on Hedera with transaction ID: $hederaTransactionId")
-
-            // Update event with Hedera transaction ID
-            saved.hederaTransactionId = hederaTransactionId
-            collectionEventRepository.save(saved)
-        } catch (e: Exception) {
-            logger.error("Failed to record collection event to Hedera blockchain", e)
-            // Don't fail the entire transaction, just log the error
-        }
+        // Record collection event on Hedera blockchain ASYNCHRONOUSLY
+        // This ensures the user doesn't have to wait for blockchain confirmation
+        asyncHederaService.recordCollectionEventAsync(saved)
+        logger.info("Collection event ${saved.id} queued for async Hedera recording")
 
         // Update workflow total quantity and stage
         updateWorkflowQuantityAndStage(workflow)
@@ -160,19 +147,19 @@ class SupplyChainWorkflowService(
             .map { toCollectionEventResponseDto(it) }
     }
 
-    // ===== CONSOLIDATION EVENTS (Aggregator → Processor) =====
+    // ===== CONSOLIDATION EVENTS (Source Supplier → Target Supplier) =====
     fun addConsolidationEvent(workflowId: String, request: AddConsolidationEventRequestDto): WorkflowConsolidationEventResponseDto {
         val workflow = workflowRepository.findById(workflowId)
             .orElseThrow { IllegalArgumentException("Workflow not found") }
 
-        val aggregator = aggregatorRepository.findById(request.aggregatorId)
-            .orElseThrow { IllegalArgumentException("Aggregator not found") }
+        val sourceSupplier = supplierRepository.findById(request.aggregatorId)
+            .orElseThrow { IllegalArgumentException("Source supplier not found: ${request.aggregatorId}") }
 
-        val processor = processorRepository.findById(request.processorId)
-            .orElseThrow { IllegalArgumentException("Processor not found") }
+        val targetSupplier = supplierRepository.findById(request.processorId)
+            .orElseThrow { IllegalArgumentException("Target supplier not found: ${request.processorId}") }
 
-        // Validate: Check if aggregator has enough quantity available
-        val availableQuantity = getAvailableQuantityForAggregator(workflowId, request.aggregatorId)
+        // Validate: Check if source supplier has enough quantity available
+        val availableQuantity = getAvailableQuantityForSupplier(workflowId, request.aggregatorId)
         if (request.quantitySentKg > availableQuantity) {
             throw IllegalArgumentException("Insufficient quantity. Available: $availableQuantity kg, Requested: ${request.quantitySentKg} kg")
         }
@@ -180,8 +167,8 @@ class SupplyChainWorkflowService(
         val event = WorkflowConsolidationEvent(
             id = UUID.randomUUID().toString(),
             workflow = workflow,
-            aggregator = aggregator,
-            processor = processor,
+            sourceSupplier = sourceSupplier,
+            targetSupplier = targetSupplier,
             quantitySentKg = request.quantitySentKg,
             consolidationDate = request.consolidationDate,
             transportDetails = request.transportDetails,
@@ -193,9 +180,9 @@ class SupplyChainWorkflowService(
         val saved = consolidationEventRepository.save(event)
 
         // ===== CREATE CONSOLIDATED BATCH =====
-        // Get number of unique farmers from collection events for this aggregator
+        // Get number of unique farmers from collection events for this supplier
         val collectionEvents = collectionEventRepository.findByWorkflowId(workflowId)
-            .filter { it.aggregator.id == aggregator.id }
+            .filter { it.collectorSupplier.id == sourceSupplier.id }
         val numberOfFarmers = collectionEvents.map { it.farmer.id }.distinct().count()
 
         // Calculate average quality grade from collection events
@@ -204,79 +191,12 @@ class SupplyChainWorkflowService(
             qualityGrades.groupBy { it }.maxByOrNull { it.value.size }?.key
         } else null
 
-        val consolidatedBatch = ConsolidatedBatch(
-            aggregator = aggregator,
-            batchNumber = request.batchNumber ?: "BATCH-${saved.id.substring(0, 8)}",
-            produceType = workflow.produceType,
-            totalQuantityKg = request.quantitySentKg,
-            numberOfFarmers = numberOfFarmers,
-            averageQualityGrade = averageQualityGrade,
-            consolidationDate = request.consolidationDate,
-            destinationEntityId = processor.id,
-            destinationEntityType = "PROCESSOR",
-            status = ConsolidatedBatchStatus.CREATED,
-            transportDetails = request.transportDetails,
-            hederaTransactionId = null, // Will be set below
-            hederaBatchHash = null,
-            shipmentDate = null,
-            deliveryDate = null,
-        )
-
-        val savedConsolidatedBatch = consolidatedBatchRepository.save(consolidatedBatch)
-
-        // ===== CREATE EUDR BATCH FOR COMPLIANCE =====
-        // Extract country from aggregator's facility address or use default
-        val countryOfProduction = aggregator.facilityAddress
-            ?.split(",")
-            ?.lastOrNull()
-            ?.trim() ?: "Unknown"
-
-        // Create EUDR batch code using the consolidation batch number
-        val eudrBatchCode = "EUDR-${savedConsolidatedBatch.batchNumber}"
-
-        val createBatchRequest = CreateBatchRequestDto(
-            batchCode = eudrBatchCode,
-            commodityDescription = "${workflow.produceType} - Consolidated Batch",
-            hsCode = null, // Could be derived from produce type if needed
-            quantity = request.quantitySentKg,
-            unit = "kg",
-            countryOfProduction = countryOfProduction,
-            harvestDate = null, // Could be derived from collection events
-            harvestPeriodStart = null,
-            harvestPeriodEnd = null,
-            productionUnitIds = collectionEvents.map { it.productionUnit.id }.distinct()
-        )
-
-        eudrBatchService.createBatch(createBatchRequest, aggregator.id!!)
-
-        // Record consolidation event on Hedera blockchain
-        try {
-            // Get number of unique farmers from collection events
-            val collectionEvents = collectionEventRepository.findByWorkflowId(workflowId)
-                .filter { it.aggregator.id == aggregator.id }
-            val numberOfFarmers = collectionEvents.map { it.farmer.id }.distinct().count()
-
-            // Generate hash of batch data for integrity verification
-            val batchDataHash = generateBatchDataHash(saved)
-            val hederaTransactionId = hederaMainService.recordConsolidatedBatch(
-                batchId = saved.id,
-                batchNumber = request.batchNumber ?: "BATCH-${saved.id.substring(0, 8)}",
-                aggregatorId = aggregator.id,
-                produceType = workflow.produceType,
-                totalQuantityKg = request.quantitySentKg,
-                numberOfFarmers = numberOfFarmers,
-                batchDataHash = batchDataHash
-            )
-            saved.hederaTransactionId = hederaTransactionId
-            savedConsolidatedBatch.hederaTransactionId = hederaTransactionId
-            savedConsolidatedBatch.hederaBatchHash = batchDataHash
-            consolidationEventRepository.save(saved)
-            consolidatedBatchRepository.save(savedConsolidatedBatch)
-            logger.info("Consolidation event ${saved.id} recorded on Hedera: $hederaTransactionId")
-        } catch (e: Exception) {
-            logger.error("Failed to record consolidation event on Hedera blockchain", e)
-            // Continue without blockchain - non-critical failure
-        }
+        // Note: ConsolidatedBatch still uses legacy Aggregator - keeping for backward compatibility
+        // In future, this should also be migrated to use SupplyChainSupplier
+        
+        // Record consolidation event on Hedera blockchain ASYNCHRONOUSLY
+        asyncHederaService.recordConsolidationEventAsync(saved)
+        logger.info("Consolidation event ${saved.id} queued for async Hedera recording")
 
         // Update workflow stage
         updateWorkflowQuantityAndStage(workflow)
@@ -294,18 +214,18 @@ class SupplyChainWorkflowService(
         val workflow = workflowRepository.findById(workflowId)
             .orElseThrow { IllegalArgumentException("Workflow not found") }
 
-        val processor = processorRepository.findById(request.processorId)
-            .orElseThrow { IllegalArgumentException("Processor not found") }
+        val processorSupplier = supplierRepository.findById(request.processorId)
+            .orElseThrow { IllegalArgumentException("Processor supplier not found: ${request.processorId}") }
 
         val event = WorkflowProcessingEvent(
             id = UUID.randomUUID().toString(),
             workflow = workflow,
-            processor = processor,
-            quantityProcessedKg = request.quantityProcessedKg,
+            processorSupplier = processorSupplier,
+            quantityProcessedKg = request.getEffectiveQuantityProcessedKg(),
             processingDate = request.processingDate,
-            processingType = request.processingType,
+            processingType = request.getEffectiveProcessingType(),
             outputQuantityKg = request.outputQuantityKg,
-            processingNotes = request.processingNotes,
+            processingNotes = request.getEffectiveNotes(),
             createdAt = LocalDateTime.now()
         )
 
@@ -322,13 +242,15 @@ class SupplyChainWorkflowService(
             .map { toProcessingEventResponseDto(it) }
     }
 
-    // ===== SHIPMENT EVENTS (Processor → Importer) =====
+    // ===== SHIPMENT EVENTS (Supplier → Importer) =====
     fun addShipmentEvent(workflowId: String, request: AddShipmentEventRequestDto): WorkflowShipmentEventResponseDto {
         val workflow = workflowRepository.findById(workflowId)
             .orElseThrow { IllegalArgumentException("Workflow not found") }
 
-        val processor = processorRepository.findById(request.processorId)
-            .orElseThrow { IllegalArgumentException("Processor not found") }
+        // Shipper is optional - could be any supplier in the chain
+        val shipperSupplier = request.processorId?.let { 
+            supplierRepository.findById(it).orElse(null) 
+        }
 
         val importer = importerRepository.findById(request.importerId)
             .orElseThrow { IllegalArgumentException("Importer not found") }
@@ -336,13 +258,13 @@ class SupplyChainWorkflowService(
         val event = WorkflowShipmentEvent(
             id = UUID.randomUUID().toString(),
             workflow = workflow,
-            processor = processor,
+            shipperSupplier = shipperSupplier,
             importer = importer,
             quantityShippedKg = request.quantityShippedKg,
-            shipmentDate = request.shipmentDate,
+            shipmentDate = request.shipmentDate ?: LocalDateTime.now(),
             expectedArrivalDate = request.expectedArrivalDate,
             shippingCompany = request.shippingCompany,
-            trackingNumber = request.trackingNumber,
+            trackingNumber = request.trackingNumber ?: request.billOfLading,
             destinationPort = request.destinationPort,
             shipmentNotes = request.shipmentNotes,
             createdAt = LocalDateTime.now()
@@ -350,33 +272,10 @@ class SupplyChainWorkflowService(
 
         val saved = shipmentEventRepository.save(event)
 
-        // Record shipment event on Hedera blockchain
-        try {
-            // Generate hash of shipment data for integrity verification
-            val shipmentDataHash = generateShipmentDataHash(saved)
-            
-            // Extract origin country from processor facility address (fallback to "Unknown")
-            val originCountry = processor.facilityAddress
-                ?.split(",")
-                ?.lastOrNull()
-                ?.trim() ?: "Unknown"
-            
-            val hederaTransactionId = hederaMainService.recordImportShipment(
-                shipmentId = saved.id,
-                importerId = importer.id!!,
-                shipmentNumber = request.trackingNumber ?: "SHIP-${saved.id.substring(0, 8)}",
-                produceType = workflow.produceType,
-                quantityKg = request.quantityShippedKg,
-                originCountry = originCountry,
-                shipmentDataHash = shipmentDataHash
-            )
-            saved.hederaTransactionId = hederaTransactionId
-            shipmentEventRepository.save(saved)
-            logger.info("Shipment event ${saved.id} recorded on Hedera: $hederaTransactionId")
-        } catch (e: Exception) {
-            logger.error("Failed to record shipment event on Hedera blockchain", e)
-            // Continue without blockchain - non-critical failure
-        }
+        // Record shipment event on Hedera blockchain ASYNCHRONOUSLY
+        // This ensures the user doesn't have to wait for blockchain confirmation
+        asyncHederaService.recordShipmentEventAsync(saved)
+        logger.info("Shipment event ${saved.id} queued for async Hedera recording")
 
         // Update workflow stage
         updateWorkflowQuantityAndStage(workflow)
@@ -421,33 +320,33 @@ class SupplyChainWorkflowService(
     }
 
     // ===== HELPER: GET AVAILABLE QUANTITIES =====
-    fun getAvailableQuantityForAggregator(workflowId: String, aggregatorId: String): BigDecimal {
-        // Get total collected by this aggregator
-        val collectedEvents = collectionEventRepository.findByWorkflowAndAggregator(workflowId, aggregatorId)
+    fun getAvailableQuantityForSupplier(workflowId: String, supplierId: String): BigDecimal {
+        // Get total collected by this supplier
+        val collectedEvents = collectionEventRepository.findByWorkflowAndSupplier(workflowId, supplierId)
         val totalCollected = collectedEvents.sumOf { it.quantityCollectedKg }
 
-        // Get total already sent by this aggregator
-        val totalSent = consolidationEventRepository.getTotalSentByAggregator(workflowId, aggregatorId) ?: BigDecimal.ZERO
+        // Get total already sent by this supplier
+        val totalSent = consolidationEventRepository.getTotalSentBySupplier(workflowId, supplierId) ?: BigDecimal.ZERO
 
         return totalCollected.subtract(totalSent).max(BigDecimal.ZERO)
     }
 
     fun getAvailableQuantitiesPerAggregator(workflowId: String): List<AvailableQuantityDto> {
         val collectionEvents = collectionEventRepository.findByWorkflowId(workflowId)
-        val aggregatorMap = mutableMapOf<String, MutableList<WorkflowCollectionEvent>>()
+        val supplierMap = mutableMapOf<String, MutableList<WorkflowCollectionEvent>>()
 
         collectionEvents.forEach { event ->
-            aggregatorMap.computeIfAbsent(event.aggregator.id) { mutableListOf() }.add(event)
+            supplierMap.computeIfAbsent(event.collectorSupplier.id) { mutableListOf() }.add(event)
         }
 
-        return aggregatorMap.map { (aggregatorId, events) ->
+        return supplierMap.map { (supplierId, events) ->
             val totalCollected = events.sumOf { it.quantityCollectedKg }
-            val totalSent = consolidationEventRepository.getTotalSentByAggregator(workflowId, aggregatorId) ?: BigDecimal.ZERO
+            val totalSent = consolidationEventRepository.getTotalSentBySupplier(workflowId, supplierId) ?: BigDecimal.ZERO
             val available = totalCollected.subtract(totalSent).max(BigDecimal.ZERO)
 
             AvailableQuantityDto(
-                aggregatorId = aggregatorId,
-                aggregatorName = events.first().aggregator.organizationName,
+                aggregatorId = supplierId,  // Keep field name for backward compatibility with frontend
+                aggregatorName = events.first().collectorSupplier.supplierName,
                 totalCollected = totalCollected,
                 totalSent = totalSent,
                 available = available
@@ -466,6 +365,7 @@ class SupplyChainWorkflowService(
         val consolidationCount = consolidationEventRepository.findByWorkflowId(workflow.id).size
         val processingCount = processingEventRepository.findByWorkflowId(workflow.id).size
         val shipmentCount = shipmentEventRepository.findByWorkflowId(workflow.id).size
+        val linkedUnitsCount = workflowProductionUnitRepository.countActiveByWorkflowId(workflow.id)
 
         return WorkflowResponseDto(
             id = workflow.id,
@@ -489,6 +389,7 @@ class SupplyChainWorkflowService(
             consolidationEventCount = consolidationCount,
             processingEventCount = processingCount,
             shipmentEventCount = shipmentCount,
+            linkedProductionUnits = linkedUnitsCount.toInt(),
             // Certificate information
             certificateStatus = workflow.certificateStatus?.name,
             complianceCertificateNftId = workflow.complianceCertificateNftId,
@@ -505,8 +406,8 @@ class SupplyChainWorkflowService(
             workflowId = event.workflow.id,
             productionUnitId = event.productionUnit.id,
             productionUnitName = event.productionUnit.unitName,
-            aggregatorId = event.aggregator.id,
-            aggregatorName = event.aggregator.organizationName,
+            aggregatorId = event.collectorSupplier.id,  // Field name kept for API compatibility
+            aggregatorName = event.collectorSupplier.supplierName,
             farmerId = event.farmer.id ?: "",
             farmerName = event.farmer.userProfile.fullName,
             quantityCollectedKg = event.quantityCollectedKg,
@@ -523,10 +424,10 @@ class SupplyChainWorkflowService(
         return WorkflowConsolidationEventResponseDto(
             id = event.id,
             workflowId = event.workflow.id,
-            aggregatorId = event.aggregator.id,
-            aggregatorName = event.aggregator.organizationName,
-            processorId = event.processor.id,
-            processorName = event.processor.facilityName,
+            aggregatorId = event.sourceSupplier.id,  // Field name kept for API compatibility
+            aggregatorName = event.sourceSupplier.supplierName,
+            processorId = event.targetSupplier.id,
+            processorName = event.targetSupplier.supplierName,
             quantitySentKg = event.quantitySentKg,
             consolidationDate = event.consolidationDate,
             transportDetails = event.transportDetails,
@@ -542,8 +443,8 @@ class SupplyChainWorkflowService(
         return WorkflowProcessingEventResponseDto(
             id = event.id,
             workflowId = event.workflow.id,
-            processorId = event.processor.id,
-            processorName = event.processor.facilityName,
+            processorId = event.processorSupplier.id,
+            processorName = event.processorSupplier.supplierName,
             quantityProcessedKg = event.quantityProcessedKg,
             processingDate = event.processingDate,
             processingType = event.processingType,
@@ -559,8 +460,8 @@ class SupplyChainWorkflowService(
         return WorkflowShipmentEventResponseDto(
             id = event.id,
             workflowId = event.workflow.id,
-            processorId = event.processor.id,
-            processorName = event.processor.facilityName,
+            processorId = event.shipperSupplier?.id ?: "",
+            processorName = event.shipperSupplier?.supplierName ?: "Direct Export",
             importerId = event.importer.id,
             importerName = event.importer.companyName,
             quantityShippedKg = event.quantityShippedKg,
@@ -579,7 +480,7 @@ class SupplyChainWorkflowService(
 
     // Helper method to generate hash for batch data integrity
     private fun generateBatchDataHash(event: WorkflowConsolidationEvent): String {
-        val data = "${event.id}:${event.aggregator.id}:${event.processor.id}:" +
+        val data = "${event.id}:${event.sourceSupplier.id}:${event.targetSupplier.id}:" +
                 "${event.quantitySentKg}:${event.consolidationDate}:${event.batchNumber}"
         return MessageDigest.getInstance("SHA-256")
             .digest(data.toByteArray())
@@ -588,7 +489,7 @@ class SupplyChainWorkflowService(
 
     // Helper method to generate hash for shipment data integrity
     private fun generateShipmentDataHash(event: WorkflowShipmentEvent): String {
-        val data = "${event.id}:${event.processor.id}:${event.importer.id}:" +
+        val data = "${event.id}:${event.shipperSupplier?.id ?: "direct"}:${event.importer.id}:" +
                 "${event.quantityShippedKg}:${event.shipmentDate}:${event.trackingNumber}"
         return MessageDigest.getInstance("SHA-256")
             .digest(data.toByteArray())
@@ -665,17 +566,26 @@ class SupplyChainWorkflowService(
             failureReasons.add("${criticalAlerts.size} HIGH/CRITICAL deforestation alert(s) detected after 2020-12-31")
         }
 
-        // 5. Verify complete supply chain traceability
-        if (workflow.consolidationEvents.isEmpty()) {
-            failureReasons.add("No consolidation events - incomplete traceability (farmer → aggregator → processor)")
-        }
-
-        // 6. Verify quantity consistency across supply chain
-        val totalCollectedKg = collectionEvents.sumOf { it.quantityCollectedKg }
-        val totalConsolidatedKg = workflow.consolidationEvents.sumOf { it.quantitySentKg }
+        // 5. Verify supply chain traceability - FLEXIBLE approach
+        // Consolidation is OPTIONAL - some supply chains go directly from collection to processing or export
+        // The key requirement is having collection events with proper production unit links
+        val hasCollections = collectionEvents.isNotEmpty()
+        val hasConsolidations = workflow.consolidationEvents.isNotEmpty()
+        val hasProcessing = workflow.processingEvents.isNotEmpty()
         
-        if (totalConsolidatedKg > totalCollectedKg) {
-            failureReasons.add("Consolidation quantity ($totalConsolidatedKg kg) exceeds collection quantity ($totalCollectedKg kg)")
+        if (!hasCollections) {
+            failureReasons.add("No collection events - traceability starts at collection point")
+        }
+        
+        // If there are consolidations, validate quantity consistency
+        if (hasConsolidations) {
+            // 6. Verify quantity consistency when consolidation exists
+            val totalCollectedKg = collectionEvents.sumOf { it.quantityCollectedKg }
+            val totalConsolidatedKg = workflow.consolidationEvents.sumOf { it.quantitySentKg }
+            
+            if (totalConsolidatedKg > totalCollectedKg) {
+                failureReasons.add("Consolidation quantity ($totalConsolidatedKg kg) exceeds collection quantity ($totalCollectedKg kg)")
+            }
         }
 
         // 7. Determine origin country from production units
@@ -687,6 +597,8 @@ class SupplyChainWorkflowService(
         }
 
         // 8. Use existing RiskAssessmentService for comprehensive risk calculation
+        // Traceability is complete if we have collections (consolidation and processing are optional)
+        val traceabilityComplete = hasCollections && productionUnits.isNotEmpty()
         val riskLevel = try {
             // Create a temporary batch-like assessment based on workflow data
             calculateWorkflowRiskLevel(
@@ -695,7 +607,7 @@ class SupplyChainWorkflowService(
                 originCountry = originCountry,
                 hasGpsGaps = unitsWithoutGps.isNotEmpty(),
                 hasVerificationGaps = unverifiedUnits.isNotEmpty(),
-                traceabilityComplete = workflow.consolidationEvents.isNotEmpty()
+                traceabilityComplete = traceabilityComplete
             )
         } catch (e: Exception) {
             logger.warn("Failed to calculate risk level using RiskAssessmentService: ${e.message}")
@@ -864,7 +776,7 @@ class SupplyChainWorkflowService(
 
         // Issue the certificate NFT
         try {
-            val (transactionId, serialNumber) = hederaMainService.issueWorkflowComplianceCertificateNft(
+            val (transactionId, serialNumber, nftTokenId) = hederaMainService.issueWorkflowComplianceCertificateNft(
                 workflowId = workflow.id,
                 exporterAccountId = AccountId.fromString(exporterCredentials.hederaAccountId),
                 complianceData = complianceData
@@ -873,22 +785,24 @@ class SupplyChainWorkflowService(
             // Update workflow with certificate details
             workflow.complianceCertificateTransactionId = transactionId
             workflow.complianceCertificateSerialNumber = serialNumber
+            workflow.complianceCertificateNftId = nftTokenId
             workflow.currentOwnerAccountId = exporterCredentials.hederaAccountId
             workflow.certificateStatus = CertificateStatus.COMPLIANT
             workflow.certificateIssuedAt = LocalDateTime.now()
             
             workflowRepository.save(workflow)
 
-            logger.info("Certificate issued for workflow ${workflow.id}: TxID=$transactionId, Serial=$serialNumber")
+            logger.info("Certificate issued for workflow ${workflow.id}: TxID=$transactionId, Serial=$serialNumber, NFT=$nftTokenId")
 
             return mapOf(
                 "workflowId" to workflow.id,
                 "transactionId" to transactionId,
                 "serialNumber" to serialNumber,
+                "nftTokenId" to nftTokenId,
                 "hederaAccountId" to exporterCredentials.hederaAccountId,
                 "certificateStatus" to workflow.certificateStatus.name,
                 "issuedAt" to workflow.certificateIssuedAt,
-                "hashscanUrl" to "https://hashscan.io/testnet/transaction/$transactionId"
+                "hashscanUrl" to "https://hashscan.io/testnet/token/$nftTokenId"
             )
         } catch (e: Exception) {
             logger.error("Failed to issue certificate for workflow ${workflow.id}", e)
@@ -897,7 +811,119 @@ class SupplyChainWorkflowService(
     }
 
     /**
+     * Validate workflow for certificate (public method for pre-validation)
+     * Returns validation result as a Map for API response
+     */
+    fun validateWorkflowForCertificate(workflowId: String): Map<String, Any?> {
+        val workflow = workflowRepository.findById(workflowId)
+            .orElseThrow { IllegalArgumentException("Workflow not found") }
+        
+        // Check if certificate already issued
+        if (workflow.certificateStatus != CertificateStatus.NOT_CREATED && 
+            workflow.certificateStatus != CertificateStatus.PENDING_VERIFICATION) {
+            return mapOf(
+                "isCompliant" to false,
+                "failureReasons" to listOf("Certificate already issued for this workflow (Status: ${workflow.certificateStatus})")
+            )
+        }
+        
+        val validationResult = validateWorkflowCompliance(workflow)
+        return mapOf(
+            "isCompliant" to validationResult.isCompliant,
+            "failureReasons" to validationResult.failureReasons,
+            "totalFarmers" to validationResult.totalFarmers,
+            "totalProductionUnits" to validationResult.totalProductionUnits,
+            "gpsCoordinatesCount" to validationResult.gpsCoordinatesCount,
+            "deforestationStatus" to validationResult.deforestationStatus,
+            "originCountry" to validationResult.originCountry,
+            "riskLevel" to validationResult.riskLevel
+        )
+    }
+
+    /**
+     * Issue EUDR Compliance Certificate NFT asynchronously
+     * Returns immediately with pending status, processes in background
+     */
+    fun issueComplianceCertificateAsync(workflowId: String): Map<String, Any?> {
+        val workflow = workflowRepository.findById(workflowId)
+            .orElseThrow { IllegalArgumentException("Workflow not found") }
+
+        // Check if certificate already issued
+        if (workflow.certificateStatus != CertificateStatus.NOT_CREATED && 
+            workflow.certificateStatus != CertificateStatus.PENDING_VERIFICATION) {
+            throw IllegalStateException("Certificate already issued for this workflow (Status: ${workflow.certificateStatus})")
+        }
+
+        // Get exporter's Hedera account (fail fast if not available)
+        val exporterCredentials = hederaAccountCredentialsRepository
+            .findByEntityTypeAndEntityId("EXPORTER", workflow.exporter.id)
+            .orElseThrow { 
+                IllegalStateException("Exporter does not have a Hedera account. Please create one first.") 
+            }
+
+        // Mark workflow as pending verification immediately
+        workflow.certificateStatus = CertificateStatus.PENDING_VERIFICATION
+        workflowRepository.save(workflow)
+
+        // Build compliance data for async processing
+        val validationResult = validateWorkflowCompliance(workflow)
+        val complianceData = mapOf(
+            "workflowName" to workflow.workflowName,
+            "produceType" to workflow.produceType,
+            "totalQuantityKg" to workflow.totalQuantityKg.toString(),
+            "totalFarmers" to validationResult.totalFarmers.toString(),
+            "totalProductionUnits" to validationResult.totalProductionUnits.toString(),
+            "gpsCoordinatesCount" to validationResult.gpsCoordinatesCount.toString(),
+            "deforestationStatus" to validationResult.deforestationStatus,
+            "originCountry" to validationResult.originCountry,
+            "riskLevel" to validationResult.riskLevel,
+            "traceabilityHash" to validationResult.traceabilityHash
+        )
+
+        // Process certificate issuance asynchronously
+        Thread {
+            try {
+                logger.info("Starting async certificate issuance for workflow ${workflow.id}")
+                val (transactionId, serialNumber, nftTokenId) = hederaMainService.issueWorkflowComplianceCertificateNft(
+                    workflowId = workflow.id,
+                    exporterAccountId = AccountId.fromString(exporterCredentials.hederaAccountId),
+                    complianceData = complianceData
+                )
+
+                // Update workflow with certificate details
+                val updatedWorkflow = workflowRepository.findById(workflowId).orElse(null)
+                if (updatedWorkflow != null) {
+                    updatedWorkflow.complianceCertificateTransactionId = transactionId
+                    updatedWorkflow.complianceCertificateSerialNumber = serialNumber
+                    updatedWorkflow.complianceCertificateNftId = nftTokenId
+                    updatedWorkflow.currentOwnerAccountId = exporterCredentials.hederaAccountId
+                    updatedWorkflow.certificateStatus = CertificateStatus.COMPLIANT
+                    updatedWorkflow.certificateIssuedAt = LocalDateTime.now()
+                    workflowRepository.save(updatedWorkflow)
+                    logger.info("Certificate issued successfully for workflow ${workflow.id}: TxID=$transactionId, Serial=$serialNumber, NFT=$nftTokenId")
+                }
+            } catch (e: Exception) {
+                logger.error("Async certificate issuance failed for workflow ${workflow.id}", e)
+                // Revert status to NOT_CREATED on failure
+                val failedWorkflow = workflowRepository.findById(workflowId).orElse(null)
+                if (failedWorkflow != null && failedWorkflow.certificateStatus == CertificateStatus.PENDING_VERIFICATION) {
+                    failedWorkflow.certificateStatus = CertificateStatus.NOT_CREATED
+                    workflowRepository.save(failedWorkflow)
+                }
+            }
+        }.start()
+
+        return mapOf(
+            "workflowId" to workflow.id,
+            "status" to "PENDING_VERIFICATION",
+            "message" to "Certificate issuance started. Check workflow status for completion.",
+            "exporterHederaAccount" to exporterCredentials.hederaAccountId
+        )
+    }
+
+    /**
      * Transfer certificate to importer
+     * Auto-creates a Hedera account for the importer if they don't have one
      */
     fun transferCertificateToImporter(workflowId: String, importerId: String) {
         val workflow = workflowRepository.findById(workflowId)
@@ -911,12 +937,19 @@ class SupplyChainWorkflowService(
         val importer = importerRepository.findById(importerId)
             .orElseThrow { IllegalArgumentException("Importer not found") }
 
-        // Get importer's Hedera account
-        val importerCredentials = hederaAccountCredentialsRepository
-            .findByEntityTypeAndEntityId("IMPORTER", importerId)
-            .orElseThrow { 
-                IllegalStateException("Importer does not have a Hedera account") 
-            }
+        // Get or create importer's Hedera account
+        val importerCredentials = try {
+            hederaAccountCredentialsRepository
+                .findByEntityTypeAndEntityId("IMPORTER", importerId)
+                .orElseGet {
+                    // Auto-create Hedera account for importer
+                    logger.info("Importer $importerId doesn't have a Hedera account, creating one...")
+                    importerService.getOrCreateHederaAccountForImporter(importerId)
+                }
+        } catch (e: Exception) {
+            logger.error("Failed to get or create Hedera account for importer $importerId", e)
+            throw IllegalStateException("Failed to setup Hedera account for importer: ${e.message}")
+        }
 
         val exporterCredentials = hederaAccountCredentialsRepository
             .findByEntityTypeAndEntityId("EXPORTER", workflow.exporter.id)
@@ -924,11 +957,16 @@ class SupplyChainWorkflowService(
                 IllegalStateException("Exporter Hedera account not found") 
             }
 
+        // Get the NFT serial number from the workflow
+        val serialNumber = workflow.complianceCertificateSerialNumber
+            ?: throw IllegalStateException("Workflow does not have a certificate serial number. Certificate may not have been issued properly.")
+
         try {
             val success = hederaMainService.transferWorkflowComplianceCertificateNft(
                 fromAccountId = AccountId.fromString(exporterCredentials.hederaAccountId),
                 toAccountId = AccountId.fromString(importerCredentials.hederaAccountId),
-                workflowId = workflow.id
+                workflowId = workflow.id,
+                serialNumber = serialNumber
             )
 
             if (success) {
@@ -1036,5 +1074,137 @@ class SupplyChainWorkflowService(
             "createdAt" to credentials.createdAt,
             "entityType" to credentials.entityType
         )
+    }
+
+    // ===== PRODUCTION UNIT LINKING (Stage 1: PRODUCTION_REGISTRATION) =====
+    
+    /**
+     * Link a production unit to a workflow for EUDR Stage 1 registration
+     */
+    fun linkProductionUnit(workflowId: String, request: LinkProductionUnitRequestDto): WorkflowProductionUnitResponseDto {
+        val workflow = workflowRepository.findById(workflowId)
+            .orElseThrow { IllegalArgumentException("Workflow not found: $workflowId") }
+        
+        val productionUnit = productionUnitRepository.findById(request.productionUnitId)
+            .orElseThrow { IllegalArgumentException("Production unit not found: ${request.productionUnitId}") }
+        
+        // Check if already linked
+        if (workflowProductionUnitRepository.existsByWorkflowIdAndProductionUnitId(workflowId, request.productionUnitId)) {
+            throw IllegalStateException("Production unit is already linked to this workflow")
+        }
+        
+        val link = WorkflowProductionUnit(
+            id = UUID.randomUUID().toString(),
+            workflow = workflow,
+            productionUnit = productionUnit,
+            status = WorkflowProductionUnitStatus.PENDING,
+            geolocationVerified = productionUnit.lastVerifiedAt != null,
+            notes = request.notes
+        )
+        
+        val saved = workflowProductionUnitRepository.save(link)
+        logger.info("Linked production unit {} to workflow {}", request.productionUnitId, workflowId)
+        
+        return toWorkflowProductionUnitDto(saved)
+    }
+    
+    /**
+     * Get all production units linked to a workflow
+     */
+    fun getLinkedProductionUnits(workflowId: String): List<WorkflowProductionUnitResponseDto> {
+        val links = workflowProductionUnitRepository.findByWorkflowId(workflowId)
+        return links.map { toWorkflowProductionUnitDto(it) }
+    }
+    
+    /**
+     * Unlink a production unit from a workflow
+     */
+    fun unlinkProductionUnit(workflowId: String, productionUnitId: String) {
+        val link = workflowProductionUnitRepository.findByWorkflowIdAndProductionUnitId(workflowId, productionUnitId)
+            ?: throw IllegalArgumentException("Production unit not linked to this workflow")
+        
+        // Check if there are collection events for this production unit
+        val collectionEvents = collectionEventRepository.findByWorkflowId(workflowId)
+            .filter { it.productionUnit.id == productionUnitId }
+        
+        if (collectionEvents.isNotEmpty()) {
+            throw IllegalStateException("Cannot unlink production unit with existing collection events")
+        }
+        
+        workflowProductionUnitRepository.delete(link)
+        logger.info("Unlinked production unit {} from workflow {}", productionUnitId, workflowId)
+    }
+    
+    /**
+     * Update production unit verification status
+     */
+    fun updateProductionUnitStatus(
+        workflowId: String, 
+        productionUnitId: String, 
+        geolocationVerified: Boolean? = null,
+        deforestationChecked: Boolean? = null,
+        deforestationClear: Boolean? = null
+    ): WorkflowProductionUnitResponseDto {
+        val link = workflowProductionUnitRepository.findByWorkflowIdAndProductionUnitId(workflowId, productionUnitId)
+            ?: throw IllegalArgumentException("Production unit not linked to this workflow")
+        
+        geolocationVerified?.let { link.geolocationVerified = it }
+        deforestationChecked?.let { link.deforestationChecked = it }
+        deforestationClear?.let { link.deforestationClear = it }
+        
+        // Update status based on verification state
+        link.status = when {
+            link.deforestationChecked && link.deforestationClear == true -> WorkflowProductionUnitStatus.DEFORESTATION_CLEAR
+            link.geolocationVerified -> WorkflowProductionUnitStatus.VERIFIED
+            else -> WorkflowProductionUnitStatus.PENDING
+        }
+        
+        link.updatedAt = LocalDateTime.now()
+        val saved = workflowProductionUnitRepository.save(link)
+        
+        return toWorkflowProductionUnitDto(saved)
+    }
+    
+    /**
+     * Set skip processing flag - for raw commodities that don't require processing
+     */
+    fun setSkipProcessing(workflowId: String, skip: Boolean) {
+        val workflow = workflowRepository.findById(workflowId).orElseThrow {
+            IllegalArgumentException("Workflow not found: $workflowId")
+        }
+        
+        workflow.skipProcessing = skip
+        workflow.updatedAt = LocalDateTime.now()
+        workflowRepository.save(workflow)
+        
+        logger.info("Set skipProcessing={} for workflow {}", skip, workflowId)
+    }
+    
+    private fun toWorkflowProductionUnitDto(link: WorkflowProductionUnit): WorkflowProductionUnitResponseDto {
+        val productionUnit = link.productionUnit
+        val farmer = productionUnit.farmer
+        
+        return WorkflowProductionUnitResponseDto(
+            id = link.id,
+            workflowId = link.workflow.id,
+            productionUnitId = productionUnit.id,
+            productionUnitName = productionUnit.unitName,
+            farmerId = farmer.id,
+            farmerName = farmer.let { it.userProfile.fullName.trim().ifEmpty { "Unknown" } },
+            administrativeRegion = productionUnit.administrativeRegion,
+            areaHectares = productionUnit.areaHectares,
+            primaryCrops = productionUnit.farmer.farmerProduces.toString(),
+            status = link.status.name,
+            geolocationVerified = link.geolocationVerified,
+            deforestationChecked = link.deforestationChecked,
+            deforestationClear = link.deforestationClear,
+            notes = link.notes,
+            linkedAt = link.linkedAt,
+            lastVerifiedAt = productionUnit.lastVerifiedAt
+        )
+    }
+
+    fun getWorkflowProductionUnits(workflowId: String): List<WorkflowProductionUnit> {
+        return workflowProductionUnitRepository.findByWorkflowId(workflowId)
     }
 }

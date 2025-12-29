@@ -1,186 +1,169 @@
 <template>
-  <v-card class="tw-rounded-xl tw-h-full tw-flex tw-flex-col">
-    <!-- Header -->
-    <div class="tw-text-white tw-px-6 tw-py-4 tw-flex tw-items-center tw-justify-between tw-bg-gradient-to-r tw-from-green-600 tw-to-green-700 tw-rounded-t-xl">
-      <div class="tw-flex tw-items-center tw-gap-3">
-        <v-icon color="white">mdi-map-check</v-icon>
-        <div>
-          <h2 class="tw-text-lg tw-font-bold">Edit {{ displayName }} Production Units</h2>
-          <p class="tw-text-xs tw-text-green-100">(EUDR Tracing)</p>
-        </div>
+  <v-card class="tw-h-screen tw-flex tw-flex-col tw-overflow-hidden">
+    <!-- Compact Header -->
+    <div class="tw-bg-green-600 tw-px-4 tw-py-2 tw-flex tw-items-center tw-justify-between tw-flex-shrink-0">
+      <div class="tw-flex tw-items-center tw-gap-2 tw-text-white">
+        <v-icon color="white" small>mdi-map-marker-plus</v-icon>
+        <span class="tw-font-medium">{{ displayName }}'s Production Units</span>
+        <v-chip v-if="productionUnits.length > 0" x-small color="white" text-color="green" class="tw-ml-2">
+          {{ productionUnits.length }} units
+        </v-chip>
       </div>
-      <v-btn icon @click="close" color="white" text small>
+      <v-btn icon small @click="close" color="white">
         <v-icon>mdi-close</v-icon>
       </v-btn>
     </div>
 
-    <!-- Content -->
-    <v-card-text class="tw-flex-1 tw-overflow-auto tw-p-0 tw-flex tw-flex-col tw-gap-4">
-      <!-- Error Alert -->
-      <v-alert v-if="error" type="error" dismissible @input="error = null" class="tw-mb-0 tw-rounded-none">
-        {{ error }}
-      </v-alert>
-
-      <!-- Left Panel: Units List -->
-      <div class="tw-flex tw-flex-1">
-        <!-- Map Drawer -->
-        <div class="tw-flex-1 tw-min-h-0">
-          <ProductionUnitDrawer
-            ref="drawer"
-            :initial-location="farmerLocation"
-            :existing-units="productionUnits"
-            @unit-drawn="handleUnitDrawn"
-            @unit-updated="handleUnitUpdated"
-            @save-unit="handleSaveUnit"
-          />
+    <!-- Full Map Area -->
+    <div class="tw-flex-1 tw-relative tw-min-h-0" style="height: calc(100vh - 48px);">
+      <!-- Loading Overlay -->
+      <div v-if="loading" class="tw-absolute tw-inset-0 tw-bg-white tw-bg-opacity-80 tw-z-40 tw-flex tw-items-center tw-justify-center">
+        <div class="tw-text-center">
+          <v-progress-circular indeterminate color="green" size="48" />
+          <div class="tw-text-sm tw-text-gray-600 tw-mt-3">Loading production units...</div>
         </div>
+      </div>
 
-        <!-- Right Sidebar: Units List -->
-        <div class="tw-w-80 tw-bg-gray-50 tw-border-l tw-border-gray-200 tw-overflow-auto tw-flex tw-flex-col">
-          <div class="tw-p-4 tw-border-b tw-border-gray-200">
-            <h3 class="tw-font-semibold tw-text-gray-800 tw-flex tw-items-center tw-gap-2">
-              <v-icon small color="primary">mdi-layers</v-icon>
-              Units ({{ productionUnits.length }})
-            </h3>
+      <ProductionUnitDrawer
+        v-if="dialog"
+        ref="drawer"
+        class="tw-absolute tw-inset-0"
+        :initial-location="farmerLocation"
+        :existing-units="existingUnitsWithGeometry"
+        :show-help-on-start="isFirstTimeUser"
+        @unit-drawn="handleUnitDrawn"
+        @save-unit="openSaveUnitDialog"
+      />
+
+      <!-- Floating Units List Toggle Button (Bottom Left) -->
+      <v-btn
+        v-if="productionUnits.length > 0 && !loading"
+        fab
+        small
+        color="white"
+        class="tw-absolute tw-bottom-4 tw-left-4 tw-z-30 tw-shadow-lg"
+        @click="showUnitsList = !showUnitsList"
+      >
+        <v-badge :content="productionUnits.length" color="green" overlap>
+          <v-icon>mdi-format-list-bulleted</v-icon>
+        </v-badge>
+      </v-btn>
+
+      <!-- Sliding Units Panel (Left Side) -->
+      <transition name="slide-left">
+        <div
+          v-if="showUnitsList"
+          class="tw-absolute tw-top-0 tw-left-0 tw-bottom-0 tw-w-64 tw-bg-white tw-shadow-xl tw-z-30 tw-flex tw-flex-col"
+        >
+          <div class="tw-p-3 tw-bg-green-50 tw-border-b tw-flex tw-items-center tw-justify-between">
+            <div class="tw-flex tw-items-center tw-gap-2">
+              <v-icon small color="green">mdi-map-marker-multiple</v-icon>
+              <span class="tw-font-semibold tw-text-green-800 tw-text-sm">Units ({{ productionUnits.length }})</span>
+            </div>
+            <v-btn icon x-small @click="showUnitsList = false">
+              <v-icon small>mdi-close</v-icon>
+            </v-btn>
           </div>
-
-          <!-- Units List Content -->
           <div class="tw-flex-1 tw-overflow-auto">
-            <!-- Loading State -->
-            <div v-if="loading" class="tw-p-6 tw-text-center">
-              <v-progress-circular indeterminate color="primary" size="40" />
-              <div class="tw-text-sm tw-text-gray-500 tw-mt-3">Loading production units...</div>
-            </div>
-
-            <!-- Units List -->
-            <div v-else-if="productionUnits.length" class="tw-space-y-2 tw-p-3">
+            <div
+              v-for="(unit, index) in productionUnits"
+              :key="unit.id || index"
+              class="tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-border-b tw-border-gray-100 hover:tw-bg-gray-50 tw-cursor-pointer"
+              @click="zoomToUnit(unit)"
+            >
               <div
-                v-for="(unit, idx) in productionUnits"
-                :key="unit.id || idx"
-                class="tw-p-3 tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 hover:tw-shadow-md tw-transition"
-              >
-                <div class="tw-flex tw-items-start tw-justify-between tw-gap-2">
-                  <div class="tw-flex-1">
-                    <div class="tw-font-medium tw-text-gray-800 tw-text-sm tw-truncate">
-                      {{ unit.unitName || `Unit ${idx + 1}` }}
-                    </div>
-                    <div class="tw-text-xs tw-text-gray-500">
-                      {{ (unit.areaHectares || 0).toFixed(2) }} ha
-                    </div>
-                  </div>
-                  <v-btn icon x-small color="red" @click="deleteProductionUnit(idx)">
-                    <v-icon x-small>mdi-delete</v-icon>
-                  </v-btn>
-                </div>
+                class="tw-w-3 tw-h-3 tw-rounded-full tw-flex-shrink-0"
+                :style="{ backgroundColor: getUnitColor(index) }"
+              ></div>
+              <div class="tw-flex-1 tw-min-w-0">
+                <div class="tw-font-medium tw-text-sm tw-text-gray-800 tw-truncate">{{ unit.unitName || `Unit ${index + 1}` }}</div>
+                <div class="tw-text-xs tw-text-gray-500">{{ (unit.areaHectares || 0).toFixed(2) }} ha</div>
               </div>
+              <v-btn icon x-small color="red" @click.stop="deleteProductionUnit(unit, index)">
+                <v-icon x-small>mdi-delete</v-icon>
+              </v-btn>
             </div>
+          </div>
+        </div>
+      </transition>
+    </div>
 
-            <!-- Empty State -->
-            <div v-else class="tw-text-sm tw-text-gray-500 tw-p-4 tw-text-center">
-              No units yet
+    <!-- Save Unit Dialog (appears after drawing polygon) -->
+    <v-dialog v-model="showSaveUnitDialog" max-width="400" persistent>
+      <v-card>
+        <v-card-title class="tw-flex tw-items-center tw-gap-2">
+          <v-icon color="green">mdi-map-marker-check</v-icon>
+          Save Production Unit
+        </v-card-title>
+        <v-card-text>
+          <v-alert v-if="saveError" type="error" dense dismissible @input="saveError = null" class="tw-mb-4">
+            {{ saveError }}
+          </v-alert>
+
+          <div class="tw-mb-4 tw-p-3 tw-bg-green-50 tw-rounded-lg">
+            <div class="tw-flex tw-justify-between tw-text-sm">
+              <span class="tw-text-gray-600">Area:</span>
+              <span class="tw-font-semibold tw-text-green-700">{{ pendingUnitArea?.toFixed(2) }} hectares</span>
             </div>
           </div>
 
-          <!-- New Unit Form -->
-          <div class="tw-p-3 tw-border-t tw-border-gray-200 tw-bg-white tw-space-y-3">
+          <v-form ref="saveUnitForm" v-model="saveFormValid">
             <v-text-field
-              v-model="newUnit.unitName"
-              label="Unit/farm Name"
+              v-model="pendingUnit.unitName"
+              label="Unit Name *"
+              :rules="[v => !!v || 'Name is required']"
               outlined
               dense
-              small
-              hide-details
               placeholder="e.g., North Plot"
+              autofocus
             />
             <v-text-field
-              v-model="newUnit.administrativeRegion"
+              v-model="pendingUnit.administrativeRegion"
               label="Region (Optional)"
               outlined
               dense
-              small
-              hide-details
-              placeholder="e.g., Kiambu"
+              placeholder="e.g., Kiambu County"
             />
 
-            <!-- Deforestation Check Button -->
+            <!-- Deforestation Check -->
             <v-btn
-              small
-              color="info"
-              block
-              @click="checkDeforestation"
-              :disabled="!lastDrawnGeometry"
-              :loading="checkingDeforestation"
+              color="warning"
               outlined
+              block
+              small
+              :loading="checkingDeforestation"
+              @click="checkPendingUnitDeforestation"
+              class="tw-mb-3"
             >
-              <v-icon left x-small>mdi-shield-search</v-icon>
-              Check for Deforestation
+              <v-icon left small>mdi-shield-search</v-icon>
+              Check Deforestation Status
             </v-btn>
 
-            <!-- Deforestation Status Alert -->
             <v-alert
               v-if="deforestationCheckResult"
               :type="deforestationAlertType"
               dense
-              text
-              dismissible
-              @input="deforestationCheckResult = null"
+              class="tw-text-sm"
             >
-              <div class="tw-text-xs">
-                <div class="tw-font-semibold tw-mb-1">{{ deforestationCheckResult.message }}</div>
-                <div v-if="deforestationCheckResult.totalAlerts > 0" class="tw-space-y-1">
-                  <div>Total Alerts: {{ deforestationCheckResult.totalAlerts }}</div>
-                  <div v-if="deforestationCheckResult.gladAlerts > 0">
-                    GLAD Alerts: {{ deforestationCheckResult.gladAlerts }}
-                  </div>
-                  <div v-if="deforestationCheckResult.viirsAlerts > 0">
-                    Fire Alerts: {{ deforestationCheckResult.viirsAlerts }}
-                  </div>
-                  <div v-if="deforestationCheckResult.treeCoverLossAlerts > 0">
-                    Tree Cover Loss: {{ deforestationCheckResult.treeCoverLossAlerts }}
-                  </div>
-                  <div class="tw-mt-2 tw-pt-2 tw-border-t tw-border-gray-300">
-                    <span class="tw-font-semibold">Risk Level:</span> {{ deforestationCheckResult.riskLevel }}
-                  </div>
-                </div>
-              </div>
+              <strong>{{ deforestationCheckResult.riskLevel }} Risk</strong>
+              <span v-if="deforestationCheckResult.hasAlerts">
+                - {{ deforestationCheckResult.totalAlerts }} alert(s)
+              </span>
             </v-alert>
-
-            <v-btn
-              small
-              color="success"
-              block
-              @click="addUnitFromDrawing"
-              :disabled="!lastDrawnGeometry"
-            >
-              <v-icon left x-small>mdi-plus</v-icon>
-              Add Unit
-            </v-btn>
-          </div>
-        </div>
-      </div>
-    </v-card-text>
-
-    <!-- Footer -->
-    <v-card-actions class="tw-px-6 tw-py-4 tw-bg-gray-50 tw-border-t tw-border-gray-200 tw-rounded-b-xl">
-      <v-spacer></v-spacer>
-      <v-btn text @click="close">Cancel</v-btn>
-      <v-btn color="success" @click="saveChanges" :loading="saving">
-        <v-icon left small>mdi-content-save</v-icon>
-        Save Changes
-      </v-btn>
-    </v-card-actions>
-
-    <!-- Success Dialog -->
-    <v-dialog v-model="successDialog" max-width="400" persistent>
-      <v-card class="tw-rounded-lg">
-        <v-card-text class="tw-text-center tw-py-8">
-          <v-icon color="success" size="48">mdi-check-circle</v-icon>
-          <h3 class="tw-text-lg tw-font-bold tw-mt-3 tw-mb-1">Changes Saved!</h3>
-          <p class="tw-text-sm tw-text-gray-600">Production units updated successfully.</p>
+          </v-form>
         </v-card-text>
         <v-card-actions>
+          <v-btn text @click="cancelSaveUnit">Cancel</v-btn>
           <v-spacer></v-spacer>
-          <v-btn color="primary" text small @click="successDialog = false; close()">Close</v-btn>
+          <v-btn
+            color="success"
+            :loading="savingUnit"
+            :disabled="!saveFormValid"
+            @click="saveUnitToBackend"
+          >
+            <v-icon left small>mdi-content-save</v-icon>
+            Save Unit
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -190,12 +173,12 @@
       <v-card>
         <v-card-title>Delete Production Unit?</v-card-title>
         <v-card-text>
-          Are you sure you want to delete this production unit? This action cannot be undone.
+          Are you sure you want to delete "{{ deleteConfirmUnit?.unitName }}"? This action cannot be undone.
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn text @click="deleteConfirmDialog = false">Cancel</v-btn>
-          <v-btn color="error" @click="confirmDelete">Delete</v-btn>
+          <v-btn color="error" :loading="deleting" @click="confirmDelete">Delete</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -221,21 +204,30 @@ export default {
   data() {
     return {
       dialog: false,
-      saving: false,
       loading: false,
-      error: null,
-      successDialog: false,
       productionUnits: [],
-      newUnit: {
+      // New minimalist UI state
+      showUnitsList: false,
+      showSaveUnitDialog: false,
+      pendingUnit: {
         unitName: '',
         administrativeRegion: '',
       },
-      lastDrawnGeometry: null,
-      lastDrawnArea: null,
+      pendingUnitGeometry: null,
+      pendingUnitArea: 0,
+      saveFormValid: false,
+      savingUnit: false,
+      saveError: null,
+      // Delete state
       deleteConfirmDialog: false,
+      deleteConfirmUnit: null,
       deleteConfirmIndex: null,
+      deleting: false,
+      // Deforestation check
       checkingDeforestation: false,
       deforestationCheckResult: null,
+      // First time help
+      isFirstTimeUser: !localStorage.getItem('editFarmerHelpSeen'),
     };
   },
   computed: {
@@ -248,22 +240,51 @@ export default {
         lng: this.farmer?.longitude || this.farmer?.lng || 36.8219,
       };
     },
+    existingUnitsWithGeometry() {
+      // Transform production units to include parsed geometry for the map drawer
+      return this.productionUnits.map((unit) => {
+        let geometry = null;
+        try {
+          if (unit.parcelGeometryGeoJson) {
+            const geoJson = typeof unit.parcelGeometryGeoJson === 'string'
+              ? JSON.parse(unit.parcelGeometryGeoJson)
+              : unit.parcelGeometryGeoJson;
+            geometry = {
+              type: 'polygon',
+              coordinates: geoJson.coordinates,
+            };
+          } else if (unit.parcelGeometry && unit.parcelGeometry.rings) {
+            geometry = {
+              type: 'polygon',
+              coordinates: unit.parcelGeometry.rings,
+            };
+          }
+        } catch (e) {
+          console.warn('Failed to parse geometry for unit:', unit.unitName, e);
+        }
+        return {
+          id: unit.id,
+          name: unit.unitName,
+          area: unit.areaHectares,
+          geometry,
+        };
+      }).filter((unit) => unit.geometry !== null);
+    },
     deforestationAlertType() {
       if (!this.deforestationCheckResult) return 'info';
-
       const riskLevel = this.deforestationCheckResult.riskLevel;
       if (riskLevel === 'HIGH') return 'error';
       if (riskLevel === 'MEDIUM') return 'warning';
       if (riskLevel === 'LOW') return 'info';
       if (riskLevel === 'NONE') return 'success';
-      return 'error'; // For ERROR case
+      return 'error';
     },
   },
   watch: {
     value(val) {
       this.dialog = val;
       if (val) {
-        this.initializeForm();
+        this.fetchProductionUnits();
       }
     },
     dialog(val) {
@@ -271,265 +292,230 @@ export default {
     },
   },
   mounted() {
-    // If dialog is already open when component mounts, fetch production units
+    // Sync local dialog state with value prop on mount
+    this.dialog = this.value;
     if (this.value) {
-      this.initializeForm();
+      this.fetchProductionUnits();
     }
   },
   methods: {
-    async initializeForm() {
-      await this.fetchProductionUnits();
-    },
-
     async fetchProductionUnits() {
       if (!this.farmer || !this.farmer.id) {
-        this.$toast.show('No farmer ID available for fetching production units');
+        this.$toast.error('No farmer ID available');
         return;
       }
 
       this.loading = true;
-      this.error = null;
-
       try {
         const response = await axios.get(`/api/production-units/farmer/${this.farmer.id}`);
-        const units = response.data.data || [];
-
-        // Convert backend format to frontend format
-        this.productionUnits = units.map((unit) => ({
-          id: unit.id,
-          unitName: unit.unitName,
-          administrativeRegion: unit.administrativeRegion || '',
-          areaHectares: unit.areaHectares,
-          // Parse GeoJSON string to ESRI-like format for the map
-          parcelGeometry: unit.parcelGeometryGeoJson
-            ? this.parseGeoJsonToEsri(unit.parcelGeometryGeoJson)
-            : null,
-          isNew: false, // Existing units from database
-        }));
+        this.productionUnits = response.data.data || [];
       } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Failed to load production units';
-        this.error = errorMsg;
+        this.$toast.error('Failed to load production units');
         this.productionUnits = [];
       } finally {
         this.loading = false;
       }
     },
 
-    parseGeoJsonToEsri(geoJsonString) {
-      try {
-        const geoJson = JSON.parse(geoJsonString);
-        // Convert GeoJSON Polygon to ESRI format
-        return {
-          rings: geoJson.coordinates,
-          spatialReference: { wkid: 4326 },
-        };
-      } catch (e) {
-        return null;
-      }
-    },
-
     handleUnitDrawn(data) {
-      this.lastDrawnGeometry = data.geometry;
-      this.lastDrawnArea = data.area;
+      // Just track the drawn geometry
+      this.pendingUnitGeometry = data.geometry;
+      this.pendingUnitArea = data.area;
     },
 
-    handleUnitUpdated(data) {
-      this.lastDrawnGeometry = data.geometry;
-      this.lastDrawnArea = data.area;
-    },
-
-    handleSaveUnit(data) {
-      this.lastDrawnGeometry = data.geometry;
-      this.lastDrawnArea = data.area;
-      this.addUnitFromDrawing();
-    },
-
-    addUnitFromDrawing() {
-      if (!this.newUnit.unitName) {
-        this.error = 'Please enter a unit name';
-        return;
-      }
-
-      if (!this.lastDrawnGeometry) {
-        this.error = 'Please draw a polygon on the map first';
-        return;
-      }
-
-      const newUnit = {
-        unitName: this.newUnit.unitName,
-        administrativeRegion: this.newUnit.administrativeRegion,
-        parcelGeometry: this.lastDrawnGeometry,
-        areaHectares: this.lastDrawnArea,
-        isNew: true,
-      };
-
-      this.productionUnits.push(newUnit);
-
-      // Reset form
-      this.newUnit = {
+    openSaveUnitDialog(data) {
+      this.pendingUnitGeometry = data.geometry;
+      this.pendingUnitArea = data.area;
+      this.pendingUnit = {
         unitName: '',
         administrativeRegion: '',
       };
-      this.lastDrawnGeometry = null;
-      this.lastDrawnArea = null;
+      this.saveError = null;
+      this.deforestationCheckResult = null;
+      this.showSaveUnitDialog = true;
 
-      // Clear map in drawer
+      // Mark help as seen after first drawing
+      if (this.isFirstTimeUser) {
+        localStorage.setItem('editFarmerHelpSeen', 'true');
+        this.isFirstTimeUser = false;
+      }
+    },
+
+    cancelSaveUnit() {
+      this.showSaveUnitDialog = false;
+      this.pendingUnit = { unitName: '', administrativeRegion: '' };
+      this.pendingUnitGeometry = null;
+      this.pendingUnitArea = 0;
+      this.saveError = null;
+      this.deforestationCheckResult = null;
+
       if (this.$refs.drawer) {
         this.$refs.drawer.clearDrawing();
       }
-
-      this.error = null;
     },
 
-    deleteProductionUnit(index) {
-      this.deleteConfirmIndex = index;
-      this.deleteConfirmDialog = true;
-    },
-
-    confirmDelete() {
-      if (this.deleteConfirmIndex !== null) {
-        this.productionUnits.splice(this.deleteConfirmIndex, 1);
-        this.deleteConfirmDialog = false;
-        this.deleteConfirmIndex = null;
-      }
-    },
-
-    async checkDeforestation() {
-      if (!this.lastDrawnGeometry) {
-        this.error = 'Please draw a polygon on the map first';
+    async checkPendingUnitDeforestation() {
+      if (!this.pendingUnitGeometry) {
+        this.saveError = 'No polygon geometry available';
         return;
       }
 
       this.checkingDeforestation = true;
-      this.error = null;
+      this.saveError = null;
       this.deforestationCheckResult = null;
 
       try {
-        // Helper function to round coordinates to 8 decimal places
         const roundCoordinate = (coord) => coord.map((val) => parseFloat(val.toFixed(8)));
-
-        // Ensure polygon rings are properly closed for GeoJSON
-        const rings = this.lastDrawnGeometry.rings.map((ring) => {
-          // Round coordinates to max 8 decimal places
+        const rings = this.pendingUnitGeometry.rings.map((ring) => {
           const roundedRing = ring.map(roundCoordinate);
-
-          // GeoJSON requires the first and last coordinate to be identical
           const coords = [...roundedRing];
           const first = coords[0];
           const last = coords[coords.length - 1];
-
-          // Check if ring is already closed
-          const isClosed = first[0] === last[0] && first[1] === last[1];
-
-          // If not closed, add the first coordinate at the end
-          if (!isClosed) {
+          if (first[0] !== last[0] || first[1] !== last[1]) {
             coords.push([...first]);
           }
-
           return coords;
         });
 
-        // Convert ESRI geometry to GeoJSON string
         const geoJsonPolygon = JSON.stringify({
           type: 'Polygon',
           coordinates: rings,
         });
+
         const response = await axios.post('/api/v1/deforestation-alerts/check-geometry', {
           geoJsonPolygon,
         });
 
         this.deforestationCheckResult = response.data;
 
-        // Show success notification if no alerts
         if (!this.deforestationCheckResult.hasAlerts) {
-          this.$emit('info', 'Area is clean - no deforestation alerts detected');
+          this.$toast.success('No deforestation alerts found');
         }
       } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Failed to check for deforestation alerts';
-        this.error = errorMsg;
-
-        // Set error result
+        this.saveError = 'Failed to check deforestation status';
         this.deforestationCheckResult = {
+          riskLevel: 'ERROR',
           hasAlerts: false,
           totalAlerts: 0,
-          riskLevel: 'ERROR',
-          message: errorMsg,
         };
       } finally {
         this.checkingDeforestation = false;
       }
     },
 
-    async saveChanges() {
-      this.saving = true;
-      this.error = null;
+    async saveUnitToBackend() {
+      if (!this.pendingUnit.unitName) {
+        this.saveError = 'Please enter a unit name';
+        return;
+      }
+
+      if (!this.pendingUnitGeometry) {
+        this.saveError = 'No polygon geometry available';
+        return;
+      }
+
+      this.savingUnit = true;
+      this.saveError = null;
 
       try {
-        const newUnits = this.productionUnits.filter((u) => u.isNew);
-
-        // Convert each unit's ESRI geometry to GeoJSON before sending
-        await Promise.all(newUnits.map(async (unit) => {
-          // Skip if no geometry
-          if (!unit.parcelGeometry || !unit.parcelGeometry.rings) {
-            throw new Error(`Unit "${unit.unitName}" has no geometry`);
+        const roundCoordinate = (coord) => coord.map((val) => parseFloat(val.toFixed(8)));
+        const rings = this.pendingUnitGeometry.rings.map((ring) => {
+          const roundedRing = ring.map(roundCoordinate);
+          const coords = [...roundedRing];
+          const first = coords[0];
+          const last = coords[coords.length - 1];
+          if (first[0] !== last[0] || first[1] !== last[1]) {
+            coords.push([...first]);
           }
+          return coords;
+        });
 
-          // Helper function to round coordinates to 8 decimal places
-          const roundCoordinate = (coord) => coord.map((val) => parseFloat(val.toFixed(8)));
+        const geoJsonPolygon = JSON.stringify({
+          type: 'Polygon',
+          coordinates: rings,
+        });
 
-          // Ensure polygon rings are properly closed for GeoJSON
-          const rings = unit.parcelGeometry.rings.map((ring) => {
-            // Round coordinates to max 8 decimal places (EUDR requirement)
-            const roundedRing = ring.map(roundCoordinate);
+        await axios.post('/api/production-units', {
+          farmerId: this.farmer.id,
+          unitName: this.pendingUnit.unitName,
+          administrativeRegion: this.pendingUnit.administrativeRegion || '',
+          geoJsonPolygon,
+        });
 
-            // GeoJSON requires the first and last coordinate to be identical
-            const coords = [...roundedRing];
-            const first = coords[0];
-            const last = coords[coords.length - 1];
+        this.$toast.success(`"${this.pendingUnit.unitName}" saved successfully`);
 
-            // Check if ring is already closed
-            const isClosed = first[0] === last[0] && first[1] === last[1];
+        // Close dialog and reset
+        this.showSaveUnitDialog = false;
+        this.pendingUnit = { unitName: '', administrativeRegion: '' };
+        this.pendingUnitGeometry = null;
+        this.pendingUnitArea = 0;
+        this.deforestationCheckResult = null;
 
-            // If not closed, add the first coordinate at the end
-            if (!isClosed) {
-              coords.push([...first]);
-            }
+        if (this.$refs.drawer) {
+          this.$refs.drawer.clearDrawing();
+        }
 
-            return coords;
-          });
-
-          // Convert ESRI geometry to GeoJSON string
-          const geoJsonPolygon = JSON.stringify({
-            type: 'Polygon',
-            coordinates: rings,
-          });
-
-          return axios.post('/api/production-units', {
-            farmerId: this.farmer.id,
-            unitName: unit.unitName,
-            administrativeRegion: unit.administrativeRegion || '',
-            geoJsonPolygon,
-          });
-        }));
-
-        this.successDialog = true;
+        // Refresh to show the new unit on the map
+        await this.fetchProductionUnits();
         this.$emit('saved');
       } catch (error) {
-        this.error = error.response?.data?.message || 'Failed to save changes';
+        this.saveError = error.response?.data?.message || 'Failed to save production unit';
       } finally {
-        this.saving = false;
+        this.savingUnit = false;
+      }
+    },
+
+    getUnitColor(index) {
+      const colors = ['#4CAF50', '#2196F3', '#9C27B0', '#FF9800', '#00BCD4'];
+      return colors[index % colors.length];
+    },
+
+    zoomToUnit(unit) {
+      if (this.$refs.drawer && unit.id) {
+        this.$refs.drawer.zoomToUnit(unit.id);
+        this.showUnitsList = false;
+      }
+    },
+
+    deleteProductionUnit(unit, index) {
+      this.deleteConfirmUnit = unit;
+      this.deleteConfirmIndex = index;
+      this.deleteConfirmDialog = true;
+    },
+
+    async confirmDelete() {
+      if (!this.deleteConfirmUnit) return;
+
+      this.deleting = true;
+      try {
+        // If unit has an id, delete from backend
+        if (this.deleteConfirmUnit.id) {
+          await axios.delete(`/api/production-units/${this.deleteConfirmUnit.id}`);
+        }
+
+        // Remove from local array
+        if (this.deleteConfirmIndex !== null) {
+          this.productionUnits.splice(this.deleteConfirmIndex, 1);
+        }
+
+        this.$toast.success('Production unit deleted');
+        this.deleteConfirmDialog = false;
+        this.deleteConfirmUnit = null;
+        this.deleteConfirmIndex = null;
+
+        // Refresh to update map
+        await this.fetchProductionUnits();
+      } catch (error) {
+        this.$toast.error('Failed to delete production unit');
+      } finally {
+        this.deleting = false;
       }
     },
 
     close() {
       this.dialog = false;
-      this.error = null;
-      this.newUnit = {
-        unitName: '',
-        administrativeRegion: '',
-      };
-      this.lastDrawnGeometry = null;
-      this.lastDrawnArea = null;
+      this.showUnitsList = false;
+      this.showSaveUnitDialog = false;
       this.$emit('closed');
     },
   },
@@ -537,5 +523,14 @@ export default {
 </script>
 
 <style scoped>
-/* Minimal styles */
+/* Slide transition for units panel */
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.slide-left-enter,
+.slide-left-leave-to {
+  transform: translateX(-100%);
+  opacity: 0;
+}
 </style>

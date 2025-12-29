@@ -390,9 +390,18 @@ class DeforestationAlertService(
             )
 
             logger.debug("GLAD response: ${response.data?.size ?: 0} rows")
+            // Debug: Log actual response data to see the structure
+            response.data?.firstOrNull()?.let { firstRow ->
+                logger.debug("GLAD first row keys: ${firstRow.keys}")
+                logger.debug("GLAD first row values: $firstRow")
+            }
 
-            // API returns 'count' key when using COUNT(*)
-            (response.data?.get(0)?.get("count") ?: response.data?.get(0)?.get("alert_count"))?.toString()?.toIntOrNull() ?: 0
+            // API returns count under various key names depending on SQL
+            val firstRow = response.data?.firstOrNull()
+            (firstRow?.get("count") 
+                ?: firstRow?.get("alert_count") 
+                ?: firstRow?.get("COUNT(*)") 
+                ?: firstRow?.values?.firstOrNull())?.toString()?.toIntOrNull() ?: 0
         } catch (e: Exception) {
             logger.warn("Failed to fetch GLAD alerts count for geometry check", e)
             0
@@ -425,9 +434,18 @@ class DeforestationAlertService(
             )
 
             logger.debug("VIIRS response: ${response.data?.size ?: 0} rows")
+            // Debug: Log actual response data to see the structure
+            response.data?.firstOrNull()?.let { firstRow ->
+                logger.debug("VIIRS first row keys: ${firstRow.keys}")
+                logger.debug("VIIRS first row values: $firstRow")
+            }
 
-            // API returns 'count' key when using COUNT(*)
-            (response.data?.get(0)?.get("count") ?: response.data?.get(0)?.get("alert_count"))?.toString()?.toIntOrNull() ?: 0
+            // API returns count under various key names depending on SQL
+            val firstRow = response.data?.firstOrNull()
+            (firstRow?.get("count") 
+                ?: firstRow?.get("alert_count") 
+                ?: firstRow?.get("COUNT(*)") 
+                ?: firstRow?.values?.firstOrNull())?.toString()?.toIntOrNull() ?: 0
         } catch (e: Exception) {
             logger.warn("Failed to fetch VIIRS alerts count for geometry check", e)
             0
@@ -460,9 +478,18 @@ class DeforestationAlertService(
             )
 
             logger.debug("Tree cover loss response: ${response.data?.size ?: 0} rows")
+            // Debug: Log actual response data to see the structure
+            response.data?.firstOrNull()?.let { firstRow ->
+                logger.debug("Tree loss first row keys: ${firstRow.keys}")
+                logger.debug("Tree loss first row values: $firstRow")
+            }
 
-            // API returns 'count' key when using COUNT(*)
-            (response.data?.get(0)?.get("count") ?: response.data?.get(0)?.get("alert_count"))?.toString()?.toIntOrNull() ?: 0
+            // API returns count under various key names depending on SQL
+            val firstRow = response.data?.firstOrNull()
+            (firstRow?.get("count") 
+                ?: firstRow?.get("alert_count") 
+                ?: firstRow?.get("COUNT(*)") 
+                ?: firstRow?.values?.firstOrNull())?.toString()?.toIntOrNull() ?: 0
         } catch (e: Exception) {
             logger.warn("Failed to fetch tree cover loss alerts count for geometry check", e)
             0

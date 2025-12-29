@@ -291,7 +291,7 @@ export default {
               isConnected: connectedIds.has(agg.id),
             }));
           } catch (error) {
-            console.warn('Failed to fetch connections:', error);
+            this.$toast.warn('Failed to fetch connections:', error.message);
             // If connection fetch fails, just show all aggregators as not connected
             this.aggregators = allAggregators.map((agg) => ({
               ...agg,

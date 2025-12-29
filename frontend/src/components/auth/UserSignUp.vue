@@ -189,6 +189,52 @@
                            ></v-checkbox>
                         </v-card-text>
                       </v-card>
+
+                      <!-- Supplier Type Sub-selection -->
+                      <v-expand-transition>
+                        <div v-if="role.roleType === 'SUPPLIER' && selectedRoles.includes('SUPPLIER')">
+                          <v-card flat class="ml-8 mb-4 blue lighten-5" style="border-left: 4px solid #1976d2;">
+                            <v-card-text>
+                              <div class="font-weight-bold mb-3 blue--text text--darken-2">
+                                <v-icon small color="blue darken-2" class="mr-1">mdi-help-circle</v-icon>
+                                What type of supplier are you?
+                              </div>
+                              <v-row dense>
+                                <v-col
+                                  v-for="stype in supplierTypes"
+                                  :key="stype.value"
+                                  cols="12"
+                                  sm="6"
+                                >
+                                  <v-card
+                                    outlined
+                                    :class="{
+                                      'elevation-2 blue lighten-4': selectedSupplierType === stype.value,
+                                      'grey lighten-4': selectedSupplierType !== stype.value
+                                    }"
+                                    @click="selectedSupplierType = stype.value"
+                                    style="cursor: pointer; transition: all 0.2s;"
+                                    class="pa-2"
+                                  >
+                                    <div class="d-flex align-center">
+                                      <v-icon :color="selectedSupplierType === stype.value ? 'blue darken-2' : 'grey'" class="mr-2">
+                                        {{ stype.icon }}
+                                      </v-icon>
+                                      <div class="flex-grow-1">
+                                        <div class="font-weight-medium text-body-2">{{ stype.text }}</div>
+                                        <div class="caption grey--text">{{ stype.description }}</div>
+                                      </div>
+                                      <v-icon v-if="selectedSupplierType === stype.value" color="blue darken-2">
+                                        mdi-check-circle
+                                      </v-icon>
+                                    </div>
+                                  </v-card>
+                                </v-col>
+                              </v-row>
+                            </v-card-text>
+                          </v-card>
+                        </div>
+                      </v-expand-transition>
                     </v-col>
                   </v-row>
                   <v-btn
@@ -196,7 +242,7 @@
                     x-large
                     color="green darken-2"
                     class="white--text mt-6"
-                    :disabled="selectedRoles.length === 0"
+                    :disabled="!canSubmitRoles"
                     :loading="loading"
                     @click="submitRoles"
                   >
@@ -255,25 +301,70 @@ export default {
       isGoogleUser: false,
       registeredUserId: null,
       selectedRoles: [],
+      selectedSupplierType: null,
+      supplierTypes: [
+        {
+          value: 'AGGREGATOR',
+          text: 'Aggregator',
+          description: 'Collect produce from farmers',
+          icon: 'mdi-warehouse',
+        },
+        {
+          value: 'PROCESSOR',
+          text: 'Processor',
+          description: 'Process raw produce',
+          icon: 'mdi-factory',
+        },
+        {
+          value: 'DISTRIBUTOR',
+          text: 'Distributor',
+          description: 'Distribute to markets',
+          icon: 'mdi-truck-delivery',
+        },
+        {
+          value: 'TRADER',
+          text: 'Trader',
+          description: 'Trade agricultural products',
+          icon: 'mdi-handshake',
+        },
+        {
+          value: 'WAREHOUSE',
+          text: 'Warehouse',
+          description: 'Store agricultural products',
+          icon: 'mdi-warehouse',
+        },
+        {
+          value: 'TRANSPORTER',
+          text: 'Transporter',
+          description: 'Transport products',
+          icon: 'mdi-truck',
+        },
+        {
+          value: 'COOPERATIVE',
+          text: 'Cooperative',
+          description: 'Farmer cooperative organization',
+          icon: 'mdi-account-group',
+        },
+        {
+          value: 'CERTIFICATION_BODY',
+          text: 'Certification Body',
+          description: 'Provide certifications',
+          icon: 'mdi-certificate',
+        },
+        {
+          value: 'OTHER',
+          text: 'Other',
+          description: 'Other supply chain participant',
+          icon: 'mdi-dots-horizontal',
+        },
+      ],
       availableRoles: [
         {
           roleType: 'FARMER', displayName: 'Farmer', description: 'I grow crops or raise livestock', icon: 'mdi-sprout', color: 'green darken-2',
         },
-        // {
-        //   roleType: 'BUYER', displayName: 'Buyer', description: 'I purchase agricultural produce', icon: 'mdi-cart', color: 'blue darken-2',
-        // },
-        // {
-        //   roleType: 'EXPORTER', displayName: 'Exporter', description: 'I export produce to international markets', icon: 'mdi-airplane', color: 'purple darken-2',
-        // },
-        // {
-        //   roleType: 'AGGREGATOR', displayName: 'Aggregator', description: 'I collect produce from farmers', icon: 'mdi-warehouse', color: 'orange darken-2',
-        // },
-        // {
-        //   roleType: 'PROCESSOR', displayName: 'Processor', description: 'I process raw produce', icon: 'mdi-factory', color: 'indigo darken-2',
-        // },
-        // {
-        //   roleType: 'IMPORTER', displayName: 'Importer', description: 'I import produce from other countries', icon: 'mdi-package-variant', color: 'teal darken-2',
-        // },
+        {
+          roleType: 'SUPPLIER', displayName: 'Supplier', description: 'I am a supply chain participant (aggregator, processor, distributor, etc.)', icon: 'mdi-link-variant', color: 'blue darken-2',
+        },
         {
           roleType: 'EXPORTER', displayName: 'Exporter', description: 'I export produce to international markets and need EUDR compliance', icon: 'mdi-airplane', color: 'purple darken-2',
         },
@@ -295,6 +386,14 @@ export default {
       if (this.step === 1) return 'Start your journey with AgriBackup today.';
       if (this.step === 2) return 'Select the roles you want to be involved in.';
       return 'Your account is ready.';
+    },
+    canSubmitRoles() {
+      if (this.selectedRoles.length === 0) return false;
+      // If SUPPLIER is selected, require a supplier type
+      if (this.selectedRoles.includes('SUPPLIER') && !this.selectedSupplierType) {
+        return false;
+      }
+      return true;
     },
   },
   methods: {
@@ -345,10 +444,14 @@ export default {
         this.selectedRoles.push(roleType);
       } else {
         this.selectedRoles.splice(index, 1);
+        // Clear supplier type if SUPPLIER is deselected
+        if (roleType === 'SUPPLIER') {
+          this.selectedSupplierType = null;
+        }
       }
     },
     async submitRoles() {
-      if (this.selectedRoles.length === 0) return;
+      if (!this.canSubmitRoles) return;
 
       this.loading = true;
       try {
@@ -356,6 +459,12 @@ export default {
           userId: this.registeredUserId,
           roles: this.selectedRoles,
         };
+
+        // Include supplier type if SUPPLIER role is selected
+        if (this.selectedRoles.includes('SUPPLIER') && this.selectedSupplierType) {
+          payload.supplierType = this.selectedSupplierType;
+        }
+
         const response = await axios.post('/api/auth/assign-roles', payload);
 
         if (response.data.success) {

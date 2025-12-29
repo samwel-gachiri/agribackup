@@ -1,0 +1,123 @@
+databaseChangeLog:
+  - changeSet:
+      id: 029-create-authority-submissions-table
+      author: system
+      changes:
+        - createTable:
+            tableName: authority_submissions
+            columns:
+              - column:
+                  name: submission_id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: batch_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: authority_code
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: submission_reference
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: report_url
+                  type: text
+                  constraints:
+                    nullable: true
+              - column:
+                  name: submitted_by
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: submitted_at
+                  type: timestamp
+                  constraints:
+                    nullable: true
+              - column:
+                  name: authority_feedback
+                  type: text
+                  constraints:
+                    nullable: true
+              - column:
+                  name: authority_response_date
+                  type: timestamp
+                  constraints:
+                    nullable: true
+              - column:
+                  name: retry_count
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_error
+                  type: text
+                  constraints:
+                    nullable: true
+              - column:
+                  name: hedera_transaction_id
+                  type: varchar(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            tableName: authority_submissions
+            indexName: idx_authority_submissions_batch_id
+            columns:
+              - column:
+                  name: batch_id
+
+        - createIndex:
+            tableName: authority_submissions
+            indexName: idx_authority_submissions_status
+            columns:
+              - column:
+                  name: status
+
+        - createIndex:
+            tableName: authority_submissions
+            indexName: idx_authority_submissions_authority_code
+            columns:
+              - column:
+                  name: authority_code
+
+        - createIndex:
+            tableName: authority_submissions
+            indexName: idx_authority_submissions_submitted_by
+            columns:
+              - column:
+                  name: submitted_by
+
+        - addForeignKeyConstraint:
+            baseTableName: authority_submissions
+            baseColumnNames: batch_id
+            referencedTableName: eudr_batches
+            referencedColumnNames: batch_id
+            constraintName: fk_authority_submissions_batch
+            onDelete: CASCADE

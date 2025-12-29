@@ -1,0 +1,735 @@
+databaseChangeLog:
+  # =====================================================
+  # Global Country Risk Data for EUDR Compliance
+  # Based on EU EUDR country benchmarking and FAO data
+  # =====================================================
+
+  - changeSet:
+      id: add-global-country-risk-data
+      author: EUDR Implementation
+      comment: Add comprehensive country risk data for global EUDR compliance
+      changes:
+        # African countries
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: KEN }
+              - column: { name: country_name, value: Kenya }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Moderate deforestation risk in highland forests }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: ETH }
+              - column: { name: country_name, value: Ethiopia }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Coffee production with moderate forest conversion risk }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: UGA }
+              - column: { name: country_name, value: Uganda }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Agriculture expansion into forest areas }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: TZA }
+              - column: { name: country_name, value: Tanzania }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Moderate deforestation from agricultural expansion }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: RWA }
+              - column: { name: country_name, value: Rwanda }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Strong forest protection policies and monitoring }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: GHA }
+              - column: { name: country_name, value: Ghana }
+              - column: { name: risk_level, value: HIGH }
+              - column: { name: risk_justification, value: High cocoa-driven deforestation }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: CIV }
+              - column: { name: country_name, value: Cote d'Ivoire }
+              - column: { name: risk_level, value: HIGH }
+              - column: { name: risk_justification, value: Significant cocoa-related deforestation }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: CMR }
+              - column: { name: country_name, value: Cameroon }
+              - column: { name: risk_level, value: HIGH }
+              - column: { name: risk_justification, value: Rainforest deforestation for agriculture }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: NGA }
+              - column: { name: country_name, value: Nigeria }
+              - column: { name: risk_level, value: HIGH }
+              - column: { name: risk_justification, value: High deforestation rates from agriculture }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: ZAF }
+              - column: { name: country_name, value: South Africa }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Good forest management practices }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: EGY }
+              - column: { name: country_name, value: Egypt }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Limited forest cover and minimal deforestation risk }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: MAR }
+              - column: { name: country_name, value: Morocco }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Low forest conversion risk }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: AGO }
+              - column: { name: country_name, value: Angola }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Moderate deforestation from agriculture and logging }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: MOZ }
+              - column: { name: country_name, value: Mozambique }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Charcoal and agriculture-driven deforestation }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: ZMB }
+              - column: { name: country_name, value: Zambia }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Moderate deforestation from agriculture expansion }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: ZWE }
+              - column: { name: country_name, value: Zimbabwe }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Moderate deforestation from tobacco and agriculture }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: MWI }
+              - column: { name: country_name, value: Malawi }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Tobacco-related deforestation concerns }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: SEN }
+              - column: { name: country_name, value: Senegal }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Relatively low forest conversion risk }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+
+        # Latin America
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: COL }
+              - column: { name: country_name, value: Colombia }
+              - column: { name: risk_level, value: HIGH }
+              - column: { name: risk_justification, value: Significant deforestation in Amazon and Andes regions }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: PER }
+              - column: { name: country_name, value: Peru }
+              - column: { name: risk_level, value: HIGH }
+              - column: { name: risk_justification, value: Amazon deforestation from agriculture and mining }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: ECU }
+              - column: { name: country_name, value: Ecuador }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Moderate deforestation from palm oil and agriculture }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: BOL }
+              - column: { name: country_name, value: Bolivia }
+              - column: { name: risk_level, value: HIGH }
+              - column: { name: risk_justification, value: High deforestation from soy and cattle }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: VEN }
+              - column: { name: country_name, value: Venezuela }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Moderate deforestation in Amazon region }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: ARG }
+              - column: { name: country_name, value: Argentina }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Chaco deforestation for soy production }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: PRY }
+              - column: { name: country_name, value: Paraguay }
+              - column: { name: risk_level, value: HIGH }
+              - column: { name: risk_justification, value: High Chaco deforestation for agriculture }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: URY }
+              - column: { name: country_name, value: Uruguay }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Low deforestation sustainable forestry practices }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: CHL }
+              - column: { name: country_name, value: Chile }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Strong forest protection regulations }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: MEX }
+              - column: { name: country_name, value: Mexico }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Moderate deforestation from agriculture and ranching }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: GTM }
+              - column: { name: country_name, value: Guatemala }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Coffee and palm oil related forest conversion }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: HND }
+              - column: { name: country_name, value: Honduras }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Palm oil and coffee related deforestation }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: CRI }
+              - column: { name: country_name, value: Costa Rica }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Strong forest protection and reforestation programs }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: PAN }
+              - column: { name: country_name, value: Panama }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Good forest conservation policies }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: NIC }
+              - column: { name: country_name, value: Nicaragua }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Cattle ranching related deforestation }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+
+        # Asia
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: MYS }
+              - column: { name: country_name, value: Malaysia }
+              - column: { name: risk_level, value: HIGH }
+              - column: { name: risk_justification, value: Significant palm oil related deforestation }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: THA }
+              - column: { name: country_name, value: Thailand }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Rubber and palm oil related forest conversion }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: VNM }
+              - column: { name: country_name, value: Vietnam }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Coffee and rubber related deforestation }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: LAO }
+              - column: { name: country_name, value: Laos }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Rubber plantations causing forest conversion }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: KHM }
+              - column: { name: country_name, value: Cambodia }
+              - column: { name: risk_level, value: HIGH }
+              - column: { name: risk_justification, value: High deforestation from rubber and agriculture }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: MMR }
+              - column: { name: country_name, value: Myanmar }
+              - column: { name: risk_level, value: HIGH }
+              - column: { name: risk_justification, value: Significant deforestation from agriculture and logging }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: PHL }
+              - column: { name: country_name, value: Philippines }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Moderate deforestation from agriculture }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: PNG }
+              - column: { name: country_name, value: Papua New Guinea }
+              - column: { name: risk_level, value: HIGH }
+              - column: { name: risk_justification, value: Palm oil and logging related deforestation }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: IND }
+              - column: { name: country_name, value: India }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Moderate deforestation from agriculture expansion }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: LKA }
+              - column: { name: country_name, value: Sri Lanka }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Tea and rubber related forest conversion }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: NPL }
+              - column: { name: country_name, value: Nepal }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Moderate deforestation from agriculture }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: BGD }
+              - column: { name: country_name, value: Bangladesh }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Limited forest cover and moderate conversion risk }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: PAK }
+              - column: { name: country_name, value: Pakistan }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Limited forest cover andd low deforestation risk }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: CHN }
+              - column: { name: country_name, value: China }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Mixed - reforestation efforts but rubber/palm expansion }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: JPN }
+              - column: { name: country_name, value: Japan }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Strong forest protection and minimal deforestation }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: KOR }
+              - column: { name: country_name, value: South Korea }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Strong forest management and reforestation }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: TWN }
+              - column: { name: country_name, value: Taiwan }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Good forest protection policies }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+
+        # Europe
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: FRA }
+              - column: { name: country_name, value: France }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Sustainable forest management practices }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: GBR }
+              - column: { name: country_name, value: United Kingdom }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Strong environmental regulations }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: ITA }
+              - column: { name: country_name, value: Italy }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Good forest conservation }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: ESP }
+              - column: { name: country_name, value: Spain }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Forest protection and restoration programs }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: PRT }
+              - column: { name: country_name, value: Portugal }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Sustainable forestry practices }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: NLD }
+              - column: { name: country_name, value: Netherlands }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Strong environmental regulations }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: BEL }
+              - column: { name: country_name, value: Belgium }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Limited forest good management }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: AUT }
+              - column: { name: country_name, value: Austria }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Sustainable forest management }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: CHE }
+              - column: { name: country_name, value: Switzerland }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Excellent forest protection }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: SWE }
+              - column: { name: country_name, value: Sweden }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Sustainable forestry leader }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: NOR }
+              - column: { name: country_name, value: Norway }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Strong forest conservation }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: FIN }
+              - column: { name: country_name, value: Finland }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Sustainable forest management }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: DNK }
+              - column: { name: country_name, value: Denmark }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Good environmental regulations }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: POL }
+              - column: { name: country_name, value: Poland }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: EU forest protection standards }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: CZE }
+              - column: { name: country_name, value: Czech Republic }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: EU environmental standards }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: HUN }
+              - column: { name: country_name, value: Hungary }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: EU forest regulations }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: ROU }
+              - column: { name: country_name, value: Romania }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Some illegal logging concerns }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: UKR }
+              - column: { name: country_name, value: Ukraine }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Moderate illegal logging risk }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: RUS }
+              - column: { name: country_name, value: Russia }
+              - column: { name: risk_level, value: HIGH }
+              - column: { name: risk_justification, value: Significant illegal logging in Siberia }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: GRC }
+              - column: { name: country_name, value: Greece }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: EU environmental standards }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: IRL }
+              - column: { name: country_name, value: Ireland }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Good forest management }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+
+        # Oceania
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: AUS }
+              - column: { name: country_name, value: Australia }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Strong environmental regulations }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: NZL }
+              - column: { name: country_name, value: New Zealand }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Excellent forest conservation }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: FJI }
+              - column: { name: country_name, value: Fiji }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Good forest protection }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+
+        # Middle East
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: TUR }
+              - column: { name: country_name, value: Turkey }
+              - column: { name: risk_level, value: STANDARD }
+              - column: { name: risk_justification, value: Moderate forest management concerns }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: SAU }
+              - column: { name: country_name, value: Saudi Arabia }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Limited forest cover }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: ARE }
+              - column: { name: country_name, value: United Arab Emirates }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Limited forest cover }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: ISR }
+              - column: { name: country_name, value: Israel }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Reforestation programs }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }
+
+        # North America
+        - insert:
+            tableName: country_risk_matrix
+            columns:
+              - column: { name: country_code, value: CAN }
+              - column: { name: country_name, value: Canada }
+              - column: { name: risk_level, value: LOW }
+              - column: { name: risk_justification, value: Strong forest management regulations }
+              - column: { name: last_updated, valueComputed: CURRENT_TIMESTAMP }
+              - column: { name: updated_by, value: system }

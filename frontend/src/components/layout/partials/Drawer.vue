@@ -5,7 +5,7 @@
     <div class="drawer-header">
       <div class="brand-section">
         <logo-title class="brand-logo" />
-        <span class="portal-tag">Portal</span>
+        <!-- <span class="portal-tag">Portal</span> -->
       </div>
 
       <!-- User Info -->
@@ -14,12 +14,12 @@
           <v-icon color="white" size="20">mdi-account</v-icon>
         </div>
         <div class="user-details">
-          <span class="user-name">{{ displayName || 'User' }}</span>
+          <!-- <span class="user-name">{{ displayName || 'User' }}</span> -->
           <span class="user-role">{{ userRole || 'Guest' }}</span>
         </div>
       </div>
 
-      <role-indicator />
+      <role-indicator v-if="false" />
     </div>
 
     <!-- Navigation Section -->
@@ -103,7 +103,7 @@ export default {
     LogoTitle, Avatar, RoleIndicator, getCurrentUserId,
   },
   data: () => ({
-    expandedSections: [],
+    expandedSections: ['EUDR Compliance'],
     navigationItems: [
       // Common: Dashboard for all roles
       {
@@ -200,12 +200,33 @@ export default {
 
       // === EXPORTER PORTAL (EUDR Management) ===
       {
+        icon: 'mdi-map-marker-radius',
+        text: 'Zones',
+        link: { name: 'ZoneManagement' },
+        roles: ['EXPORTER', 'SYSTEM_ADMIN'],
+        iconColor: '#f59e42',
+      },
+      {
+        icon: 'mdi-account-multiple',
+        text: 'Farmers',
+        link: { name: 'FarmersManagement' },
+        roles: ['EXPORTER', 'SYSTEM_ADMIN'],
+        iconColor: '#f97316',
+      },
+      {
         icon: 'mdi-shield-check',
         text: 'EUDR Compliance',
         isSection: true,
         roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
         iconColor: '#dc2626',
         children: [
+          {
+            icon: 'mdi-transit-connection-variant',
+            text: 'Traceability Workflow',
+            link: { name: 'SupplyChainWorkflow' },
+            roles: ['EXPORTER', 'SYSTEM_ADMIN'],
+            iconColor: '#10b981',
+          },
           {
             icon: 'mdi-alert-octagon',
             text: 'Risk Management',
@@ -221,62 +242,49 @@ export default {
             iconColor: '#f59e0b',
           },
           {
-            icon: 'mdi-file-document-outline',
-            text: 'Compliance Reporting',
-            link: { name: 'ComplianceReporting' },
-            roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
-            iconColor: '#10b981',
-          },
-          {
             icon: 'mdi-certificate',
             text: 'Certificate Viewer',
             link: { name: 'CertificateViewer' },
             roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR', 'IMPORTER'],
             iconColor: '#3b82f6',
           },
+          {
+            icon: 'mdi-file-document-outline',
+            text: 'Compliance Reporting',
+            link: { name: 'ComplianceReporting' },
+            roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
+            iconColor: '#10b981',
+          },
         ],
       },
-      {
-        icon: 'mdi-map-marker-radius',
-        text: 'Zones',
-        link: { name: 'ZoneManagement' },
-        roles: ['EXPORTER', 'SYSTEM_ADMIN'],
-        iconColor: '#f59e42',
-      },
-      {
-        icon: 'mdi-account-multiple',
-        text: 'Farmers',
-        link: { name: 'FarmersManagement' },
-        roles: ['EXPORTER', 'SYSTEM_ADMIN'],
-        iconColor: '#f97316',
-      },
+
       {
         icon: 'mdi-truck-delivery',
-        text: 'Aggregators',
-        link: { name: 'AggregatorsManagement' },
+        text: 'Suppliers',
+        link: { name: 'SupplierManagement' },
         roles: ['EXPORTER', 'SYSTEM_ADMIN'],
         iconColor: '#2563eb',
       },
-      {
-        icon: 'mdi-factory',
-        text: 'Processors',
-        link: { name: 'ProcessorsManagement' },
-        roles: ['EXPORTER', 'SYSTEM_ADMIN'],
-        iconColor: '#7c3aed',
-      },
+      // {
+      //   icon: 'mdi-truck-delivery',
+      //   text: 'Aggregators',
+      //   link: { name: 'AggregatorsManagement' },
+      //   roles: ['EXPORTER', 'SYSTEM_ADMIN'],
+      //   iconColor: '#2563eb',
+      // },
+      // {
+      //   icon: 'mdi-factory',
+      //   text: 'Processors',
+      //   link: { name: 'ProcessorsManagement' },
+      //   roles: ['EXPORTER', 'SYSTEM_ADMIN'],
+      //   iconColor: '#7c3aed',
+      // },
       {
         icon: 'mdi-ship-wheel',
         text: 'Importers',
         link: { name: 'ImportersManagement' },
         roles: ['EXPORTER', 'SYSTEM_ADMIN'],
         iconColor: '#0891b2',
-      },
-      {
-        icon: 'mdi-transit-connection-variant',
-        text: 'Supply Chain Workflow',
-        link: { name: 'SupplyChainWorkflow' },
-        roles: ['EXPORTER', 'SYSTEM_ADMIN'],
-        iconColor: '#10b981',
       },
     ],
   }),

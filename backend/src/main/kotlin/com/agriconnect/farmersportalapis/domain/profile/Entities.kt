@@ -29,12 +29,13 @@ class Farmer(
     @Column(name = "farm_name")
     var farmName: String? = "",
 
-    @OneToMany(mappedBy = "farmer", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @OneToMany(mappedBy = "farmer", cascade = [CascadeType.ALL], orphanRemoval = true,  fetch = FetchType.EAGER)
     val farmerProduces: MutableList<FarmerProduce> = mutableListOf(),
 
     @OneToOne(mappedBy = "farmer", fetch = FetchType.EAGER, cascade = [CascadeType.ALL], orphanRemoval = true)
     var location: Location? = null,
 
+    @JsonIgnore
     @OneToMany(mappedBy = "farmer", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var farmerCollections: MutableList<com.agriconnect.farmersportalapis.domain.eudr.FarmerCollection> = mutableListOf()
 

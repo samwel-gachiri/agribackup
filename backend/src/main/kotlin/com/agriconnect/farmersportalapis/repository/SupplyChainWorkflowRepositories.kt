@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
-import java.util.Optional
 
 @Repository
 interface SupplyChainWorkflowRepository : JpaRepository<SupplyChainWorkflow, String> {
@@ -28,8 +27,8 @@ interface WorkflowCollectionEventRepository : JpaRepository<WorkflowCollectionEv
     @Query("SELECT SUM(e.quantityCollectedKg) FROM WorkflowCollectionEvent e WHERE e.workflow.id = :workflowId")
     fun getTotalCollectedQuantity(@Param("workflowId") workflowId: String): java.math.BigDecimal?
     
-    @Query("SELECT e FROM WorkflowCollectionEvent e WHERE e.workflow.id = :workflowId AND e.aggregator.id = :aggregatorId")
-    fun findByWorkflowAndAggregator(@Param("workflowId") workflowId: String, @Param("aggregatorId") aggregatorId: String): List<WorkflowCollectionEvent>
+    @Query("SELECT e FROM WorkflowCollectionEvent e WHERE e.workflow.id = :workflowId AND e.collectorSupplier.id = :supplierId")
+    fun findByWorkflowAndSupplier(@Param("workflowId") workflowId: String, @Param("supplierId") supplierId: String): List<WorkflowCollectionEvent>
 }
 
 @Repository
@@ -40,8 +39,8 @@ interface WorkflowConsolidationEventRepository : JpaRepository<WorkflowConsolida
     @Query("SELECT SUM(e.quantitySentKg) FROM WorkflowConsolidationEvent e WHERE e.workflow.id = :workflowId")
     fun getTotalConsolidatedQuantity(@Param("workflowId") workflowId: String): java.math.BigDecimal?
     
-    @Query("SELECT SUM(e.quantitySentKg) FROM WorkflowConsolidationEvent e WHERE e.workflow.id = :workflowId AND e.aggregator.id = :aggregatorId")
-    fun getTotalSentByAggregator(@Param("workflowId") workflowId: String, @Param("aggregatorId") aggregatorId: String): java.math.BigDecimal?
+    @Query("SELECT SUM(e.quantitySentKg) FROM WorkflowConsolidationEvent e WHERE e.workflow.id = :workflowId AND e.sourceSupplier.id = :supplierId")
+    fun getTotalSentBySupplier(@Param("workflowId") workflowId: String, @Param("supplierId") supplierId: String): java.math.BigDecimal?
 }
 
 @Repository
@@ -60,4 +59,31 @@ interface WorkflowShipmentEventRepository : JpaRepository<WorkflowShipmentEvent,
     
     @Query("SELECT SUM(e.quantityShippedKg) FROM WorkflowShipmentEvent e WHERE e.workflow.id = :workflowId")
     fun getTotalShippedQuantity(@Param("workflowId") workflowId: String): java.math.BigDecimal?
+}
+
+/**
+ * Repository for WorkflowProductionUnit - manages Stage 1 (PRODUCTION_REGISTRATION) links
+ */
+@Repository
+interface WorkflowProductionUnitRepository : JpaRepository<WorkflowProductionUnit, String> {
+    
+    fun findByWorkflowId(workflowId: String): List<WorkflowProductionUnit>
+    
+    fun findByWorkflowIdAndProductionUnitId(workflowId: String, productionUnitId: String): WorkflowProductionUnit?
+    
+    fun existsByWorkflowIdAndProductionUnitId(workflowId: String, productionUnitId: String): Boolean
+    
+    fun deleteByWorkflowIdAndProductionUnitId(workflowId: String, productionUnitId: String)
+    
+    @Query("SELECT COUNT(wpu) FROM WorkflowProductionUnit wpu WHERE wpu.workflow.id = :workflowId AND wpu.status != 'REMOVED'")
+    fun countActiveByWorkflowId(@Param("workflowId") workflowId: String): Long
+    
+    @Query("SELECT COUNT(wpu) FROM WorkflowProductionUnit wpu WHERE wpu.workflow.id = :workflowId AND wpu.geolocationVerified = true")
+    fun countVerifiedByWorkflowId(@Param("workflowId") workflowId: String): Long
+    
+    @Query("SELECT COUNT(wpu) FROM WorkflowProductionUnit wpu WHERE wpu.workflow.id = :workflowId AND wpu.deforestationChecked = true AND wpu.deforestationClear = true")
+    fun countDeforestationClearByWorkflowId(@Param("workflowId") workflowId: String): Long
+    
+    @Query("SELECT wpu FROM WorkflowProductionUnit wpu WHERE wpu.workflow.id = :workflowId AND wpu.status NOT IN ('REMOVED', 'COLLECTED')")
+    fun findAvailableForCollection(@Param("workflowId") workflowId: String): List<WorkflowProductionUnit>
 }

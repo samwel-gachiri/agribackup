@@ -2,10 +2,16 @@
 package com.agriconnect.farmersportalapis.application.security
 
 import com.agriconnect.farmersportalapis.application.util.JwtUtil
+import com.fasterxml.jackson.databind.ObjectMapper
+import io.jsonwebtoken.ExpiredJwtException
+import io.jsonwebtoken.MalformedJwtException
+import io.jsonwebtoken.security.SignatureException
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
@@ -20,6 +26,7 @@ class JwtAuthenticationFilter(
 ) : OncePerRequestFilter() {
 
     private val logger = LoggerFactory.getLogger(JwtAuthenticationFilter::class.java)
+    private val objectMapper = ObjectMapper()
 
     override fun doFilterInternal(
         request: HttpServletRequest,
@@ -86,9 +93,26 @@ class JwtAuthenticationFilter(
                 } else {
                     logger.warn("Missing roleSpecificId or role in JWT token")
                 }
-            } catch (e: Exception) {
-                logger.error("JWT authentication failed for request {}: {}", requestUri, e.message, e)
+            } catch (e: ExpiredJwtException) {
+                logger.warn("JWT token expired for request {}: {}", requestUri, e.message)
                 SecurityContextHolder.clearContext()
+                sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "TOKEN_EXPIRED", "Your session has expired. Please log in again.")
+                return
+            } catch (e: MalformedJwtException) {
+                logger.warn("Malformed JWT token for request {}: {}", requestUri, e.message)
+                SecurityContextHolder.clearContext()
+                sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "Invalid authentication token.")
+                return
+            } catch (e: SignatureException) {
+                logger.warn("Invalid JWT signature for request {}: {}", requestUri, e.message)
+                SecurityContextHolder.clearContext()
+                sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "Invalid authentication token signature.")
+                return
+            } catch (e: Exception) {
+                logger.error("JWT authentication failed for request {}: {}", requestUri, e.message)
+                SecurityContextHolder.clearContext()
+                sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "AUTH_ERROR", "Authentication failed. Please log in again.")
+                return
             }
         } else {
             logger.info("Skipping JWT processing: token={}, existingAuth={}",
@@ -106,5 +130,26 @@ class JwtAuthenticationFilter(
         return if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             bearerToken.substring(7)
         } else null
+    }
+
+    private fun sendErrorResponse(
+        response: HttpServletResponse,
+        status: HttpStatus,
+        errorCode: String,
+        message: String
+    ) {
+        response.status = status.value()
+        response.contentType = MediaType.APPLICATION_JSON_VALUE
+        
+        val errorBody = mapOf(
+            "status" to status.value(),
+            "error" to status.reasonPhrase,
+            "code" to errorCode,
+            "message" to message,
+            "timestamp" to System.currentTimeMillis()
+        )
+        
+        response.writer.write(objectMapper.writeValueAsString(errorBody))
+        response.writer.flush()
     }
 }

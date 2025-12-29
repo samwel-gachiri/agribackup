@@ -1,0 +1,57 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-connected-exporter-id-to-suppliers
+      author: agribackup
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: supply_chain_suppliers
+                columnName: connected_exporter_id
+      changes:
+        - addColumn:
+            tableName: supply_chain_suppliers
+            columns:
+              - column:
+                  name: connected_exporter_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: true
+      comment: Add connected_exporter_id column to link suppliers directly to exporters
+
+  - changeSet:
+      id: add-index-connected-exporter-id
+      author: agribackup
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: supply_chain_suppliers
+            columnName: connected_exporter_id
+      changes:
+        - createIndex:
+            tableName: supply_chain_suppliers
+            indexName: idx_suppliers_connected_exporter
+            columns:
+              - column:
+                  name: connected_exporter_id
+      comment: Add index for faster lookups by connected exporter
+
+  - changeSet:
+      id: add-inviter-company-to-supplier-invites
+      author: agribackup
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: supplier_invites
+                columnName: inviter_company
+      changes:
+        - addColumn:
+            tableName: supplier_invites
+            columns:
+              - column:
+                  name: inviter_company
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+      comment: Add inviter_company column for email formatting

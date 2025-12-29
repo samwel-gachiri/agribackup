@@ -1,6 +1,7 @@
 package com.agriconnect.farmersportalapis.domain.eudr
 
 import com.agriconnect.farmersportalapis.domain.auth.UserProfile
+import com.fasterxml.jackson.annotation.JsonIgnore
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
 import java.math.BigDecimal
@@ -19,6 +20,7 @@ class Aggregator(
     @Column(name = "aggregator_id", length = 36, nullable = false, unique = true)
     var id: String = "",
 
+    // @JsonIgnore
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", unique = true, nullable = false)
     var userProfile: UserProfile,
@@ -68,9 +70,11 @@ class Aggregator(
     @Column(name = "updated_at")
     var updatedAt: LocalDateTime = LocalDateTime.now(),
 
+    @JsonIgnore
     @OneToMany(mappedBy = "aggregator", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var aggregationEvents: MutableList<AggregationEvent> = mutableListOf(),
 
+    @JsonIgnore
     @OneToMany(mappedBy = "aggregator", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var consolidatedBatches: MutableList<ConsolidatedBatch> = mutableListOf()
 )

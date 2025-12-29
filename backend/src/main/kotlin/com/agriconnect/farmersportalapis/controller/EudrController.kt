@@ -5,9 +5,12 @@ import com.agriconnect.farmersportalapis.application.dtos.CreateBatchRequestDto
 import com.agriconnect.farmersportalapis.application.dtos.UpdateBatchStatusRequestDto
 import com.agriconnect.farmersportalapis.domain.eudr.BatchStatus
 import com.agriconnect.farmersportalapis.domain.eudr.RiskLevel
+import com.agriconnect.farmersportalapis.domain.eudr.SubmissionStatus
 import com.agriconnect.farmersportalapis.service.common.RiskAssessmentService
 import com.agriconnect.farmersportalapis.service.hedera.HederaTokenService
 import com.agriconnect.farmersportalapis.service.supplychain.*
+import com.agriconnect.farmersportalapis.service.traces.EuTracesNtClient
+import com.agriconnect.farmersportalapis.service.traces.EuTracesNtDdsService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpHeaders
@@ -26,7 +29,10 @@ class EudrController(
     private val supplierComplianceService: SupplierComplianceService,
     private val eudrBatchService: EudrBatchService,
     private val hederaTokenService: HederaTokenService,
-    private val supplyChainWorkflowService: SupplyChainWorkflowService
+    private val supplyChainWorkflowService: SupplyChainWorkflowService,
+    private val authoritySubmissionService: AuthoritySubmissionService,
+    private val tracesNtDdsService: EuTracesNtDdsService,
+    private val tracesNtClient: EuTracesNtClient
 ) {
 
     @PostMapping("/assess")
@@ -289,8 +295,7 @@ class EudrController(
     fun getMyBatches(authentication: Authentication): ResponseEntity<Any> {
         return try {
             val createdBy = authentication.name
-            val batches = eudrBatchService.getBatchesByCreator(createdBy)
-            val responses = batches.map { eudrBatchService.convertToResponseDto(it) }
+            val responses = eudrBatchService.getBatchesByCreatorAsDto(createdBy)
 
             ResponseEntity.ok(mapOf(
                 "success" to true,
@@ -486,6 +491,11 @@ class EudrController(
             val headers = HttpHeaders()
             headers.contentType = MediaType.parseMediaType(result.contentType)
             headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Authority_Report_${result.filename}\"")
+            
+            // Set content length for binary content
+            if (finalContent is ByteArray) {
+                headers.contentLength = finalContent.size.toLong()
+            }
 
             ResponseEntity.ok()
                 .headers(headers)
@@ -600,35 +610,18 @@ class EudrController(
                 ))
             }
 
-            // Generate the report
-            val report = dossierService.generateDossier(
+            // Submit using the new service
+            val submission = authoritySubmissionService.submitReport(
                 batchId = batchId,
-                format = DossierFormat.PDF,
-                includePresignedUrls = true,
-                expiryMinutes = 180
+                authorityCode = authorityCode,
+                userId = userId,
+                notes = notes
             )
-
-            // In production, integrate with actual authority submission system
-            // This is a placeholder for demonstration
-            val submissionId = "SUB-${System.currentTimeMillis()}"
-            val submissionTimestamp = java.time.LocalDateTime.now()
-
-            // Record submission on blockchain
-            // hederaConsensusService.recordAuthoritySubmission(batchId, authorityCode, submissionId)
 
             ResponseEntity.ok(mapOf(
                 "success" to true,
-                "data" to mapOf(
-                    "submissionId" to submissionId,
-                    "batchId" to batchId,
-                    "authorityCode" to authorityCode,
-                    "submittedAt" to submissionTimestamp.toString(),
-                    "submittedBy" to userId,
-                    "reportFilename" to report.filename,
-                    "status" to "SUBMITTED",
-                    "notes" to notes
-                ),
-                "message" to "Report submitted successfully to authority $authorityCode"
+                "data" to submission,
+                "message" to "Report submitted successfully to authority ${submission.authorityName ?: authorityCode}"
             ))
 
         } catch (e: IllegalArgumentException) {
@@ -650,22 +643,34 @@ class EudrController(
     fun getSubmissionHistory(
         @RequestParam(required = false) batchId: String?,
         @RequestParam(required = false) authorityCode: String?,
+        @RequestParam(required = false) status: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
         authentication: Authentication
     ): ResponseEntity<Any> {
         return try {
-            // In production, query submission history from database
-            // This is a placeholder implementation
-            val submissions = listOf<Map<String, Any>>()
+            val userId = authentication.name
+            val submissionStatus = status?.let { 
+                try { SubmissionStatus.valueOf(it) } catch (e: Exception) { null }
+            }
+
+            val submissions = authoritySubmissionService.getSubmissionHistory(
+                userId = userId,
+                batchId = batchId,
+                authorityCode = authorityCode,
+                status = submissionStatus,
+                page = page,
+                size = size
+            )
 
             ResponseEntity.ok(mapOf(
                 "success" to true,
                 "data" to mapOf(
-                    "submissions" to submissions,
+                    "submissions" to submissions.content,
                     "page" to page,
                     "size" to size,
-                    "total" to 0
+                    "totalElements" to submissions.totalElements,
+                    "totalPages" to submissions.totalPages
                 ),
                 "message" to "Submission history retrieved successfully"
             ))
@@ -683,26 +688,320 @@ class EudrController(
     @Operation(summary = "Check submission status", description = "Check the status of a submitted authority report")
     fun getSubmissionStatus(@PathVariable submissionId: String): ResponseEntity<Any> {
         return try {
-            // In production, query submission status from authority system
-            // This is a placeholder implementation
-            val status = mapOf(
-                "submissionId" to submissionId,
-                "status" to "PENDING_REVIEW",
-                "submittedAt" to java.time.LocalDateTime.now().toString(),
-                "lastUpdated" to java.time.LocalDateTime.now().toString(),
-                "authorityFeedback" to null
+            val submission = authoritySubmissionService.getSubmission(submissionId)
+
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "data" to submission,
+                "message" to "Submission status retrieved successfully"
+            ))
+
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to retrieve submission status: ${e.message}"
+            ))
+        }
+    }
+
+    @PutMapping("/authority-report/submission-status/{submissionId}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'AUDITOR')")
+    @Operation(summary = "Update submission status", description = "Update the status of a submitted authority report")
+    fun updateSubmissionStatus(
+        @PathVariable submissionId: String,
+        @RequestParam status: String,
+        @RequestParam(required = false) authorityFeedback: String?,
+        @RequestParam(required = false) authorityReference: String?
+    ): ResponseEntity<Any> {
+        return try {
+            val newStatus = try {
+                SubmissionStatus.valueOf(status)
+            } catch (e: Exception) {
+                return ResponseEntity.badRequest().body(mapOf(
+                    "success" to false,
+                    "message" to "Invalid status: $status"
+                ))
+            }
+
+            val submission = authoritySubmissionService.updateStatus(
+                submissionId = submissionId,
+                newStatus = newStatus,
+                authorityFeedback = authorityFeedback,
+                authorityReference = authorityReference
             )
 
             ResponseEntity.ok(mapOf(
                 "success" to true,
-                "data" to status,
-                "message" to "Submission status retrieved successfully"
+                "data" to submission,
+                "message" to "Submission status updated successfully"
+            ))
+
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to update submission status: ${e.message}"
+            ))
+        }
+    }
+
+    @GetMapping("/authority-report/authorities")
+    @PreAuthorize("hasAnyRole('EXPORTER', 'SYSTEM_ADMIN')")
+    @Operation(summary = "Get available authorities", description = "Get list of supported regulatory authorities")
+    fun getAvailableAuthorities(): ResponseEntity<Any> {
+        return try {
+            val authorities = authoritySubmissionService.getAvailableAuthorities()
+
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "data" to authorities,
+                "message" to "Authorities retrieved successfully"
             ))
 
         } catch (e: Exception) {
             ResponseEntity.internalServerError().body(mapOf(
                 "success" to false,
-                "message" to "Failed to retrieve submission status: ${e.message}"
+                "message" to "Failed to retrieve authorities: ${e.message}"
+            ))
+        }
+    }
+
+    @GetMapping("/authority-report/stats")
+    @PreAuthorize("hasAnyRole('EXPORTER', 'SYSTEM_ADMIN')")
+    @Operation(summary = "Get submission statistics", description = "Get submission statistics for the current user")
+    fun getSubmissionStats(authentication: Authentication): ResponseEntity<Any> {
+        return try {
+            val userId = authentication.name
+            val stats = authoritySubmissionService.getSubmissionStats(userId)
+
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "data" to stats,
+                "message" to "Submission statistics retrieved successfully"
+            ))
+
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to retrieve submission statistics: ${e.message}"
+            ))
+        }
+    }
+
+    // ========== EU TRACES NT DDS ENDPOINTS ==========
+
+    @GetMapping("/traces/test-connection")
+    @PreAuthorize("hasAnyRole('EXPORTER', 'SYSTEM_ADMIN')")
+    @Operation(summary = "Test TRACES NT connectivity", description = "Test connection to EU TRACES NT API")
+    fun testTracesConnection(): ResponseEntity<Any> {
+        return try {
+            val result = tracesNtClient.testConnectivity()
+            
+            ResponseEntity.ok(mapOf(
+                "success" to result.connected,
+                "data" to result,
+                "message" to result.message
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to test TRACES NT connection: ${e.message}"
+            ))
+        }
+    }
+
+    @GetMapping("/traces/dds/{workflowId}")
+    @PreAuthorize("hasAnyRole('EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER')")
+    @Operation(summary = "Get DDS data", description = "Get Due Diligence Statement data for a workflow")
+    fun getDdsData(@PathVariable workflowId: String): ResponseEntity<Any> {
+        return try {
+            val dds = tracesNtDdsService.getDdsData(workflowId)
+            
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "data" to dds,
+                "message" to "DDS data retrieved successfully"
+            ))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to retrieve DDS data: ${e.message}"
+            ))
+        }
+    }
+
+    @GetMapping("/traces/dds/{workflowId}/export")
+    @PreAuthorize("hasAnyRole('EXPORTER', 'SYSTEM_ADMIN')")
+    @Operation(summary = "Export DDS", description = "Export Due Diligence Statement as XML or JSON for TRACES NT submission")
+    fun exportDds(
+        @PathVariable workflowId: String,
+        @RequestParam(defaultValue = "XML") format: String
+    ): ResponseEntity<Any> {
+        return try {
+            val content: String
+            val contentType: MediaType
+            val filename: String
+
+            when (format.uppercase()) {
+                "XML" -> {
+                    content = tracesNtDdsService.exportAsXml(workflowId)
+                    contentType = MediaType.APPLICATION_XML
+                    filename = "dds_${workflowId.takeLast(8)}.xml"
+                }
+                "JSON" -> {
+                    content = tracesNtDdsService.exportAsJson(workflowId)
+                    contentType = MediaType.APPLICATION_JSON
+                    filename = "dds_${workflowId.takeLast(8)}.json"
+                }
+                else -> {
+                    return ResponseEntity.badRequest().body(mapOf(
+                        "success" to false,
+                        "message" to "Invalid format. Supported formats: XML, JSON"
+                    ))
+                }
+            }
+
+            val headers = HttpHeaders()
+            headers.contentType = contentType
+            headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"$filename\"")
+            
+            ResponseEntity.ok()
+                .headers(headers)
+                .body(content)
+
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to export DDS: ${e.message}"
+            ))
+        }
+    }
+
+    @GetMapping("/traces/dds/{workflowId}/geojson")
+    @PreAuthorize("hasAnyRole('EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER')")
+    @Operation(summary = "Export production plots GeoJSON", description = "Export production plot locations as GeoJSON for TRACES NT")
+    fun exportGeoJson(@PathVariable workflowId: String): ResponseEntity<Any> {
+        return try {
+            val geoJson = tracesNtDdsService.exportGeoJson(workflowId)
+            
+            val headers = HttpHeaders()
+            headers.contentType = MediaType.APPLICATION_JSON
+            headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"production_plots_${workflowId.takeLast(8)}.geojson\"")
+            
+            ResponseEntity.ok()
+                .headers(headers)
+                .body(geoJson)
+
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to export GeoJSON: ${e.message}"
+            ))
+        }
+    }
+
+    @PostMapping("/traces/dds/{workflowId}/submit")
+    @PreAuthorize("hasAnyRole('EXPORTER', 'SYSTEM_ADMIN')")
+    @Operation(summary = "Submit DDS to TRACES NT", description = "Submit Due Diligence Statement directly to EU TRACES NT API (if configured)")
+    fun submitDdsToTraces(
+        @PathVariable workflowId: String,
+        authentication: Authentication
+    ): ResponseEntity<Any> {
+        return try {
+            val userId = authentication.name
+            
+            // Generate DDS
+            val dds = tracesNtDdsService.generateDds(workflowId)
+            val xmlContent = tracesNtDdsService.exportAsXml(workflowId)
+            
+            // Submit to TRACES NT
+            val result = tracesNtClient.submitDds(dds, xmlContent)
+            
+            if (result.success) {
+                // Also record in our authority submission system
+                result.tracesReferenceNumber?.let { tracesRef ->
+                    try {
+                        authoritySubmissionService.submitReport(
+                            batchId = workflowId,
+                            authorityCode = "TRACES_NT",
+                            userId = userId,
+                            notes = "TRACES Reference: $tracesRef, Verification: ${result.verificationNumber}"
+                        )
+                    } catch (e: Exception) {
+                        // Log but don't fail the request
+                    }
+                }
+                
+                ResponseEntity.ok(mapOf(
+                    "success" to true,
+                    "data" to mapOf(
+                        "tracesReferenceNumber" to result.tracesReferenceNumber,
+                        "verificationNumber" to result.verificationNumber,
+                        "status" to result.status,
+                        "submittedAt" to result.submittedAt
+                    ),
+                    "message" to result.message
+                ))
+            } else {
+                ResponseEntity.status(502).body(mapOf(
+                    "success" to false,
+                    "message" to result.message
+                ))
+            }
+
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to submit DDS to TRACES NT: ${e.message}"
+            ))
+        }
+    }
+
+    @GetMapping("/traces/status/{referenceNumber}")
+    @PreAuthorize("hasAnyRole('EXPORTER', 'SYSTEM_ADMIN')")
+    @Operation(summary = "Check TRACES NT status", description = "Check the status of a DDS submission in TRACES NT")
+    fun checkTracesStatus(@PathVariable referenceNumber: String): ResponseEntity<Any> {
+        return try {
+            val status = tracesNtClient.checkStatus(referenceNumber)
+            
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "data" to status,
+                "message" to "Status retrieved successfully"
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to check TRACES NT status: ${e.message}"
             ))
         }
     }

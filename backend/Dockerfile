@@ -6,7 +6,7 @@ COPY src ./src
 RUN mvn -B -DskipTests clean package
 
 # Run JAR
-FROM openjdk:21-jdk
+FROM eclipse-temurin:21-jre
 ENV TZ Africa/Nairobi
 ARG DOCKER_SPRING_PROFILES_ACTIVE
 ENV SPRING_PROFILES_ACTIVE=$DOCKER_SPRING_PROFILES_ACTIVE

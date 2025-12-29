@@ -4,10 +4,10 @@ import com.agriconnect.farmersportalapis.application.dtos.ExporterResponseDto
 import com.agriconnect.farmersportalapis.application.dtos.PickupScheduleResponseDto
 import com.agriconnect.farmersportalapis.application.dtos.UpdateExporterRequestDto
 import com.agriconnect.farmersportalapis.application.dtos.ZoneResponseDto
-import com.agriconnect.farmersportalapis.service.common.impl.ExporterService
 import com.agriconnect.farmersportalapis.application.util.ResultFactory
 import com.agriconnect.farmersportalapis.domain.common.enums.ExporterVerificationStatus
 import com.agriconnect.farmersportalapis.domain.common.enums.PickupStatus
+import com.agriconnect.farmersportalapis.service.common.impl.ExporterService
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -118,7 +118,11 @@ class ExporterControllerTest {
         val request = UpdateExporterRequestDto(
             name = "Updated Name",
             email = "updated@example.com",
-            phoneNumber = "0987654321"
+            phoneNumber = "0987654321",
+            companyName = "AgriBackup",
+            companyDesc = "INternation exports",
+            originCountry = "KENYA",
+            originCountryCode = "KEN"
         )
 
         whenever(exporterService.updateExporter(any(), any()))

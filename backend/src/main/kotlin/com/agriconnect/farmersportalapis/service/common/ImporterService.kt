@@ -429,6 +429,120 @@ class ImporterService(
     }
 
     // ============================================
+    // HEDERA ACCOUNT MANAGEMENT
+    // ============================================
+
+    /**
+     * Create a Hedera account for an importer who doesn't have one.
+     * This enables the importer to receive EUDR compliance certificate NFTs.
+     */
+    fun createHederaAccountForImporter(importerId: String): Map<String, Any?> {
+        println("Creating Hedera account for importer: $importerId")
+        
+        val importer = importerRepository.findById(importerId)
+            .orElseThrow { IllegalArgumentException("Importer not found") }
+
+        // Check if account already exists
+        val existingAccount = hederaAccountCredentialsRepository
+            .findByEntityTypeAndEntityId("IMPORTER", importerId)
+            .orElse(null)
+        
+        if (existingAccount != null) {
+            return mapOf(
+                "hederaAccountId" to existingAccount.hederaAccountId,
+                "publicKey" to existingAccount.publicKey,
+                "createdAt" to existingAccount.createdAt,
+                "message" to "Hedera account already exists for this importer"
+            )
+        }
+
+        try {
+            // Create new Hedera account
+            val accountResult = hederaAccountService.createHederaAccount(
+                initialBalance = Hbar.from(10),
+                memo = "AgriBackup Importer: ${importer.companyName}"
+            )
+            
+            println("Created Hedera account ${accountResult.accountId} for importer $importerId")
+
+            // Store credentials in database
+            val credentials = HederaAccountCredentials(
+                userId = importer.userProfile.id,
+                entityType = "IMPORTER",
+                entityId = importerId,
+                hederaAccountId = accountResult.accountId,
+                encryptedPrivateKey = accountResult.encryptedPrivateKey,
+                publicKey = accountResult.publicKey,
+                creationTransactionId = accountResult.transactionId,
+                isActive = true,
+                tokensAssociated = "[]",
+                createdAt = LocalDateTime.now(),
+                lastUsedAt = LocalDateTime.now()
+            )
+            
+            hederaAccountCredentialsRepository.save(credentials)
+
+            // Associate with EUDR Compliance Certificate NFT
+            val eudrCertificateNftId = hederaTokenService.getEudrComplianceCertificateNftId()
+            if (eudrCertificateNftId != null) {
+                try {
+                    hederaAccountService.associateTokenWithAccount(
+                        accountResult.accountId,
+                        accountResult.encryptedPrivateKey,
+                        eudrCertificateNftId
+                    )
+                    
+                    credentials.tokensAssociated = """["${eudrCertificateNftId}"]"""
+                    hederaAccountCredentialsRepository.save(credentials)
+                    
+                    println("Associated EUDR Certificate NFT with importer account: ${accountResult.accountId}")
+                } catch (e: Exception) {
+                    println("Warning: Failed to associate NFT with importer account: ${e.message}")
+                }
+            }
+
+            // Update importer entity with Hedera account ID
+            importer.hederaAccountId = accountResult.accountId
+            importerRepository.save(importer)
+            
+            println("Hedera account credentials saved for importer $importerId")
+
+            return mapOf(
+                "hederaAccountId" to accountResult.accountId,
+                "publicKey" to accountResult.publicKey,
+                "createdAt" to credentials.createdAt,
+                "message" to "Hedera account created successfully. Importer can now receive EUDR compliance certificates."
+            )
+            
+        } catch (e: Exception) {
+            println("Failed to create Hedera account for importer $importerId: ${e.message}")
+            throw IllegalStateException("Failed to create Hedera account: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Get or create Hedera account for importer.
+     * Creates one if it doesn't exist.
+     */
+    fun getOrCreateHederaAccountForImporter(importerId: String): HederaAccountCredentials {
+        val existingAccount = hederaAccountCredentialsRepository
+            .findByEntityTypeAndEntityId("IMPORTER", importerId)
+            .orElse(null)
+        
+        if (existingAccount != null) {
+            return existingAccount
+        }
+
+        // Create the account
+        createHederaAccountForImporter(importerId)
+        
+        // Return the newly created credentials
+        return hederaAccountCredentialsRepository
+            .findByEntityTypeAndEntityId("IMPORTER", importerId)
+            .orElseThrow { IllegalStateException("Failed to create Hedera account for importer") }
+    }
+
+    // ============================================
     // PRIVATE HELPER METHODS
     // ============================================
 
@@ -686,12 +800,17 @@ class ImporterService(
             .findByHederaAccountId(currentOwnerAccountId)
             .orElseThrow { IllegalStateException("Current owner credentials not found") }
 
+        // Get the NFT serial number from the shipment
+        val serialNumber = shipment.complianceCertificateSerialNumber
+            ?: throw IllegalStateException("Shipment does not have a certificate serial number")
+
         try {
             // Transfer certificate NFT
             val success = hederaTokenService.transferComplianceCertificateNft(
                 fromAccountId = AccountId.fromString(exporterCredentials.hederaAccountId),
                 toAccountId = AccountId.fromString(importerCredentials.hederaAccountId),
-                shipmentId = shipmentId
+                shipmentId = shipmentId,
+                serialNumber = serialNumber
             )
 
             if (success) {

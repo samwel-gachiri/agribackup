@@ -45,7 +45,7 @@ class ProduceListing(
 //    @JoinColumn(name = "farmProduceId", nullable = false, referencedColumnName = "farmProduceId")
 //    var farmProduce: FarmProduce,
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "listing_images_urls", joinColumns = [JoinColumn(name = "produce_listing_id")])
     @Column(name = "image_url")
     var imageUrls: List<String>? = listOf(),

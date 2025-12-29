@@ -1,0 +1,171 @@
+databaseChangeLog:
+  # Fix foreign key constraints on workflow_consolidation_events table
+  # The columns were renamed from aggregator_id/processor_id to source_supplier_id/target_supplier_id
+  # but the foreign keys still reference the old aggregators/processors tables
+  # This migration updates them to reference supply_chain_suppliers
+
+  - changeSet:
+      id: 001-drop-old-consolidation-aggregator-fk
+      author: samwel
+      comment: "Drop old foreign key referencing aggregators table"
+      preConditions:
+        - onFail: MARK_RAN
+        - foreignKeyConstraintExists:
+            foreignKeyTableName: workflow_consolidation_events
+            foreignKeyName: fk_consolidation_aggregator
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: workflow_consolidation_events
+            constraintName: fk_consolidation_aggregator
+
+  - changeSet:
+      id: 002-drop-old-consolidation-processor-fk
+      author: samwel
+      comment: "Drop old foreign key referencing processors table"
+      preConditions:
+        - onFail: MARK_RAN
+        - foreignKeyConstraintExists:
+            foreignKeyTableName: workflow_consolidation_events
+            foreignKeyName: fk_consolidation_processor
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: workflow_consolidation_events
+            constraintName: fk_consolidation_processor
+
+  - changeSet:
+      id: 003-add-new-source-supplier-fk
+      author: samwel
+      comment: "Add foreign key for source_supplier_id referencing supply_chain_suppliers"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - foreignKeyConstraintExists:
+                foreignKeyTableName: workflow_consolidation_events
+                foreignKeyName: fk_consolidation_source_supplier
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: workflow_consolidation_events
+            baseColumnNames: source_supplier_id
+            referencedTableName: supply_chain_suppliers
+            referencedColumnNames: supplier_id
+            constraintName: fk_consolidation_source_supplier
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 004-add-new-target-supplier-fk
+      author: samwel
+      comment: "Add foreign key for target_supplier_id referencing supply_chain_suppliers"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - foreignKeyConstraintExists:
+                foreignKeyTableName: workflow_consolidation_events
+                foreignKeyName: fk_consolidation_target_supplier
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: workflow_consolidation_events
+            baseColumnNames: target_supplier_id
+            referencedTableName: supply_chain_suppliers
+            referencedColumnNames: supplier_id
+            constraintName: fk_consolidation_target_supplier
+            onDelete: RESTRICT
+
+  # Also fix foreign keys for workflow_collection_events and workflow_processing_events
+  - changeSet:
+      id: 005-drop-old-collection-aggregator-fk
+      author: samwel
+      comment: "Drop old foreign key on collection events referencing aggregators"
+      preConditions:
+        - onFail: MARK_RAN
+        - foreignKeyConstraintExists:
+            foreignKeyTableName: workflow_collection_events
+            foreignKeyName: fk_collection_aggregator
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: workflow_collection_events
+            constraintName: fk_collection_aggregator
+
+  - changeSet:
+      id: 006-add-new-collector-supplier-fk
+      author: samwel
+      comment: "Add foreign key for collector_supplier_id referencing supply_chain_suppliers"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - foreignKeyConstraintExists:
+                foreignKeyTableName: workflow_collection_events
+                foreignKeyName: fk_collection_collector_supplier
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: workflow_collection_events
+            baseColumnNames: collector_supplier_id
+            referencedTableName: supply_chain_suppliers
+            referencedColumnNames: supplier_id
+            constraintName: fk_collection_collector_supplier
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 007-drop-old-processing-processor-fk
+      author: samwel
+      comment: "Drop old foreign key on processing events referencing processors"
+      preConditions:
+        - onFail: MARK_RAN
+        - foreignKeyConstraintExists:
+            foreignKeyTableName: workflow_processing_events
+            foreignKeyName: fk_processing_processor
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: workflow_processing_events
+            constraintName: fk_processing_processor
+
+  - changeSet:
+      id: 008-add-new-processor-supplier-fk
+      author: samwel
+      comment: "Add foreign key for processor_supplier_id referencing supply_chain_suppliers"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - foreignKeyConstraintExists:
+                foreignKeyTableName: workflow_processing_events
+                foreignKeyName: fk_processing_processor_supplier
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: workflow_processing_events
+            baseColumnNames: processor_supplier_id
+            referencedTableName: supply_chain_suppliers
+            referencedColumnNames: supplier_id
+            constraintName: fk_processing_processor_supplier
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 009-drop-old-shipment-processor-fk
+      author: samwel
+      comment: "Drop old foreign key on shipment events referencing processors"
+      preConditions:
+        - onFail: MARK_RAN
+        - foreignKeyConstraintExists:
+            foreignKeyTableName: workflow_shipment_events
+            foreignKeyName: fk_shipment_processor
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: workflow_shipment_events
+            constraintName: fk_shipment_processor
+
+  - changeSet:
+      id: 010-add-new-shipper-supplier-fk
+      author: samwel
+      comment: "Add foreign key for shipper_supplier_id referencing supply_chain_suppliers"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - foreignKeyConstraintExists:
+                foreignKeyTableName: workflow_shipment_events
+                foreignKeyName: fk_shipment_shipper_supplier
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: workflow_shipment_events
+            baseColumnNames: shipper_supplier_id
+            referencedTableName: supply_chain_suppliers
+            referencedColumnNames: supplier_id
+            constraintName: fk_shipment_shipper_supplier
+            onDelete: RESTRICT

@@ -48,17 +48,32 @@ export default {
         * The request was made and the server responded with a
         * status code that falls out of the range of 2xx
         */
-        if (error.response.status === 401) {
+        const errorCode = error.response.data?.code;
+        const isTokenExpired = errorCode === 'TOKEN_EXPIRED';
+        const isAuthError = error.response.status === 401 || isTokenExpired;
+
+        if (isAuthError) {
           const config = { retryAttempts: 1, ...error.config };
+
+          // Prevent infinite retry loops
+          if (config.retryAttempts > 1) {
+            await store.dispatch('auth/signOut')
+              .then(() => {
+                router.push({ name: 'SignIn', query: { r: btoa(window.location.href) } });
+              });
+            return Promise.reject(error);
+          }
 
           try {
             // attempt to refresh access token using refresh token
             await store.dispatch('auth/refresh');
             // re-run the initial request using the new request config after a successful refresh
             // this response will be returned to the initial calling method
-            return resolve(axios(config));
+            config.retryAttempts += 1;
+            return axios(config);
           } catch (e) {
             // catch any error while refreshing the token
+            console.warn('Token refresh failed, signing out:', e.message);
             await store.dispatch('auth/signOut')
               .then(() => {
                 router.push({ name: 'SignIn', query: { r: btoa(window.location.href) } });

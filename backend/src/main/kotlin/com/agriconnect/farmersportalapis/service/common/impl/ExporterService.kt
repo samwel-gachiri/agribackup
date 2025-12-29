@@ -64,6 +64,10 @@ class ExporterService(
             request.name?.let { existingExporter.userProfile.fullName = it }
             request.email?.let { existingExporter.userProfile.email = it }
             request.phoneNumber?.let { existingExporter.userProfile.phoneNumber = it }
+            request.companyName?.let { existingExporter.companyName = it }
+            request.companyDesc?.let { existingExporter.companyDesc = it }
+            request.originCountry?.let { existingExporter.originCountry = it }
+            request.originCountryCode?.let { existingExporter.originCountryCode = it }
             existingExporter.userProfile.updatedAt = LocalDateTime.now()
 
             val updatedExporter = exporterRepository.save(existingExporter)
@@ -480,7 +484,9 @@ class ExporterService(
         companyDesc = companyDesc,
         licenseId = licenseId,
         verificationStatus = verificationStatus,
-        exportLicenseFormUrl = exportLicenseFormUrl
+        exportLicenseFormUrl = exportLicenseFormUrl,
+        originCountry = originCountry,
+        originCountryCode = originCountryCode
     )
 
     private fun SystemAdmin.toResponseDto(tempPassword: String? = null) = SystemAdminResponseDto(

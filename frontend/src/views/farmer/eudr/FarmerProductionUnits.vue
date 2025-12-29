@@ -1,36 +1,43 @@
 <template>
   <default-layout>
     <!-- Main Content -->
-    <v-container class="px-6 py-6" style="max-width: 1200px;">
+    <v-container class="px-6 py-6" style="max-width: 1400px;">
       <!-- Header -->
-      <v-row class="mb-6">
+      <v-row class="mb-4">
         <v-col cols="12">
           <v-row align="center" justify="space-between">
-            <v-col cols="12" md="8">
-              <v-chip
-                color="success"
-                outlined
-                small
-                class="mb-3"
-              >
-                <v-icon left small>mdi-map</v-icon>
-                EUDR Compliance
-              </v-chip>
-              <h1 class="text-h4 font-weight-bold text--primary mb-2">
-                My Production Units
-              </h1>
-              <p class="text-body-1 text--secondary mb-0">
-                Manage your farm production areas and land verification for EUDR compliance
-              </p>
+            <v-col cols="12" md="7">
+              <div class="tw-flex tw-items-center tw-gap-3 tw-mb-2">
+                <div class="tw-w-12 tw-h-12 tw-rounded-xl tw-bg-green-100 tw-flex tw-items-center tw-justify-center">
+                  <v-icon color="green darken-1" size="28">mdi-map-marker-radius</v-icon>
+                </div>
+                <div>
+                  <h1 class="text-h4 font-weight-bold text--primary tw-mb-0">
+                    Production Units
+                  </h1>
+                  <p class="text-body-2 text--secondary tw-mb-0">
+                    Map and manage your farm boundaries for EUDR compliance
+                  </p>
+                </div>
+              </div>
             </v-col>
-            <v-col cols="12" md="4" class="text-right">
+            <v-col cols="12" md="5" class="tw-flex tw-justify-end tw-gap-2">
+              <v-btn
+                outlined
+                color="primary"
+                @click="fetchProductionUnits"
+                :loading="loading"
+              >
+                <v-icon left small>mdi-refresh</v-icon>
+                Refresh
+              </v-btn>
               <v-btn
                 color="success"
                 large
-                rounded
                 @click="openAddDialog"
+                class="tw-px-6"
               >
-                <v-icon left>mdi-add</v-icon>
+                <v-icon left>mdi-plus</v-icon>
                 Add Production Unit
               </v-btn>
             </v-col>
@@ -38,111 +45,239 @@
         </v-col>
       </v-row>
 
-      <!-- Production Units Table -->
-      <v-card class="elevation-2">
-        <v-card-text class="pa-0">
-          <v-data-table
-            :headers="headers"
-            :items="productionUnits"
-            :loading="loading"
-            :items-per-page="10"
-            class="elevation-0"
-            no-data-text="No production units found"
-          >
-            <template #loading>
-              <v-skeleton-loader type="table-row@5"></v-skeleton-loader>
-            </template>
+      <!-- Stats Cards -->
+      <v-row class="mb-6">
+        <v-col cols="12" sm="6" md="3">
+          <v-card class="tw-h-full tw-border-l-4 tw-border-green-500" outlined>
+            <v-card-text>
+              <div class="tw-flex tw-items-center tw-justify-between">
+                <div>
+                  <div class="tw-text-3xl tw-font-bold tw-text-green-600">{{ stats.totalUnits }}</div>
+                  <div class="tw-text-sm tw-text-gray-500">Total Units</div>
+                </div>
+                <div class="tw-w-12 tw-h-12 tw-rounded-full tw-bg-green-100 tw-flex tw-items-center tw-justify-center">
+                  <v-icon color="green">mdi-map-marker-multiple</v-icon>
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col cols="12" sm="6" md="3">
+          <v-card class="tw-h-full tw-border-l-4 tw-border-blue-500" outlined>
+            <v-card-text>
+              <div class="tw-flex tw-items-center tw-justify-between">
+                <div>
+                  <div class="tw-text-3xl tw-font-bold tw-text-blue-600">{{ stats.totalArea.toFixed(1) }}</div>
+                  <div class="tw-text-sm tw-text-gray-500">Total Hectares</div>
+                </div>
+                <div class="tw-w-12 tw-h-12 tw-rounded-full tw-bg-blue-100 tw-flex tw-items-center tw-justify-center">
+                  <v-icon color="blue">mdi-ruler-square</v-icon>
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col cols="12" sm="6" md="3">
+          <v-card class="tw-h-full tw-border-l-4 tw-border-emerald-500" outlined>
+            <v-card-text>
+              <div class="tw-flex tw-items-center tw-justify-between">
+                <div>
+                  <div class="tw-text-3xl tw-font-bold tw-text-emerald-600">{{ stats.verifiedUnits }}</div>
+                  <div class="tw-text-sm tw-text-gray-500">Verified Units</div>
+                </div>
+                <div class="tw-w-12 tw-h-12 tw-rounded-full tw-bg-emerald-100 tw-flex tw-items-center tw-justify-center">
+                  <v-icon color="teal">mdi-check-decagram</v-icon>
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col cols="12" sm="6" md="3">
+          <v-card class="tw-h-full tw-border-l-4" :class="stats.alertCount > 0 ? 'tw-border-red-500' : 'tw-border-gray-300'" outlined>
+            <v-card-text>
+              <div class="tw-flex tw-items-center tw-justify-between">
+                <div>
+                  <div class="tw-text-3xl tw-font-bold" :class="stats.alertCount > 0 ? 'tw-text-red-600' : 'tw-text-gray-600'">{{ stats.alertCount }}</div>
+                  <div class="tw-text-sm tw-text-gray-500">Deforestation Alerts</div>
+                </div>
+                <div class="tw-w-12 tw-h-12 tw-rounded-full tw-flex tw-items-center tw-justify-center" :class="stats.alertCount > 0 ? 'tw-bg-red-100' : 'tw-bg-gray-100'">
+                  <v-icon :color="stats.alertCount > 0 ? 'red' : 'grey'">mdi-alert-circle</v-icon>
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
 
-            <template #item.name="{ item }">
+      <!-- Production Units Table -->
+      <v-card class="elevation-1">
+        <v-card-title class="tw-flex tw-justify-between tw-items-center tw-py-4">
+          <div class="tw-flex tw-items-center tw-gap-2">
+            <v-icon color="green">mdi-view-list</v-icon>
+            <span>Your Production Units</span>
+          </div>
+          <v-text-field
+            v-model="searchQuery"
+            append-icon="mdi-magnify"
+            label="Search units..."
+            single-line
+            hide-details
+            dense
+            outlined
+            style="max-width: 280px;"
+            clearable
+          ></v-text-field>
+        </v-card-title>
+        <v-divider></v-divider>
+
+        <!-- Empty State -->
+        <div v-if="!loading && filteredUnits.length === 0" class="tw-py-16 tw-text-center">
+          <div class="tw-mx-auto tw-w-24 tw-h-24 tw-rounded-full tw-bg-green-50 tw-flex tw-items-center tw-justify-center tw-mb-4">
+            <v-icon size="48" color="green lighten-2">mdi-map-marker-plus</v-icon>
+          </div>
+          <h3 class="tw-text-xl tw-font-semibold tw-text-gray-700 tw-mb-2">
+            {{ searchQuery ? 'No matching units found' : 'No production units yet' }}
+          </h3>
+          <p class="tw-text-gray-500 tw-mb-6 tw-max-w-md tw-mx-auto">
+            {{ searchQuery
+              ? 'Try adjusting your search terms'
+              : 'Start by mapping your farm boundaries. This helps verify EUDR compliance and enables supply chain traceability.'
+            }}
+          </p>
+          <v-btn
+            v-if="!searchQuery"
+            color="success"
+            @click="openAddDialog"
+          >
+            <v-icon left>mdi-plus</v-icon>
+            Add Your First Production Unit
+          </v-btn>
+          <v-btn
+            v-else
+            text
+            color="primary"
+            @click="searchQuery = ''"
+          >
+            Clear Search
+          </v-btn>
+        </div>
+
+        <!-- Data Table -->
+        <v-data-table
+          v-else
+          :headers="headers"
+          :items="filteredUnits"
+          :loading="loading"
+          :items-per-page="10"
+          class="elevation-0"
+          :footer-props="{
+            'items-per-page-options': [5, 10, 25, 50]
+          }"
+        >
+          <template #loading>
+            <v-skeleton-loader type="table-row@5"></v-skeleton-loader>
+          </template>
+
+          <template #item.name="{ item }">
+            <div class="tw-flex tw-items-center tw-gap-3 tw-py-2">
+              <div class="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-green-100 tw-flex tw-items-center tw-justify-center tw-flex-shrink-0">
+                <v-icon color="green" size="20">mdi-terrain</v-icon>
+              </div>
               <div>
-                <div class="font-weight-medium">{{ item.name }}</div>
-                <div v-if="item.coordinates" class="text-caption text--secondary">
+                <div class="tw-font-medium tw-text-gray-800">{{ item.name }}</div>
+                <div v-if="item.coordinates" class="tw-text-xs tw-text-gray-500 tw-font-mono">
                   {{ item.coordinates }}
                 </div>
               </div>
-            </template>
+            </div>
+          </template>
 
-            <template #item.area="{ item }">
-              {{ item.area }} ha
-            </template>
+          <template #item.area="{ item }">
+            <div class="tw-font-semibold">{{ item.area?.toFixed(2) || '—' }}</div>
+            <div class="tw-text-xs tw-text-gray-500">hectares</div>
+          </template>
 
-            <template #item.status="{ item }">
-              <v-chip
-                :color="getStatusColor(item.status)"
-                small
-                outlined
-              >
-                {{ item.status }}
-              </v-chip>
-            </template>
+          <template #item.status="{ item }">
+            <v-chip
+              :color="getStatusColor(item.status)"
+              small
+              :outlined="item.status !== 'Verified'"
+              class="tw-font-medium"
+            >
+              <v-icon left x-small>{{ getStatusIcon(item.status) }}</v-icon>
+              {{ item.status }}
+            </v-chip>
+          </template>
 
-            <template #item.region="{ item }">
-              {{ item.region || '—' }}
-            </template>
+          <template #item.region="{ item }">
+            <span class="tw-text-gray-600">{{ item.region || '—' }}</span>
+          </template>
 
-            <template #item.alerts="{ item }">
-              <v-chip
-                :color="item.alerts > 0 ? 'error' : 'success'"
-                small
-                outlined
-              >
-                {{ item.alerts }}
-              </v-chip>
-            </template>
+          <template #item.alerts="{ item }">
+            <v-chip
+              :color="item.alerts > 0 ? 'error' : 'success'"
+              small
+              :outlined="item.alerts === 0"
+            >
+              <v-icon left x-small>{{ item.alerts > 0 ? 'mdi-alert' : 'mdi-check' }}</v-icon>
+              {{ item.alerts || 0 }}
+            </v-chip>
+          </template>
 
-            <template #item.createdAt="{ item }">
-              {{ formatDate(item.createdAt) }}
-            </template>
+          <template #item.createdAt="{ item }">
+            <div class="tw-text-sm tw-text-gray-600">{{ formatDate(item.createdAt) }}</div>
+          </template>
 
-            <template #item.actions="{ item }">
-              <v-btn
-                icon
-                small
-                color="primary"
-                @click="viewUnit(item)"
-                title="View details"
-              >
-                <v-icon small>mdi-visibility</v-icon>
-              </v-btn>
-              <v-btn
-                icon
-                small
-                color="warning"
-                @click="editUnit(item)"
-                title="Edit polygon"
-              >
-                <v-icon small>mdi-pen</v-icon>
-              </v-btn>
-              <v-btn
-                icon
-                small
-                color="error"
-                @click="deleteUnit(item)"
-                title="Delete unit"
-              >
-                <v-icon small>mdi-delete</v-icon>
-              </v-btn>
-            </template>
-
-            <template #no-data>
-              <v-row align="center" justify="center" class="py-8">
-                <v-col cols="12" class="text-center">
-                  <v-avatar size="64" color="grey lighten-4" class="mb-4">
-                    <v-icon size="32" color="grey">mdi-map</v-icon>
-                  </v-avatar>
-                  <div class="text-h6 mb-2">No production units found</div>
+          <template #item.actions="{ item }">
+            <div class="tw-flex tw-gap-1">
+              <v-tooltip bottom>
+                <template #activator="{ on, attrs }">
                   <v-btn
-                    color="success"
-                    @click="openAddDialog"
+                    v-bind="attrs"
+                    v-on="on"
+                    icon
+                    small
+                    color="primary"
+                    @click="viewUnit(item)"
                   >
-                    <v-icon left>add</v-icon>
-                    Add your first production unit
+                    <v-icon small>mdi-eye</v-icon>
                   </v-btn>
-                </v-col>
-              </v-row>
-            </template>
-          </v-data-table>
-        </v-card-text>
+                </template>
+                <span>View Details</span>
+              </v-tooltip>
+              <v-tooltip bottom>
+                <template #activator="{ on, attrs }">
+                  <v-btn
+                    v-bind="attrs"
+                    v-on="on"
+                    icon
+                    small
+                    color="warning"
+                    @click="editUnit(item)"
+                  >
+                    <v-icon small>mdi-pencil</v-icon>
+                  </v-btn>
+                </template>
+                <span>Edit</span>
+              </v-tooltip>
+              <v-tooltip bottom>
+                <template #activator="{ on, attrs }">
+                  <v-btn
+                    v-bind="attrs"
+                    v-on="on"
+                    icon
+                    small
+                    color="error"
+                    @click="deleteUnit(item)"
+                  >
+                    <v-icon small>mdi-delete</v-icon>
+                  </v-btn>
+                </template>
+                <span>Delete</span>
+              </v-tooltip>
+            </div>
+          </template>
+        </v-data-table>
       </v-card>
     </v-container>
 
@@ -356,14 +491,25 @@ export default {
       deleteConfirmUnit: null,
       checkingDeforestation: false,
       deforestationCheckResult: null,
+      searchQuery: '',
       headers: [
         { text: 'Unit Name', value: 'name', sortable: true },
-        { text: 'Area (ha)', value: 'area', sortable: true },
-        { text: 'Status', value: 'status', sortable: true },
+        {
+          text: 'Area', value: 'area', sortable: true, width: '100px',
+        },
+        {
+          text: 'Status', value: 'status', sortable: true, width: '130px',
+        },
         { text: 'Region', value: 'region', sortable: true },
-        { text: 'Alerts', value: 'alerts', sortable: true },
-        { text: 'Created', value: 'createdAt', sortable: true },
-        { text: 'Actions', value: 'actions', sortable: false },
+        {
+          text: 'Alerts', value: 'alerts', sortable: true, width: '100px',
+        },
+        {
+          text: 'Created', value: 'createdAt', sortable: true, width: '120px',
+        },
+        {
+          text: 'Actions', value: 'actions', sortable: false, width: '140px', align: 'center',
+        },
       ],
     };
   },
@@ -372,6 +518,23 @@ export default {
     this.fetchProductionUnits();
   },
   computed: {
+    stats() {
+      return {
+        totalUnits: this.productionUnits.length,
+        totalArea: this.productionUnits.reduce((sum, unit) => sum + (unit.area || 0), 0),
+        verifiedUnits: this.productionUnits.filter((unit) => unit.status === 'Verified').length,
+        alertCount: this.productionUnits.reduce((sum, unit) => sum + (unit.alerts || 0), 0),
+      };
+    },
+    filteredUnits() {
+      if (!this.searchQuery) return this.productionUnits;
+      const query = this.searchQuery.toLowerCase();
+      return this.productionUnits.filter(
+        (unit) => unit.name?.toLowerCase().includes(query)
+          || unit.region?.toLowerCase().includes(query)
+          || unit.status?.toLowerCase().includes(query),
+      );
+    },
     deforestationAlertType() {
       if (!this.deforestationCheckResult) return 'info';
 
@@ -613,6 +776,15 @@ export default {
         'Under Review': 'info',
       };
       return colors[status] || 'grey';
+    },
+    getStatusIcon(status) {
+      const icons = {
+        Verified: 'mdi-check-circle',
+        Pending: 'mdi-clock-outline',
+        Rejected: 'mdi-close-circle',
+        'Under Review': 'mdi-magnify',
+      };
+      return icons[status] || 'mdi-help-circle';
     },
     viewUnit(unit) {
       // Navigate to unit details or show modal

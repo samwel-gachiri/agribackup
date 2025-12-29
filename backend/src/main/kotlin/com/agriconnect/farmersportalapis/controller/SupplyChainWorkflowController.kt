@@ -1,6 +1,7 @@
 package com.agriconnect.farmersportalapis.controller
 
 import com.agriconnect.farmersportalapis.application.dtos.*
+import com.agriconnect.farmersportalapis.service.supplychain.DeforestationAlertService
 import com.agriconnect.farmersportalapis.service.supplychain.SupplyChainWorkflowService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
@@ -16,7 +17,8 @@ import org.springframework.web.bind.annotation.*
 @Tag(name = "Supply Chain Workflow", description = "Visual workflow builder for end-to-end supply chain management")
 @SecurityRequirement(name = "bearer-jwt")
 class SupplyChainWorkflowController(
-    private val workflowService: SupplyChainWorkflowService
+    private val workflowService: SupplyChainWorkflowService,
+    private val deforestationAlertService: DeforestationAlertService
 ) {
 
     // ===== CREATE WORKFLOW =====
@@ -171,22 +173,253 @@ class SupplyChainWorkflowController(
         return ResponseEntity.ok(quantities)
     }
 
+    // ===== PRODUCTION UNIT LINKING (Stage 1: PRODUCTION_REGISTRATION) =====
+    @GetMapping("/{workflowId}/production-units")
+    @Operation(
+        summary = "Get linked production units",
+        description = "Get all production units linked to this workflow for EUDR Stage 1 registration"
+    )
+    @PreAuthorize("hasRole('EXPORTER') or hasRole('ADMIN')")
+    fun getLinkedProductionUnits(
+        @PathVariable workflowId: String
+    ): ResponseEntity<Map<String, Any?>> {
+        return try {
+            val units = workflowService.getLinkedProductionUnits(workflowId)
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "data" to units,
+                "count" to units.size
+            ))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message,
+                "error" to "INVALID_REQUEST"
+            ))
+        }
+    }
+
+    @PostMapping("/{workflowId}/production-units")
+    @Operation(
+        summary = "Link production unit to workflow",
+        description = "Link a production unit to this workflow for EUDR Stage 1 registration"
+    )
+    @PreAuthorize("hasRole('EXPORTER') or hasRole('ADMIN')")
+    fun linkProductionUnit(
+        @PathVariable workflowId: String,
+        @RequestBody request: LinkProductionUnitRequestDto
+    ): ResponseEntity<Map<String, Any?>> {
+        return try {
+            val link = workflowService.linkProductionUnit(workflowId, request)
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "message" to "Production unit linked successfully",
+                "data" to link
+            ))
+        } catch (e: IllegalStateException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message,
+                "error" to "ALREADY_LINKED"
+            ))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message,
+                "error" to "INVALID_REQUEST"
+            ))
+        }
+    }
+
+    @PostMapping("/{workflowId}/production-units/{productionUnitId}/verify-geolocation")
+    @Operation(
+        summary = "Verify geolocation for production unit",
+        description = "Mark a production unit's geolocation as verified (EUDR Stage 2)"
+    )
+    @PreAuthorize("hasRole('EXPORTER') or hasRole('ADMIN')")
+    fun verifyGeolocation(
+        @PathVariable workflowId: String,
+        @PathVariable productionUnitId: String
+    ): ResponseEntity<Map<String, Any?>> {
+        return try {
+            val updated = workflowService.updateProductionUnitStatus(
+                workflowId = workflowId,
+                productionUnitId = productionUnitId,
+                geolocationVerified = true
+            )
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "message" to "Geolocation verified successfully",
+                "data" to updated
+            ))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message,
+                "error" to "INVALID_REQUEST"
+            ))
+        }
+    }
+
+    @PostMapping("/{workflowId}/production-units/{productionUnitId}/check-deforestation")
+    @Operation(
+        summary = "Run deforestation check for production unit",
+        description = "Run a deforestation check using Global Forest Watch satellite imagery (EUDR Stage 3)"
+    )
+    @PreAuthorize("hasRole('EXPORTER') or hasRole('ADMIN')")
+    fun checkDeforestation(
+        @PathVariable workflowId: String,
+        @PathVariable productionUnitId: String
+    ): ResponseEntity<Map<String, Any?>> {
+        return try {
+            // Verify the production unit is linked to this workflow
+            val link = workflowService.getWorkflowProductionUnits(workflowId)
+                .find { it.productionUnit.id == productionUnitId }
+                ?: throw IllegalArgumentException("Production unit not linked to this workflow")
+            
+            val productionUnit = link.productionUnit
+            
+            // Run actual EUDR compliance check using Global Forest Watch
+            val isCompliant = deforestationAlertService.checkEudrCompliance(productionUnit)
+            
+            // Get alert summary for detailed information
+            val alertSummary = deforestationAlertService.getAlertSummary(productionUnitId)
+            
+            // Update the workflow production unit status
+            val updated = workflowService.updateProductionUnitStatus(
+                workflowId = workflowId,
+                productionUnitId = productionUnitId,
+                deforestationChecked = true,
+                deforestationClear = isCompliant
+            )
+            
+            val message = if (isCompliant) {
+                "Deforestation check completed - No post-2020 deforestation detected. EUDR Compliant."
+            } else {
+                "Deforestation check completed - WARNING: Deforestation alerts found. Not EUDR Compliant."
+            }
+            
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "message" to message,
+                "data" to updated,
+                "deforestationClear" to isCompliant,
+                "eudrCompliant" to isCompliant,
+                "alertSummary" to mapOf(
+                    "totalAlerts" to alertSummary.totalAlerts,
+                    "highSeverityAlerts" to alertSummary.highSeverityAlerts,
+                    "mediumSeverityAlerts" to alertSummary.mediumSeverityAlerts,
+                    "lowSeverityAlerts" to alertSummary.lowSeverityAlerts,
+                    "gladAlerts" to alertSummary.gladAlerts,
+                    "treeCoverLossAlerts" to alertSummary.treeCoverLossAlerts,
+                    "lastAlertDate" to alertSummary.lastAlertDate?.toString()
+                )
+            ))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message,
+                "error" to "INVALID_REQUEST"
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to run deforestation check: ${e.message}",
+                "error" to "DEFORESTATION_CHECK_FAILED"
+            ))
+        }
+    }
+
+    @DeleteMapping("/{workflowId}/production-units/{productionUnitId}")
+    @Operation(
+        summary = "Unlink production unit from workflow",
+        description = "Remove a production unit from this workflow (only if no collection events exist)"
+    )
+    @PreAuthorize("hasRole('EXPORTER') or hasRole('ADMIN')")
+    fun unlinkProductionUnit(
+        @PathVariable workflowId: String,
+        @PathVariable productionUnitId: String
+    ): ResponseEntity<Map<String, Any?>> {
+        return try {
+            workflowService.unlinkProductionUnit(workflowId, productionUnitId)
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "message" to "Production unit unlinked successfully"
+            ))
+        } catch (e: IllegalStateException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message,
+                "error" to "HAS_COLLECTION_EVENTS"
+            ))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message,
+                "error" to "NOT_LINKED"
+            ))
+        }
+    }
+
+    // ===== PROCESSING STAGE (OPTIONAL) =====
+    @PostMapping("/{workflowId}/skip-processing")
+    @Operation(
+        summary = "Skip processing stage",
+        description = "Mark the workflow as not requiring processing (for raw commodity exports)"
+    )
+    @PreAuthorize("hasRole('EXPORTER') or hasRole('ADMIN')")
+    fun skipProcessing(
+        @PathVariable workflowId: String,
+        @RequestParam(defaultValue = "true") skip: Boolean
+    ): ResponseEntity<Map<String, Any?>> {
+        return try {
+            workflowService.setSkipProcessing(workflowId, skip)
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "message" to if (skip) "Processing stage skipped" else "Processing stage restored",
+                "skipProcessing" to skip
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message
+            ))
+        }
+    }
+
     // ===== CERTIFICATE MANAGEMENT =====
     @PostMapping("/{workflowId}/issue-certificate")
     @Operation(
-        summary = "Issue EUDR Compliance Certificate NFT for workflow",
-        description = "Issues a blockchain-based EUDR compliance certificate NFT after all compliance checks pass"
+        summary = "Issue EUDR Compliance Certificate NFT for workflow (async)",
+        description = "Initiates async issuance of a blockchain-based EUDR compliance certificate NFT after all compliance checks pass. Returns immediately with pending status."
     )
     @PreAuthorize("hasRole('EXPORTER') or hasRole('ADMIN')")
     fun issueCertificate(
         @PathVariable workflowId: String
     ): ResponseEntity<Map<String, Any?>> {
         return try {
-            val result = workflowService.issueComplianceCertificate(workflowId)
-            ResponseEntity.ok(mapOf(
+            // First validate compliance synchronously (fast)
+            val validationResult = workflowService.validateWorkflowForCertificate(workflowId)
+            
+            val isCompliant = validationResult["isCompliant"] as? Boolean ?: false
+            if (!isCompliant) {
+                return ResponseEntity.badRequest().body(mapOf(
+                    "success" to false,
+                    "message" to "Workflow failed compliance checks: ${(validationResult["failureReasons"] as List<*>).joinToString(", ")}",
+                    "error" to "COMPLIANCE_CHECK_FAILED",
+                    "validationResult" to validationResult
+                ))
+            }
+            
+            // Start async certificate issuance (returns immediately)
+            val result = workflowService.issueComplianceCertificateAsync(workflowId)
+            
+            ResponseEntity.accepted().body(mapOf(
                 "success" to true,
-                "message" to "Certificate issued successfully",
-                "data" to result
+                "message" to "Certificate issuance initiated. This process runs in the background.",
+                "status" to "PENDING",
+                "data" to result,
+                "note" to "Hedera blockchain operations may take 30-60 seconds. Poll the workflow status endpoint to check completion."
             ))
         } catch (e: IllegalStateException) {
             val isHederaAccountError = e.message?.contains("Hedera account", ignoreCase = true) == true

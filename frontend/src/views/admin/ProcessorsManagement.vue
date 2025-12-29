@@ -297,7 +297,7 @@ export default {
               isConnected: connectedIds.has(proc.id),
             }));
           } catch (error) {
-            console.warn('Failed to fetch connections:', error);
+            this.$toast.warn('Failed to fetch connections:', error.message);
             // If connection fetch fails, just show all processors as not connected
             this.processors = allProcessors.map((proc) => ({
               ...proc,

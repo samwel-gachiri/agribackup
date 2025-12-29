@@ -133,14 +133,15 @@ hedera:
     backoff-delay: 1000
 
 # IPFS Configuration
+# Set IPFS_ENABLED=true and provide IPFS_API_KEY and IPFS_API_SECRET to enable IPFS document storage
 ipfs:
-  enabled: ${IPFS_ENABLED:true}
+  enabled: ${IPFS_ENABLED:false}
   gateway:
     url: ${IPFS_GATEWAY_URL:https://ipfs.io}
   api:
     url: ${IPFS_API_URL:https://api.pinata.cloud}
-    key: ${IPFS_API_KEY}
-    secret: ${IPFS_API_SECRET}
+    key: ${IPFS_API_KEY:}
+    secret: ${IPFS_API_SECRET:}
 
 # Global Forest Watch Configuration
 gfw:
@@ -184,6 +185,22 @@ landsat:
     ndvi-change-threshold: ${LANDSAT_NDVI_CHANGE_THRESHOLD:-0.2}
     baseline-months: ${LANDSAT_BASELINE_MONTHS:3}
     recent-days: ${LANDSAT_RECENT_DAYS:16}                           # Longer period due to 16-day revisit
+
+# EU TRACES NT Configuration (EUDR Due Diligence Statement)
+# Set TRACES_NT_ENABLED=true to enable direct API submission
+traces-nt:
+  enabled: ${TRACES_NT_ENABLED:false}
+  environment: ${TRACES_NT_ENVIRONMENT:acceptance}
+  base-url:
+    acceptance: https://webgate.acceptance.ec.europa.eu/tracesnt-alpha
+    production: https://webgate.ec.europa.eu/tracesnt
+  api-version: 2
+  auth:
+    username: ${TRACES_NT_USERNAME:}
+    auth-key: ${TRACES_NT_AUTH_KEY:}
+  timeout:
+    connect-ms: 30000
+    read-ms: 60000
 
 # Logging Configuration
 logging:

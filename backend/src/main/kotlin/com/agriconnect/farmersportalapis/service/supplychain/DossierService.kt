@@ -8,22 +8,21 @@ import com.agriconnect.farmersportalapis.service.common.RiskAssessmentResult
 import com.agriconnect.farmersportalapis.service.common.RiskAssessmentService
 import com.agriconnect.farmersportalapis.service.hedera.IpfsDocumentService
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.itextpdf.kernel.colors.ColorConstants
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.client.j2se.MatrixToImageWriter
+import com.google.zxing.qrcode.QRCodeWriter
+import com.itextpdf.io.image.ImageDataFactory
 import com.itextpdf.kernel.colors.DeviceRgb
 import com.itextpdf.kernel.pdf.PdfDocument
 import com.itextpdf.kernel.pdf.PdfWriter
 import com.itextpdf.layout.Document
 import com.itextpdf.layout.element.Cell
+import com.itextpdf.layout.element.Image
 import com.itextpdf.layout.element.Paragraph
 import com.itextpdf.layout.element.Table
-import com.itextpdf.layout.element.Image
 import com.itextpdf.layout.properties.TextAlignment
-import com.itextpdf.layout.properties.UnitValue
-import com.itextpdf.io.image.ImageDataFactory
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.qrcode.QRCodeWriter
-import com.google.zxing.client.j2se.MatrixToImageWriter
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.io.ByteArrayOutputStream
@@ -31,7 +30,7 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Base64
+import java.util.*
 
 @Service
 @Transactional(readOnly = true)
@@ -41,7 +40,8 @@ class DossierService(
     private val auditLogRepository: AuditLogRepository,
     private val ipfsDocumentService: IpfsDocumentService,
     private val riskAssessmentService: RiskAssessmentService,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    @Lazy private val supplyChainEventBridgeService: SupplyChainEventBridgeService
 ) {
 
     private val logger = LoggerFactory.getLogger(DossierService::class.java)
@@ -73,11 +73,76 @@ class DossierService(
         // Get audit trail
         val auditTrail = getAuditTrail(batchId)
 
-        // Get supply chain events
-        val supplyChainEvents = batch.supplyChainEvents.sortedBy { it.eventTimestamp }
+        // Get combined supply chain events from both EudrBatch and Workflow systems
+        val combinedData = try {
+            supplyChainEventBridgeService.getAllEventsForBatch(batchId)
+        } catch (e: Exception) {
+            logger.warn("Failed to get combined events, falling back to batch events only: ${e.message}")
+            null
+        }
 
-        // Get processing events
-        val processingEvents = batch.processingEvents.sortedBy { it.processingDate }
+        // Build supply chain events - prefer combined data, fallback to batch events
+        val supplyChainEventSummaries = if (combinedData != null && combinedData.supplyChainEvents.isNotEmpty()) {
+            combinedData.supplyChainEvents.map { event ->
+                SupplyChainEventSummary(
+                    id = event.id,
+                    actionType = event.eventType,
+                    fromEntityId = event.fromEntity,
+                    fromEntityType = event.fromEntityType,
+                    toEntityId = event.toEntity,
+                    toEntityType = event.toEntityType,
+                    timestamp = event.timestamp,
+                    location = event.location,
+                    transportMethod = event.transportMethod,
+                    hederaTransactionId = event.hederaTransactionId
+                )
+            }
+        } else {
+            // Fallback to batch supply chain events
+            val batchEvents = batch.supplyChainEvents.sortedBy { it.eventTimestamp }
+            if (batchEvents.isEmpty()) {
+                // Create placeholder events from batch data
+                createPlaceholderSupplyChainEvents(batch)
+            } else {
+                batchEvents.map { SupplyChainEventSummary.fromEvent(it) }
+            }
+        }
+
+        // Build processing events - prefer combined data, fallback to batch events
+        val processingEventSummaries = if (combinedData != null && combinedData.processingEvents.isNotEmpty()) {
+            combinedData.processingEvents.map { event ->
+                ProcessingEventSummary(
+                    id = event.id,
+                    processorId = event.toEntity,
+                    processingType = event.eventType,
+                    inputQuantity = event.quantity ?: BigDecimal.ZERO,
+                    outputQuantity = event.quantity ?: BigDecimal.ZERO,
+                    processingDate = event.timestamp,
+                    notes = event.notes,
+                    hederaTransactionId = event.hederaTransactionId
+                )
+            }
+        } else {
+            // Fallback to batch processing events
+            val batchProcessingEvents = batch.processingEvents.sortedBy { it.processingDate }
+            if (batchProcessingEvents.isEmpty() && batch.processor != null) {
+                // Create placeholder processing event
+                listOf(
+                    ProcessingEventSummary(
+                        id = "placeholder-${batch.id}",
+                        processorId = batch.processor!!.id,
+                        processingType = "PROCESSING",
+                        inputQuantity = batch.quantity,
+                        outputQuantity = batch.quantity,
+                        processingDate = batch.createdAt,
+                        notes = "Processing by ${batch.processor!!.facilityName}",
+                        hederaTransactionId = null
+                    )
+                )
+            } else {
+                batchProcessingEvents.map { ProcessingEventSummary.fromEvent(it) }
+            }
+        }
 
         // Create dossier data
         val dossierData = DossierData(
@@ -85,16 +150,16 @@ class DossierService(
             riskAssessment = riskAssessment,
             documents = documents,
             auditTrail = auditTrail,
-            supplyChain = supplyChainEvents.map { SupplyChainEventSummary.fromEvent(it) },
-            processingEvents = processingEvents.map { ProcessingEventSummary.fromEvent(it) },
+            supplyChain = supplyChainEventSummaries,
+            processingEvents = processingEventSummaries,
             generatedAt = LocalDateTime.now(),
             generatedBy = "SYSTEM" // In real implementation, get from security context
         )
 
         // Generate dossier in requested format
-        val dossierContent = when (format) {
+        val dossierContent: Any = when (format) {
             DossierFormat.JSON -> generateJsonDossier(dossierData)
-            DossierFormat.PDF -> generatePdfDossier(dossierData)
+            DossierFormat.PDF -> generatePdfDossierBytes(dossierData)
             DossierFormat.ZIP -> generateZipDossier(dossierData)
         }
 
@@ -107,6 +172,70 @@ class DossierService(
             filename = generateFilename(batch, format),
             generatedAt = LocalDateTime.now()
         )
+    }
+
+    /**
+     * Create placeholder supply chain events from batch data when no events exist
+     */
+    private fun createPlaceholderSupplyChainEvents(batch: EudrBatch): List<SupplyChainEventSummary> {
+        val events = mutableListOf<SupplyChainEventSummary>()
+
+        // Create harvest events from production units
+        for ((index, bpu) in batch.productionUnits.withIndex()) {
+            val productionUnit = bpu.productionUnit
+            events.add(
+                SupplyChainEventSummary(
+                    id = "harvest-${batch.id}-$index",
+                    actionType = "HARVEST",
+                    fromEntityId = productionUnit.farmer?.id,
+                    fromEntityType = "FARMER",
+                    toEntityId = productionUnit.id,
+                    toEntityType = "PRODUCTION_UNIT",
+                    timestamp = batch.harvestDate?.atStartOfDay() ?: batch.createdAt,
+                    location = productionUnit.wgs84Coordinates,
+                    transportMethod = null,
+                    hederaTransactionId = null
+                )
+            )
+        }
+
+        // Add aggregation event if aggregator exists
+        if (batch.aggregator != null) {
+            events.add(
+                SupplyChainEventSummary(
+                    id = "aggregation-${batch.id}",
+                    actionType = "AGGREGATION",
+                    fromEntityId = batch.productionUnits.firstOrNull()?.productionUnit?.id,
+                    fromEntityType = "PRODUCTION_UNIT",
+                    toEntityId = batch.aggregator!!.id,
+                    toEntityType = "AGGREGATOR",
+                    timestamp = batch.createdAt,
+                    location = batch.aggregator!!.facilityAddress,
+                    transportMethod = null,
+                    hederaTransactionId = null
+                )
+            )
+        }
+
+        // Add processing event if processor exists
+        if (batch.processor != null) {
+            events.add(
+                SupplyChainEventSummary(
+                    id = "processing-${batch.id}",
+                    actionType = "PROCESSING",
+                    fromEntityId = batch.aggregator?.id,
+                    fromEntityType = if (batch.aggregator != null) "AGGREGATOR" else null,
+                    toEntityId = batch.processor!!.id,
+                    toEntityType = "PROCESSOR",
+                    timestamp = batch.createdAt,
+                    location = batch.processor!!.facilityAddress,
+                    transportMethod = null,
+                    hederaTransactionId = null
+                )
+            )
+        }
+
+        return events
     }
 
     /**
@@ -147,9 +276,9 @@ class DossierService(
     }
 
     /**
-     * Generate PDF dossier with comprehensive batch information
+     * Generate PDF dossier with comprehensive batch information - returns raw bytes
      */
-    private fun generatePdfDossier(data: DossierData): String {
+    private fun generatePdfDossierBytes(data: DossierData): ByteArray {
         val outputStream = ByteArrayOutputStream()
         
         try {
@@ -189,9 +318,21 @@ class DossierService(
             
             document.close()
             
-            // Convert to Base64 string for storage/transmission
-            val pdfBytes = outputStream.toByteArray()
-            return Base64.getEncoder().encodeToString(pdfBytes)
+            return outputStream.toByteArray()
+            
+        } catch (e: Exception) {
+            logger.error("Error generating PDF dossier", e)
+            throw RuntimeException("Failed to generate PDF dossier: ${e.message}", e)
+        }
+    }
+    
+    /**
+     * Generate PDF dossier as Base64 string (for storage/transmission)
+     */
+    private fun generatePdfDossier(data: DossierData): String {
+        try {
+        val pdfBytes = generatePdfDossierBytes(data)
+        return Base64.getEncoder().encodeToString(pdfBytes)
             
         } catch (e: Exception) {
             logger.error("Error generating PDF dossier", e)
@@ -364,8 +505,8 @@ class DossierService(
             table.addHeaderCell(createHeaderCell("Location", headerColor))
             
             events.forEach { event ->
-                table.addCell(createCell(event.eventTimestamp.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))))
-                table.addCell(createCell(event.actionType.name))
+                table.addCell(createCell(event.timestamp.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))))
+                table.addCell(createCell(event.actionType))
                 
                 val fromTo = if (event.fromEntityType != null) {
                     "${event.fromEntityType} → ${event.toEntityType}"
@@ -374,7 +515,7 @@ class DossierService(
                 }
                 table.addCell(createCell(fromTo))
                 table.addCell(createCell(event.transportMethod ?: "N/A"))
-                table.addCell(createCell(event.locationCoordinates ?: "N/A"))
+                table.addCell(createCell(event.location ?: "N/A"))
             }
             
             document.add(table)
@@ -406,7 +547,7 @@ class DossierService(
                 table.addCell(createCell(event.processingType))
                 table.addCell(createCell(event.inputQuantity.toString()))
                 table.addCell(createCell(event.outputQuantity.toString()))
-                table.addCell(createCell(event.processingNotes ?: "N/A"))
+                table.addCell(createCell(event.notes ?: "N/A"))
             }
             
             document.add(table)
@@ -658,7 +799,7 @@ enum class DossierFormat {
 data class DossierResult(
     val batchId: String,
     val format: DossierFormat,
-    val content: String,
+    val content: Any, // Can be String (JSON) or ByteArray (PDF, ZIP)
     val contentType: String,
     val filename: String,
     val generatedAt: LocalDateTime
@@ -777,27 +918,29 @@ data class AuditLogSummary(
 
 data class SupplyChainEventSummary(
     val id: String,
-    val actionType: SupplyChainActionType,
+    val actionType: String, // Changed to String to accept both enum names and string values
     val fromEntityId: String?,
     val fromEntityType: String?,
-    val toEntityId: String,
+    val toEntityId: String?,
     val toEntityType: String,
-    val eventTimestamp: LocalDateTime,
-    val locationCoordinates: String?,
-    val transportMethod: String?
+    val timestamp: LocalDateTime,
+    val location: String?,
+    val transportMethod: String?,
+    val hederaTransactionId: String? = null
 ) {
     companion object {
         fun fromEvent(event: SupplyChainEvent): SupplyChainEventSummary {
             return SupplyChainEventSummary(
                 id = event.id,
-                actionType = event.actionType,
+                actionType = event.actionType.name,
                 fromEntityId = event.fromEntityId,
                 fromEntityType = event.fromEntityType,
                 toEntityId = event.toEntityId,
                 toEntityType = event.toEntityType,
-                eventTimestamp = event.eventTimestamp,
-                locationCoordinates = event.locationCoordinates,
-                transportMethod = event.transportMethod
+                timestamp = event.eventTimestamp,
+                location = event.locationCoordinates,
+                transportMethod = event.transportMethod,
+                hederaTransactionId = event.hederaTransactionId
             )
         }
     }
@@ -810,7 +953,8 @@ data class ProcessingEventSummary(
     val inputQuantity: BigDecimal,
     val outputQuantity: BigDecimal,
     val processingDate: LocalDateTime,
-    val processingNotes: String?
+    val notes: String? = null, // Changed from processingNotes to notes to match usage
+    val hederaTransactionId: String? = null
 ) {
     companion object {
         fun fromEvent(event: ProcessingEvent): ProcessingEventSummary {
@@ -821,7 +965,8 @@ data class ProcessingEventSummary(
                 inputQuantity = event.inputQuantity,
                 outputQuantity = event.outputQuantity,
                 processingDate = event.processingDate,
-                processingNotes = event.processingNotes
+                notes = event.processingNotes,
+                hederaTransactionId = event.hederaTransactionId
             )
         }
     }

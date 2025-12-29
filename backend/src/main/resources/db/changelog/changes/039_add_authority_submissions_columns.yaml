@@ -1,0 +1,60 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-authority-submissions-acknowledged-at
+      author: system
+      comment: Add acknowledged_at column to authority_submissions table
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            columnExists:
+              tableName: authority_submissions
+              columnName: acknowledged_at
+      changes:
+        - addColumn:
+            tableName: authority_submissions
+            columns:
+              - column:
+                  name: acknowledged_at
+                  type: datetime
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: add-authority-submissions-approved-at
+      author: system
+      comment: Add approved_at column to authority_submissions table
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            columnExists:
+              tableName: authority_submissions
+              columnName: approved_at
+      changes:
+        - addColumn:
+            tableName: authority_submissions
+            columns:
+              - column:
+                  name: approved_at
+                  type: datetime
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: add-authority-submissions-rejected-at
+      author: system
+      comment: Add rejected_at column to authority_submissions table
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            columnExists:
+              tableName: authority_submissions
+              columnName: rejected_at
+      changes:
+        - addColumn:
+            tableName: authority_submissions
+            columns:
+              - column:
+                  name: rejected_at
+                  type: datetime
+                  constraints:
+                    nullable: true

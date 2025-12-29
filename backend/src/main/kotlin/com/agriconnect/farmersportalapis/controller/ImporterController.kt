@@ -96,6 +96,40 @@ class ImporterController(
     }
 
     // ============================================
+    // HEDERA ACCOUNT MANAGEMENT
+    // ============================================
+
+    @PostMapping("/{importerId}/hedera-account")
+    @Operation(
+        summary = "Create Hedera account for importer",
+        description = "Creates a new Hedera account for the importer to enable receiving EUDR compliance certificate NFTs"
+    )
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EXPORTER') or (hasRole('IMPORTER') and #importerId == authentication.principal.entityId)")
+    fun createHederaAccount(
+        @PathVariable importerId: String
+    ): ResponseEntity<Map<String, Any?>> {
+        return try {
+            val accountData = importerService.createHederaAccountForImporter(importerId)
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "data" to accountData
+            ))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf(
+                "success" to false,
+                "message" to e.message,
+                "error" to "INVALID_REQUEST"
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().body(mapOf(
+                "success" to false,
+                "message" to "Failed to create Hedera account: ${e.message}",
+                "error" to "HEDERA_ACCOUNT_CREATION_FAILED"
+            ))
+        }
+    }
+
+    // ============================================
     // SHIPMENT MANAGEMENT
     // ============================================
 

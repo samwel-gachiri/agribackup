@@ -268,7 +268,19 @@ const routes = [
     },
   },
 
-  // === ADMIN MANAGEMENT ROUTES ===
+  // === EXPORTER EUDR DASHBOARD ===
+  {
+    path: "/exporter/eudr-dashboard",
+    name: "EudrDashboard",
+    component: () => import("../views/exporter/EudrDashboard.vue"),
+    meta: {
+      title: "EUDR Compliance Dashboard",
+      requiresAuth: true,
+      roles: ["EXPORTER", "SYSTEM_ADMIN"],
+      description: "EUDR compliance overview and quick actions",
+      icon: "mdi-view-dashboard",
+    },
+  },
   {
     path: "/exporter/supply-chain-workflow",
     name: "SupplyChainWorkflow",
@@ -291,6 +303,18 @@ const routes = [
       roles: ["EXPORTER", "SYSTEM_ADMIN"],
       description: "Manage aggregators in the supply chain",
       icon: "mdi-truck-delivery",
+    },
+  },
+  {
+    path: "/admin/suppliers",
+    name: "SupplierManagement",
+    component: () => import("../views/admin/SupplierManagement.vue"),
+    meta: {
+      title: "Supplier Management",
+      requiresAuth: true,
+      roles: ["EXPORTER", "SYSTEM_ADMIN"],
+      description: "Manage suppliers and supply chain partners",
+      icon: "mdi-account-group",
     },
   },
   {

@@ -78,53 +78,106 @@ class HederaTokenService(
      *        - originCountry
      *        - riskLevel (LOW/MEDIUM/HIGH)
      *        - traceabilityHash
-     * @return Pair of (Hedera transaction ID, NFT serial number)
+     * @return Triple of (Hedera transaction ID, NFT serial number, NFT token ID)
      */
     fun issueWorkflowComplianceCertificateNft(
         workflowId: String,
         exporterAccountId: AccountId,
         complianceData: Map<String, String>
-    ): Pair<String, Long> {
+    ): Triple<String, Long, String> {
         val tokenId = eudrComplianceCertificateNftId ?: createEudrComplianceCertificateNft()
+        
+        val maxRetries = 3
+        var lastException: Exception? = null
 
-        return try {
-            // Hedera NFT metadata limit: 100 bytes
-            // Store only essential identifier - full data is in consensus service
-            val metadata = "WORKFLOW:$workflowId".toByteArray()
-            
-            // Mint ONE unique NFT for this workflow
-            val transaction = TokenMintTransaction()
-                .setTokenId(tokenId)
-                .addMetadata(metadata) // NFTs require metadata (max 100 bytes)
-                .setMaxTransactionFee(Hbar.from(10))
-                .freezeWith(hederaNetworkInitialization.getClient())
-                .sign(hederaNetworkInitialization.getOperatorPrivateKey())
+        for (attempt in 1..maxRetries) {
+            try {
+                logger.info("Attempting to mint NFT for workflow $workflowId (attempt $attempt/$maxRetries)")
+                
+                // Hedera NFT metadata limit: 100 bytes
+                // Store only essential identifier - full data is in consensus service
+                val metadata = "WORKFLOW:$workflowId".toByteArray()
+                
+                // Mint ONE unique NFT for this workflow
+                val transaction = TokenMintTransaction()
+                    .setTokenId(tokenId)
+                    .addMetadata(metadata) // NFTs require metadata (max 100 bytes)
+                    .setMaxTransactionFee(Hbar.from(10))
+                    .freezeWith(hederaNetworkInitialization.getClient())
+                    .sign(hederaNetworkInitialization.getOperatorPrivateKey())
 
-            val response = transaction.execute(hederaNetworkInitialization.getClient())
-            val receipt = response.getReceipt(hederaNetworkInitialization.getClient())
-            val serialNumber = receipt.serials[0].toLong()
+                val response = transaction.execute(hederaNetworkInitialization.getClient())
+                val receipt = response.getReceipt(hederaNetworkInitialization.getClient())
+                val serialNumber = receipt.serials[0].toLong()
 
-            // Transfer NFT certificate to exporter's account
-            transferCertificateNft(tokenId, exporterAccountId, 1)
+                // Transfer NFT certificate to exporter's account (with retry)
+                transferCertificateNftWithRetry(tokenId, exporterAccountId, serialNumber)
 
-//            // Record certificate issuance on consensus service with full compliance data
-//            hederaConsensusService.recordWorkflowComplianceCertificateIssuance(
-//                workflowId = workflowId,
-//                exporterAccountId = exporterAccountId,
-//                nftSerialNumber = serialNumber,
-//                complianceData = complianceData
-//            )
-
-            val transactionId = receipt.transactionId.toString()
-            logger.info("Issued EUDR Compliance Certificate NFT for workflow $workflowId to exporter $exporterAccountId")
-            logger.info("NFT Serial Number: $serialNumber")
-            logger.info("Certificate details: $complianceData")
-            
-            Pair(transactionId, serialNumber)
-        } catch (e: Exception) {
-            logger.error("Failed to issue compliance certificate NFT for workflow $workflowId", e)
-            throw RuntimeException("Failed to issue EUDR compliance certificate NFT for workflow", e)
+                val transactionId = receipt.transactionId.toString()
+                val nftTokenId = tokenId.toString()
+                logger.info("Issued EUDR Compliance Certificate NFT for workflow $workflowId to exporter $exporterAccountId")
+                logger.info("NFT Token ID: $nftTokenId, Serial Number: $serialNumber")
+                logger.info("Certificate details: $complianceData")
+                
+                return Triple(transactionId, serialNumber, nftTokenId)
+            } catch (e: java.util.concurrent.TimeoutException) {
+                lastException = e
+                logger.warn("Timeout on attempt $attempt for minting NFT for workflow $workflowId. Retrying...")
+                if (attempt < maxRetries) {
+                    Thread.sleep(2000L * attempt) // Exponential backoff: 2s, 4s, 6s
+                }
+            } catch (e: Exception) {
+                lastException = e
+                // For non-timeout errors, check if it's retriable
+                if (e.cause is java.util.concurrent.TimeoutException) {
+                    logger.warn("Timeout (nested) on attempt $attempt for workflow $workflowId. Retrying...")
+                    if (attempt < maxRetries) {
+                        Thread.sleep(2000L * attempt)
+                    }
+                } else {
+                    // Non-retriable error
+                    logger.error("Failed to issue compliance certificate NFT for workflow $workflowId", e)
+                    throw RuntimeException("Failed to issue EUDR compliance certificate NFT for workflow", e)
+                }
+            }
         }
+        
+        logger.error("All $maxRetries attempts failed for minting NFT for workflow $workflowId", lastException)
+        throw RuntimeException("Failed to issue EUDR compliance certificate NFT after $maxRetries attempts", lastException)
+    }
+    
+    /**
+     * Transfer NFT to exporter with retry logic
+     */
+    private fun transferCertificateNftWithRetry(tokenId: TokenId, exporterAccountId: AccountId, serialNumber: Long) {
+        val maxRetries = 3
+        var lastException: Exception? = null
+        
+        for (attempt in 1..maxRetries) {
+            try {
+                transferCertificateNft(tokenId, exporterAccountId, serialNumber)
+                return
+            } catch (e: java.util.concurrent.TimeoutException) {
+                lastException = e
+                logger.warn("Timeout transferring NFT on attempt $attempt. Retrying...")
+                if (attempt < maxRetries) {
+                    Thread.sleep(2000L * attempt)
+                }
+            } catch (e: Exception) {
+                if (e.cause is java.util.concurrent.TimeoutException) {
+                    lastException = e
+                    logger.warn("Timeout (nested) transferring NFT on attempt $attempt. Retrying...")
+                    if (attempt < maxRetries) {
+                        Thread.sleep(2000L * attempt)
+                    }
+                } else {
+                    throw e
+                }
+            }
+        }
+        
+        logger.error("All $maxRetries attempts failed for transferring NFT", lastException)
+        throw RuntimeException("Failed to transfer NFT after $maxRetries attempts", lastException)
     }
 
     /**
@@ -202,33 +255,75 @@ class HederaTokenService(
      * @param fromAccountId Current holder of the NFT
      * @param toAccountId Recipient of the NFT (importer)
      * @param workflowId Workflow identifier for logging
+     * @param serialNumber The NFT serial number to transfer
      * @return true if transfer succeeded
      */
     fun transferWorkflowComplianceCertificateNft(
         fromAccountId: AccountId,
         toAccountId: AccountId,
-        workflowId: String
+        workflowId: String,
+        serialNumber: Long
     ): Boolean {
-        val tokenId = eudrComplianceCertificateNftId ?: return false
+        val tokenId = eudrComplianceCertificateNftId ?: run {
+            logger.error("No EUDR Compliance Certificate NFT token exists")
+            return false
+        }
 
         return try {
+            // First, ensure the recipient has associated with the token
+            ensureTokenAssociation(toAccountId, tokenId)
+            
+            // Create NftId for the specific NFT
+            val nftId = NftId(tokenId, serialNumber)
+            
+            // Use addNftTransfer for NFTs (not addTokenTransfer which is for fungible tokens)
             val transaction = TransferTransaction()
-                .addTokenTransfer(tokenId, fromAccountId, -1)
-                .addTokenTransfer(tokenId, toAccountId, 1)
+                .addNftTransfer(nftId, fromAccountId, toAccountId)
                 .freezeWith(hederaNetworkInitialization.getClient())
                 .sign(hederaNetworkInitialization.getOperatorPrivateKey())
 
-            transaction.execute(hederaNetworkInitialization.getClient())
+            val response = transaction.execute(hederaNetworkInitialization.getClient())
+            val receipt = response.getReceipt(hederaNetworkInitialization.getClient())
+            
+            if (receipt.status != Status.SUCCESS) {
+                logger.error("NFT transfer failed with status: ${receipt.status}")
+                return false
+            }
 
             // Record transfer on consensus service
             hederaConsensusService.recordWorkflowCertificateTransfer(workflowId, fromAccountId, toAccountId)
 
             logger.info("Transferred EUDR Compliance Certificate NFT for workflow $workflowId")
-            logger.info("From: $fromAccountId → To: $toAccountId")
+            logger.info("From: $fromAccountId → To: $toAccountId, Serial: $serialNumber")
             true
         } catch (e: Exception) {
             logger.error("Failed to transfer compliance certificate NFT for workflow $workflowId", e)
             false
+        }
+    }
+    
+    /**
+     * Ensure an account has associated with the EUDR certificate token
+     * Required before receiving NFTs on Hedera
+     */
+    private fun ensureTokenAssociation(accountId: AccountId, tokenId: TokenId) {
+        try {
+            // Try to associate - if already associated, this will fail gracefully
+            val transaction = TokenAssociateTransaction()
+                .setAccountId(accountId)
+                .setTokenIds(listOf(tokenId))
+                .freezeWith(hederaNetworkInitialization.getClient())
+                .sign(hederaNetworkInitialization.getOperatorPrivateKey())
+            
+            transaction.execute(hederaNetworkInitialization.getClient())
+            logger.info("Account $accountId associated with token $tokenId")
+        } catch (e: Exception) {
+            // TOKEN_ALREADY_ASSOCIATED_TO_ACCOUNT is expected if already associated
+            if (e.message?.contains("TOKEN_ALREADY_ASSOCIATED") == true) {
+                logger.debug("Account $accountId already associated with token $tokenId")
+            } else {
+                logger.warn("Could not associate token (may already be associated): ${e.message}")
+            }
         }
     }
 
@@ -239,25 +334,34 @@ class HederaTokenService(
      * @param fromAccountId Current holder of the NFT
      * @param toAccountId Recipient of the NFT (importer)
      * @param shipmentId Shipment identifier for logging
+     * @param serialNumber The NFT serial number to transfer
      * @return true if transfer succeeded
      */
     fun transferComplianceCertificateNft(
         fromAccountId: AccountId,
         toAccountId: AccountId,
-        shipmentId: String
+        shipmentId: String,
+        serialNumber: Long
     ): Boolean {
         val tokenId = eudrComplianceCertificateNftId ?: return false
 
         return try {
+            // Ensure recipient has associated with the token
+            ensureTokenAssociation(toAccountId, tokenId)
+            
+            // Create NftId for the specific NFT
+            val nftId = NftId(tokenId, serialNumber)
+            
+            // Use addNftTransfer for NFTs
             val transaction = TransferTransaction()
-                .addTokenTransfer(tokenId, fromAccountId, -1)
-                .addTokenTransfer(tokenId, toAccountId, 1)
+                .addNftTransfer(nftId, fromAccountId, toAccountId)
                 .freezeWith(hederaNetworkInitialization.getClient())
+                .sign(hederaNetworkInitialization.getOperatorPrivateKey())
 
             transaction.execute(hederaNetworkInitialization.getClient())
 
             logger.info("Transferred EUDR Compliance Certificate NFT for shipment $shipmentId")
-            logger.info("From: $fromAccountId → To: $toAccountId")
+            logger.info("From: $fromAccountId → To: $toAccountId, Serial: $serialNumber")
             true
         } catch (e: Exception) {
             logger.error("Failed to transfer compliance certificate NFT for shipment $shipmentId", e)
@@ -366,21 +470,27 @@ class HederaTokenService(
     }
 
     /**
-     * Generic NFT transfer (internal use)
+     * Transfer NFT from treasury to recipient (internal use during minting)
      */
-    private fun transferCertificateNft(tokenId: TokenId, toAccountId: AccountId, amount: Long): Boolean {
+    private fun transferCertificateNft(tokenId: TokenId, toAccountId: AccountId, serialNumber: Long): Boolean {
         return try {
             val operatorAccountId = hederaNetworkInitialization.getAccountId()
+            
+            // Ensure recipient has associated with the token
+            ensureTokenAssociation(toAccountId, tokenId)
+            
+            // Create NftId for the specific NFT
+            val nftId = NftId(tokenId, serialNumber)
 
+            // Use addNftTransfer for NFTs (not addTokenTransfer which is for fungible tokens)
             val transaction = TransferTransaction()
-                .addTokenTransfer(tokenId, operatorAccountId, -amount)
-                .addTokenTransfer(tokenId, toAccountId, amount)
+                .addNftTransfer(nftId, operatorAccountId, toAccountId)
                 .freezeWith(hederaNetworkInitialization.getClient())
                 .sign(hederaNetworkInitialization.getOperatorPrivateKey())
 
             transaction.execute(hederaNetworkInitialization.getClient())
 
-            logger.debug("Transferred $amount certificate NFT(s) from $operatorAccountId to $toAccountId")
+            logger.debug("Transferred certificate NFT serial $serialNumber from $operatorAccountId to $toAccountId")
             true
         } catch (e: Exception) {
             logger.error("Failed to transfer certificate NFT to $toAccountId", e)

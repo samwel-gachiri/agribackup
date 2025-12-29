@@ -71,7 +71,11 @@ data class ImporterRegistrationDto(
 data class AddBuyerProduceDto(val name: String)
 
 // Assign Roles DTO
-data class AssignRolesDto(val userId: String, val roles: List<RoleType>)
+data class AssignRolesDto(
+    val userId: String, 
+    val roles: List<RoleType>,
+    val supplierType: String? = null // Optional: AGGREGATOR, PROCESSOR, DISTRIBUTOR, etc.
+)
 
 // Login DTO
 data class LoginDto(

@@ -1,5 +1,7 @@
 package com.agriconnect.farmersportalapis.domain.supplychain
 
+import com.agriconnect.farmersportalapis.domain.eudr.EudrComplianceStage
+import com.agriconnect.farmersportalapis.domain.eudr.EudrRiskClassification
 import com.agriconnect.farmersportalapis.domain.profile.Exporter
 import jakarta.persistence.*
 import java.math.BigDecimal
@@ -61,6 +63,37 @@ class SupplyChainWorkflow(
 
     @Column(name = "certificate_issued_at")
     var certificateIssuedAt: LocalDateTime? = null,
+
+    // EUDR Compliance Stage Tracking
+    @Enumerated(EnumType.STRING)
+    @Column(name = "eudr_compliance_stage", length = 50)
+    var eudrComplianceStage: EudrComplianceStage = EudrComplianceStage.PRODUCTION_REGISTRATION,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "risk_classification", length = 30)
+    var riskClassification: EudrRiskClassification? = null,
+
+    @Column(name = "risk_score")
+    var riskScore: Double? = null,
+
+    @Column(name = "risk_assessed_at")
+    var riskAssessedAt: LocalDateTime? = null,
+
+    @Column(name = "dds_reference", length = 50)
+    var ddsReference: String? = null,
+
+    @Column(name = "dds_generated_at")
+    var ddsGeneratedAt: LocalDateTime? = null,
+
+    @Column(name = "dds_hedera_transaction_id", length = 100)
+    var ddsHederaTransactionId: String? = null,
+
+    @Column(name = "stage_updated_at")
+    var stageUpdatedAt: LocalDateTime? = null,
+
+    // Processing stage is optional - can be skipped for raw commodities
+    @Column(name = "skip_processing")
+    var skipProcessing: Boolean? = false,
 
     @OneToMany(mappedBy = "workflow", cascade = [CascadeType.ALL], orphanRemoval = true)
     var collectionEvents: MutableList<WorkflowCollectionEvent> = mutableListOf(),

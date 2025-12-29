@@ -1,0 +1,275 @@
+databaseChangeLog:
+  - changeSet:
+      id: 030-create-supply-chain-suppliers-table
+      author: system
+      changes:
+        - createTable:
+            tableName: supply_chain_suppliers
+            columns:
+              - column:
+                  name: supplier_id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_profile_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: supplier_name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: supplier_code
+                  type: varchar(100)
+                  constraints:
+                    nullable: true
+                    unique: true
+              - column:
+                  name: supplier_type
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: business_registration_number
+                  type: varchar(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: tax_id
+                  type: varchar(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: country_code
+                  type: varchar(3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: region
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: gps_latitude
+                  type: double
+                  constraints:
+                    nullable: true
+              - column:
+                  name: gps_longitude
+                  type: double
+                  constraints:
+                    nullable: true
+              - column:
+                  name: commodities_handled
+                  type: text
+                  constraints:
+                    nullable: true
+              - column:
+                  name: certifications
+                  type: text
+                  constraints:
+                    nullable: true
+              - column:
+                  name: capacity_per_month_kg
+                  type: decimal(15,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: hedera_account_id
+                  type: varchar(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: verification_status
+                  type: varchar(50)
+                  defaultValue: 'PENDING'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: verified_at
+                  type: timestamp
+                  constraints:
+                    nullable: true
+              - column:
+                  name: is_active
+                  type: tinyint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: parent_supplier_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            tableName: supply_chain_suppliers
+            indexName: idx_suppliers_parent_id
+            columns:
+              - column:
+                  name: parent_supplier_id
+
+        - createIndex:
+            tableName: supply_chain_suppliers
+            indexName: idx_suppliers_type
+            columns:
+              - column:
+                  name: supplier_type
+
+        - createIndex:
+            tableName: supply_chain_suppliers
+            indexName: idx_suppliers_verification_status
+            columns:
+              - column:
+                  name: verification_status
+
+        - createIndex:
+            tableName: supply_chain_suppliers
+            indexName: idx_suppliers_country_code
+            columns:
+              - column:
+                  name: country_code
+
+        - addForeignKeyConstraint:
+            baseTableName: supply_chain_suppliers
+            baseColumnNames: parent_supplier_id
+            referencedTableName: supply_chain_suppliers
+            referencedColumnNames: supplier_id
+            constraintName: fk_suppliers_parent
+            onDelete: SET NULL
+
+  - changeSet:
+      id: 030-create-supplier-connections-table
+      author: system
+      changes:
+        - createTable:
+            tableName: supplier_connections
+            columns:
+              - column:
+                  name: connection_id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workflow_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: from_supplier_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: to_supplier_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: connection_type
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity_kg
+                  type: decimal(15,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: transfer_date
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: batch_reference
+                  type: varchar(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: transport_method
+                  type: varchar(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: transport_document_ref
+                  type: varchar(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: notes
+                  type: text
+                  constraints:
+                    nullable: true
+              - column:
+                  name: hedera_transaction_id
+                  type: varchar(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            tableName: supplier_connections
+            indexName: idx_connections_workflow_id
+            columns:
+              - column:
+                  name: workflow_id
+
+        - createIndex:
+            tableName: supplier_connections
+            indexName: idx_connections_from_supplier
+            columns:
+              - column:
+                  name: from_supplier_id
+
+        - createIndex:
+            tableName: supplier_connections
+            indexName: idx_connections_to_supplier
+            columns:
+              - column:
+                  name: to_supplier_id
+
+        - addForeignKeyConstraint:
+            baseTableName: supplier_connections
+            baseColumnNames: workflow_id
+            referencedTableName: supply_chain_workflows
+            referencedColumnNames: workflow_id
+            constraintName: fk_connections_workflow
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: supplier_connections
+            baseColumnNames: from_supplier_id
+            referencedTableName: supply_chain_suppliers
+            referencedColumnNames: supplier_id
+            constraintName: fk_connections_from_supplier
+            onDelete: SET NULL
+
+        - addForeignKeyConstraint:
+            baseTableName: supplier_connections
+            baseColumnNames: to_supplier_id
+            referencedTableName: supply_chain_suppliers
+            referencedColumnNames: supplier_id
+            constraintName: fk_connections_to_supplier
+            onDelete: CASCADE

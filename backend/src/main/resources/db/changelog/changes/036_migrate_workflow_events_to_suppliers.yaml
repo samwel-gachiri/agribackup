@@ -1,0 +1,169 @@
+databaseChangeLog:
+  # Step 1: Copy existing aggregators to supply_chain_suppliers table
+  # This ensures existing workflow events can reference the new supplier entities
+  - changeSet:
+      id: 000-migrate-aggregators-to-suppliers
+      author: samwel
+      comment: "Migrate existing aggregators to supply_chain_suppliers table preserving IDs"
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: aggregators
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO supply_chain_suppliers (
+                supplier_id,
+                user_profile_id,
+                supplier_name,
+                supplier_code,
+                supplier_type,
+                business_registration_number,
+                country_code,
+                region,
+                commodities_handled,
+                certifications,
+                hedera_account_id,
+                verification_status,
+                is_active,
+                created_at,
+                updated_at
+              )
+              SELECT 
+                a.aggregator_id,
+                a.user_id,
+                a.organization_name,
+                CONCAT('AGG-', LEFT(a.aggregator_id, 8)),
+                CASE a.organization_type
+                  WHEN 'COOPERATIVE' THEN 'COOPERATIVE'
+                  WHEN 'FARMER_ASSOCIATION' THEN 'FARMER_GROUP'
+                  WHEN 'COLLECTION_CENTER' THEN 'AGGREGATOR'
+                  WHEN 'WAREHOUSE' THEN 'WAREHOUSE'
+                  ELSE 'AGGREGATOR'
+                END,
+                a.registration_number,
+                'KE',
+                COALESCE(a.facility_address, 'Unknown'),
+                a.primary_commodities,
+                a.certification_details,
+                a.hedera_account_id,
+                CASE a.verification_status
+                  WHEN 'VERIFIED' THEN 'VERIFIED'
+                  WHEN 'PENDING' THEN 'PENDING'
+                  WHEN 'REJECTED' THEN 'REJECTED'
+                  ELSE 'PENDING'
+                END,
+                TRUE,
+                a.created_at,
+                COALESCE(a.updated_at, NOW())
+              FROM aggregators a
+              WHERE NOT EXISTS (
+                SELECT 1 FROM supply_chain_suppliers s WHERE s.supplier_id = a.aggregator_id
+              );
+
+  # Step 2: Copy existing processors to supply_chain_suppliers table
+  - changeSet:
+      id: 000b-migrate-processors-to-suppliers
+      author: samwel
+      comment: "Migrate existing processors to supply_chain_suppliers table preserving IDs"
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: processors
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO supply_chain_suppliers (
+                supplier_id,
+                user_profile_id,
+                supplier_name,
+                supplier_code,
+                supplier_type,
+                country_code,
+                region,
+                certifications,
+                hedera_account_id,
+                verification_status,
+                is_active,
+                created_at,
+                updated_at
+              )
+              SELECT 
+                p.processor_id,
+                p.user_id,
+                p.facility_name,
+                CONCAT('PROC-', LEFT(p.processor_id, 8)),
+                'PROCESSOR',
+                'KE',
+                'Unknown',
+                p.certification_details,
+                p.hedera_account_id,
+                CASE p.verification_status
+                  WHEN 'VERIFIED' THEN 'VERIFIED'
+                  WHEN 'PENDING' THEN 'PENDING'
+                  WHEN 'REJECTED' THEN 'REJECTED'
+                  ELSE 'PENDING'
+                END,
+                TRUE,
+                p.created_at,
+                COALESCE(p.created_at, NOW())
+              FROM processors p
+              WHERE NOT EXISTS (
+                SELECT 1 FROM supply_chain_suppliers s WHERE s.supplier_id = p.processor_id
+              );
+
+  - changeSet:
+      id: 001-rename-aggregator-to-collector-supplier
+      author: samwel
+      changes:
+        - renameColumn:
+            tableName: workflow_collection_events
+            oldColumnName: aggregator_id
+            newColumnName: collector_supplier_id
+            columnDataType: VARCHAR(36)
+
+  - changeSet:
+      id: 002-rename-consolidation-suppliers
+      author: samwel
+      changes:
+        - renameColumn:
+            tableName: workflow_consolidation_events
+            oldColumnName: aggregator_id
+            newColumnName: source_supplier_id
+            columnDataType: VARCHAR(36)
+
+        - renameColumn:
+            tableName: workflow_consolidation_events
+            oldColumnName: processor_id
+            newColumnName: target_supplier_id
+            columnDataType: VARCHAR(36)
+
+  - changeSet:
+      id: 003-rename-processing-supplier
+      author: samwel
+      changes:
+        - renameColumn:
+            tableName: workflow_processing_events
+            oldColumnName: processor_id
+            newColumnName: processor_supplier_id
+            columnDataType: VARCHAR(36)
+
+  - changeSet:
+      id: 004-rename-shipment-supplier-and-make-nullable
+      author: samwel
+      changes:
+        - renameColumn:
+            tableName: workflow_shipment_events
+            oldColumnName: processor_id
+            newColumnName: shipper_supplier_id
+            columnDataType: VARCHAR(36)
+
+        - modifyDataType:
+            tableName: workflow_shipment_events
+            columnName: shipper_supplier_id
+            newDataType: VARCHAR(36)
+
+        - dropNotNullConstraint:
+            tableName: workflow_shipment_events
+            columnName: shipper_supplier_id
+            columnDataType: VARCHAR(36)

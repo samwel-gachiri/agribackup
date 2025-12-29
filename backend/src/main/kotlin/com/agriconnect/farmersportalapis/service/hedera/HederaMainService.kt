@@ -41,6 +41,17 @@ class HederaMainService(
     // Batches can also be taken to processors
     fun recordProcessingEvent(event: ProcessingEvent) = hcs.recordProcessingEvent(event)
 
+    // Record processing event from workflow (without requiring full entity)
+    fun recordWorkflowProcessingEvent(
+        eventId: String,
+        processorId: String,
+        processingType: String,
+        inputQuantity: BigDecimal,
+        outputQuantity: BigDecimal,
+        processingDate: java.time.LocalDateTime,
+        processingNotes: String?
+    ) = hcs.recordWorkflowProcessingEvent(eventId, processorId, processingType, inputQuantity, outputQuantity, processingDate, processingNotes)
+
     // Record risk assessment result when it happens
     fun recordRiskAssessment(
         batchId: String,
@@ -105,13 +116,13 @@ class HederaMainService(
      *        - originCountry
      *        - riskLevel (LOW/MEDIUM/HIGH)
      *        - traceabilityHash
-     * @return Pair of (Hedera transaction ID, NFT serial number)
+     * @return Triple of (Hedera transaction ID, NFT serial number, NFT token ID)
      */
     fun issueWorkflowComplianceCertificateNft(
         workflowId: String,
         exporterAccountId: AccountId,
         complianceData: Map<String, String>
-    ) = hts.issueWorkflowComplianceCertificateNft(workflowId, exporterAccountId, complianceData)
+    ): Triple<String, Long, String> = hts.issueWorkflowComplianceCertificateNft(workflowId, exporterAccountId, complianceData)
 
     /**
      * Transfer EUDR Compliance Certificate NFT for a workflow to another account
@@ -120,13 +131,15 @@ class HederaMainService(
      * @param fromAccountId Current holder of the NFT
      * @param toAccountId Recipient of the NFT (importer)
      * @param workflowId Workflow identifier for logging
+     * @param serialNumber The NFT serial number to transfer
      * @return true if transfer succeeded
      */
     fun transferWorkflowComplianceCertificateNft(
         fromAccountId: AccountId,
         toAccountId: AccountId,
-        workflowId: String
-    ) = hts.transferWorkflowComplianceCertificateNft(fromAccountId, toAccountId, workflowId)
+        workflowId: String,
+        serialNumber: Long
+    ) = hts.transferWorkflowComplianceCertificateNft(fromAccountId, toAccountId, workflowId, serialNumber)
 
     /**
      * Issue EUDR Compliance Certificate NFT for a shipment
@@ -164,11 +177,13 @@ class HederaMainService(
      * @param fromAccountId Current holder of the NFT
      * @param toAccountId Recipient of the NFT (importer)
      * @param shipmentId Shipment identifier for logging
+     * @param serialNumber The NFT serial number to transfer
      * @return true if transfer succeeded
      */
     fun transferComplianceCertificateNft(
         fromAccountId: AccountId,
         toAccountId: AccountId,
-        shipmentId: String
-    ) = hts.transferComplianceCertificateNft(fromAccountId, toAccountId, shipmentId)
+        shipmentId: String,
+        serialNumber: Long
+    ) = hts.transferComplianceCertificateNft(fromAccountId, toAccountId, shipmentId, serialNumber)
 }

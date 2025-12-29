@@ -210,20 +210,20 @@ export default {
   props: {
     exporter: {
       type: Object,
-      default: () => null
-    }
+      default: () => null,
+    },
   },
   methods: {
     getStatusColor(status) {
       const colors = {
-        'VERIFIED': 'success',
-        'PENDING': 'warning',
-        'REJECTED': 'error'
-      }
-      return colors[status] || 'grey'
-    }
-  }
-}
+        VERIFIED: 'success',
+        PENDING: 'warning',
+        REJECTED: 'error',
+      };
+      return colors[status] || 'grey';
+    },
+  },
+};
 </script>
 
 <style scoped>

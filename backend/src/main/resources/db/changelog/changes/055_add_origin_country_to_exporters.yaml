@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-origin-country-to-exporters
+      author: system
+      comment: Add origin_country and origin_country_code fields to exporters for EUDR compliance
+      changes:
+        - addColumn:
+            tableName: exporters
+            columns:
+              - column:
+                  name: origin_country
+                  type: VARCHAR(100)
+                  remarks: "Primary country of origin for exported commodities (for EUDR)"
+              - column:
+                  name: origin_country_code
+                  type: VARCHAR(3)
+                  remarks: "ISO 3166-1 alpha-3 country code"
+      rollback:
+        - dropColumn:
+            tableName: exporters
+            columnName: origin_country
+        - dropColumn:
+            tableName: exporters
+            columnName: origin_country_code

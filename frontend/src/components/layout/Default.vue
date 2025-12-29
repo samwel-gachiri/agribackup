@@ -16,7 +16,6 @@
         <v-app-bar-nav-icon class="tw-block" @click="toggleNav">
           <v-icon>mdi-menu</v-icon>
         </v-app-bar-nav-icon>
-        <avatar class="ml-2" ref="avatar" />
         <v-toolbar-title class="brand-title ml-2" @click="$router.push({ name: 'Dashboard' })">
           <span class="brand-dot" />
           <span class="brand-text">Agri Portal</span>
@@ -44,6 +43,7 @@
         <!-- <v-btn icon class="mr-1" @click="$router.push({ name: 'Settings' })" title="Settings">
           <v-icon>mdi-cog</v-icon>
         </v-btn> -->
+        <avatar class="ml-2" ref="avatar" />
         <div v-if="!isAuthenticated()" class="ml-2">
           <v-btn to="/signin" rounded class="btn-glass-outline">
             <span class="mr-1">Login</span>

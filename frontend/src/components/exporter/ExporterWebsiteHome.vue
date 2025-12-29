@@ -191,46 +191,46 @@ export default {
   props: {
     exporter: {
       type: Object,
-      default: () => null
+      default: () => null,
     },
     products: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     certificates: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
   computed: {
     featuredProducts() {
-      return this.products.slice(0, 6)
+      return this.products.slice(0, 6);
     },
     featuredCertificates() {
-      return this.certificates.slice(0, 3)
-    }
+      return this.certificates.slice(0, 3);
+    },
   },
   methods: {
     formatDate(dateString) {
-      if (!dateString) return 'N/A'
+      if (!dateString) return 'N/A';
       try {
-        return new Date(dateString).toLocaleDateString()
+        return new Date(dateString).toLocaleDateString();
       } catch {
-        return dateString
+        return dateString;
       }
     },
     getRiskColor(riskLevel) {
       const colors = {
-        'NONE': 'success',
-        'LOW': 'info',
-        'MEDIUM': 'warning',
-        'HIGH': 'error',
-        'CRITICAL': 'error'
-      }
-      return colors[riskLevel] || 'grey'
-    }
-  }
-}
+        NONE: 'success',
+        LOW: 'info',
+        MEDIUM: 'warning',
+        HIGH: 'error',
+        CRITICAL: 'error',
+      };
+      return colors[riskLevel] || 'grey';
+    },
+  },
+};
 </script>
 
 <style scoped>

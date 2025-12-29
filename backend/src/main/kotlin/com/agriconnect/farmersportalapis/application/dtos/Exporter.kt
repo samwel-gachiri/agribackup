@@ -25,7 +25,11 @@ data class CreateExporterRequestDto(
 data class UpdateExporterRequestDto(
     val name: String?,
     val email: String?,
-    val phoneNumber: String?
+    val phoneNumber: String?,
+    val companyName: String?,
+    val companyDesc: String?,
+    val originCountry: String?,
+    val originCountryCode: String?
 )
 
 //@Builder
@@ -57,7 +61,9 @@ data class ExporterResponseDto(
     val companyDesc: String?,
     val licenseId: String?,
     val verificationStatus: ExporterVerificationStatus,
-    val exportLicenseFormUrl: String?
+    val exportLicenseFormUrl: String?,
+    val originCountry: String? = "",
+    val originCountryCode: String? = ""
 )
 
 //@Builder

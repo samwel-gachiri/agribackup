@@ -20,7 +20,11 @@ import com.agriconnect.farmersportalapis.domain.eudr.Importer
 import com.agriconnect.farmersportalapis.domain.eudr.Processor
 import com.agriconnect.farmersportalapis.domain.profile.Exporter
 import com.agriconnect.farmersportalapis.domain.profile.Farmer
+import com.agriconnect.farmersportalapis.domain.supplychain.SupplierType
+import com.agriconnect.farmersportalapis.domain.supplychain.SupplierVerificationStatus
+import com.agriconnect.farmersportalapis.domain.supplychain.SupplyChainSupplier
 import com.agriconnect.farmersportalapis.infrastructure.repositories.*
+import com.agriconnect.farmersportalapis.repository.SupplyChainSupplierRepository
 import com.agriconnect.farmersportalapis.service.common.ImporterService
 import com.agriconnect.farmersportalapis.service.hedera.HederaAccountService
 import com.agriconnect.farmersportalapis.service.hedera.HederaTokenService
@@ -53,6 +57,7 @@ class AuthService(
         private val aggregatorRepository: AggregatorRepository,
         private val processorRepository: ProcessorRepository,
         private val importerRepository: ImporterRepository,
+        private val supplyChainSupplierRepository: SupplyChainSupplierRepository,
         private val adminRepository: AdminEntityRepository,
         private val systemAdminRepository: SystemAdminRepository,
         private val zoneSupervisorRepository: ZoneSupervisorRepository,
@@ -1419,6 +1424,26 @@ class AuthService(
                             }
                         }
                         RoleType.USER -> {}
+                        RoleType.SUPPLIER -> {
+                            logger.debug(
+                                    "[AuthService] Resolving Supplier entity for userId={}",
+                                    user.id
+                            )
+                            supplyChainSupplierRepository.findByUserProfileId(user.id)?.let { s ->
+                                mapOf(
+                                        "id" to s.id,
+                                        "userId" to (s.userProfile?.id ?: ""),
+                                        "fullName" to (s.userProfile?.fullName ?: ""),
+                                        "email" to (s.userProfile?.email ?: ""),
+                                        "phoneNumber" to (s.userProfile?.phoneNumber ?: ""),
+                                        "supplierName" to s.supplierName,
+                                        "supplierType" to s.supplierType.name,
+                                        "supplierCode" to (s.supplierCode ?: ""),
+                                        "verificationStatus" to s.verificationStatus.name,
+                                        "hederaAccountId" to (s.hederaAccountId ?: "")
+                                )
+                            }
+                        }
                     }
             logger.debug(
                     "[AuthService] Role-specific data retrieved: roleType={}, data={}",
@@ -2038,6 +2063,21 @@ class AuthService(
                                     )
                                 }
                         RoleType.USER -> null
+                        RoleType.SUPPLIER ->
+                                supplyChainSupplierRepository.findByUserProfileId(user.id)?.let { s ->
+                                    mapOf(
+                                            "id" to s.id,
+                                            "userId" to (s.userProfile?.id ?: ""),
+                                            "fullName" to (s.userProfile?.fullName ?: ""),
+                                            "email" to (s.userProfile?.email ?: ""),
+                                            "phoneNumber" to (s.userProfile?.phoneNumber ?: ""),
+                                            "supplierName" to s.supplierName,
+                                            "supplierType" to s.supplierType.name,
+                                            "supplierCode" to (s.supplierCode ?: ""),
+                                            "verificationStatus" to s.verificationStatus.name,
+                                            "hederaAccountId" to (s.hederaAccountId ?: "")
+                                    )
+                                }
                     }
 
             val loginResponse = LoginResponseDto(token = token, roleSpecificData = roleSpecificData)
@@ -2128,6 +2168,30 @@ class AuthService(
                             importerRepository.save(importer)
                         }
                     }
+                    RoleType.SUPPLIER -> {
+                        // Create SupplyChainSupplier entity with the specified supplier type
+                        if (supplyChainSupplierRepository.findByUserProfile(user) == null) {
+                            val supplierTypeEnum = request.supplierType?.let { type ->
+                                try {
+                                    SupplierType.valueOf(type.uppercase())
+                                } catch (e: IllegalArgumentException) {
+                                    SupplierType.OTHER // Default if invalid type
+                                }
+                            } ?: SupplierType.OTHER
+                            
+                            val supplier = SupplyChainSupplier(
+                                id = UUID.randomUUID().toString(),
+                                userProfile = user,
+                                supplierName = user.fullName ?: "My Supply Business",
+                                supplierCode = "SUP-${UUID.randomUUID().toString().take(8).uppercase()}",
+                                supplierType = supplierTypeEnum,
+                                verificationStatus = SupplierVerificationStatus.PENDING,
+                                countryCode = "KE", // Default to Kenya
+                                isActive = true
+                            )
+                            supplyChainSupplierRepository.save(supplier)
+                        }
+                    }
                     else -> {}
                 }
             }
@@ -2146,6 +2210,7 @@ class AuthService(
             "AGGREGATOR" -> "Aggregator"
             "PROCESSOR" -> "Processor"
             "IMPORTER" -> "Importer"
+            "SUPPLIER" -> "Supplier"
             else -> roleName.lowercase().replaceFirstChar { it.uppercase() }
         }
     }
@@ -2159,6 +2224,7 @@ class AuthService(
             "AGGREGATOR" -> "Collect and distribute agricultural products"
             "PROCESSOR" -> "Process and package agricultural products"
             "IMPORTER" -> "Import agricultural products"
+            "SUPPLIER" -> "Supply chain participant (aggregator, processor, distributor, etc.)"
             else -> null
         }
     }

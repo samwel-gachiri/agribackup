@@ -590,12 +590,16 @@ export default {
       submissions: [],
 
       statusOptions: [
-        'SUBMITTED',
-        'PENDING_REVIEW',
-        'UNDER_REVIEW',
-        'APPROVED',
-        'REJECTED',
-        'REQUIRES_ACTION',
+        { text: 'All Statuses', value: null },
+        { text: 'Draft', value: 'DRAFT' },
+        { text: 'Submitted', value: 'SUBMITTED' },
+        { text: 'Pending Review', value: 'PENDING_REVIEW' },
+        { text: 'Under Review', value: 'UNDER_REVIEW' },
+        { text: 'Approved', value: 'APPROVED' },
+        { text: 'Rejected', value: 'REJECTED' },
+        { text: 'Requires Action', value: 'REQUIRES_ACTION' },
+        { text: 'Resubmitted', value: 'RESUBMITTED' },
+        { text: 'Expired', value: 'EXPIRED' },
       ],
 
       // Generate report dialog
@@ -628,10 +632,11 @@ export default {
       formatOptions: ['PDF', 'JSON', 'ZIP'],
 
       authorities: [
-        { code: 'EU-DG-ENV', name: 'EU DG Environment' },
-        { code: 'EU-CUSTOMS', name: 'EU Customs Union' },
-        { code: 'EUTR-CA', name: 'EUTR Competent Authority' },
-        { code: 'LOCAL-FOREST', name: 'Local Forest Authority' },
+        { code: 'TRACES_NT', name: 'EU TRACES NT System (DDS Submission)', isTracesNt: true },
+        { code: 'EU_EUDR_PORTAL', name: 'EU EUDR Information System' },
+        { code: 'CBAM', name: 'Carbon Border Adjustment Mechanism (CBAM)' },
+        { code: 'NATIONAL', name: 'National Authority' },
+        { code: 'OTHER', name: 'Other Authority' },
       ],
 
       generatedReport: null,
@@ -761,8 +766,11 @@ export default {
       }
 
       try {
-        // Use the blob directly (already created from axios response)
-        const blob = this.generatedReport.content;
+        // Ensure we have a proper Blob object for the PDF
+        const content = this.generatedReport.content;
+        const blob = content instanceof Blob
+          ? content
+          : new Blob([content], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
 
         // Create download link
@@ -794,7 +802,10 @@ export default {
           responseType: 'blob',
         });
 
-        const blob = new Blob([response.data], { type: 'application/pdf' });
+        // response.data is already a Blob when responseType is 'blob'
+        const blob = response.data instanceof Blob
+          ? response.data
+          : new Blob([response.data], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;

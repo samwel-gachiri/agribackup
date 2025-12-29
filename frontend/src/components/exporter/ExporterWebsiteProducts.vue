@@ -233,57 +233,57 @@ export default {
   props: {
     products: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     certificates: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
   data() {
     return {
       productDialog: false,
-      selectedProduct: null
-    }
+      selectedProduct: null,
+    };
   },
   methods: {
     formatNumber(num) {
-      if (!num) return '0'
-      return new Intl.NumberFormat().format(num)
+      if (!num) return '0';
+      return new Intl.NumberFormat().format(num);
     },
     formatDate(dateString) {
-      if (!dateString) return 'N/A'
+      if (!dateString) return 'N/A';
       try {
-        return new Date(dateString).toLocaleDateString()
+        return new Date(dateString).toLocaleDateString();
       } catch {
-        return dateString
+        return dateString;
       }
     },
     getStatusColor(status) {
       const colors = {
-        'PENDING': 'warning',
-        'APPROVED': 'success',
-        'REJECTED': 'error',
-        'PROCESSING': 'info'
-      }
-      return colors[status] || 'grey'
+        PENDING: 'warning',
+        APPROVED: 'success',
+        REJECTED: 'error',
+        PROCESSING: 'info',
+      };
+      return colors[status] || 'grey';
     },
     getRiskColor(riskLevel) {
       const colors = {
-        'NONE': 'success',
-        'LOW': 'info',
-        'MEDIUM': 'warning',
-        'HIGH': 'orange',
-        'CRITICAL': 'error'
-      }
-      return colors[riskLevel] || 'grey'
+        NONE: 'success',
+        LOW: 'info',
+        MEDIUM: 'warning',
+        HIGH: 'orange',
+        CRITICAL: 'error',
+      };
+      return colors[riskLevel] || 'grey';
     },
     showProductDetails(product) {
-      this.selectedProduct = product
-      this.productDialog = true
-    }
-  }
-}
+      this.selectedProduct = product;
+      this.productDialog = true;
+    },
+  },
+};
 </script>
 
 <style scoped>

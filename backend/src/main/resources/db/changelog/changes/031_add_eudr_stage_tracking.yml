@@ -1,0 +1,298 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_eudr_stage_tracking_columns
+      author: AgriConnect
+      comment: "Add EUDR compliance stage tracking fields to supply_chain_workflows"
+      changes:
+        - addColumn:
+            tableName: supply_chain_workflows
+            columns:
+              - column:
+                  name: eudr_compliance_stage
+                  type: VARCHAR(50)
+                  defaultValue: 'PRODUCTION_REGISTRATION'
+                  constraints:
+                    nullable: true
+              - column:
+                  name: risk_classification
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: risk_score
+                  type: DOUBLE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: risk_assessed_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+              - column:
+                  name: dds_reference
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: dds_generated_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+              - column:
+                  name: dds_hedera_transaction_id
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: stage_updated_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: create_workflow_stage_history_table
+      author: AgriConnect
+      comment: "Create table to track EUDR workflow stage history for audit trail"
+      changes:
+        - createTable:
+            tableName: workflow_stage_history
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workflow_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_stage_history_workflow
+                    references: supply_chain_workflows(workflow_id)
+              - column:
+                  name: from_stage
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: to_stage
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reason
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: performed_by
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: create_stage_history_workflow_index
+      author: AgriConnect
+      comment: "Create index on workflow_id for faster stage history lookups"
+      changes:
+        - createIndex:
+            tableName: workflow_stage_history
+            indexName: idx_stage_history_workflow
+            columns:
+              - column:
+                  name: workflow_id
+
+  - changeSet:
+      id: create_workflow_risk_assessments_table
+      author: AgriConnect
+      comment: "Create table to store detailed risk assessments for workflows"
+      changes:
+        - createTable:
+            tableName: workflow_risk_assessments
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workflow_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_risk_assessment_workflow
+                    references: supply_chain_workflows(workflow_id)
+              - column:
+                  name: overall_score
+                  type: DOUBLE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: risk_classification
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: country_risk_score
+                  type: DOUBLE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: deforestation_risk_score
+                  type: DOUBLE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: supply_chain_complexity_score
+                  type: DOUBLE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: factors_json
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: recommended_actions_json
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: assessed_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: assessed_by
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: create_workflow_due_diligence_statements_table
+      author: AgriConnect
+      comment: "Create table to store Due Diligence Statements (DDS) for EUDR compliance"
+      changes:
+        - createTable:
+            tableName: workflow_due_diligence_statements
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: dds_reference
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: workflow_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dds_workflow
+                    references: supply_chain_workflows(workflow_id)
+              - column:
+                  name: exporter_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: produce_type
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_quantity_kg
+                  type: DECIMAL(15,2)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: production_units_count
+                  type: INT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: countries_of_origin
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: risk_classification
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  defaultValue: 'GENERATED'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: generated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: submitted_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+              - column:
+                  name: authorized_by
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: document_hash
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: pdf_url
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: create_dds_reference_index
+      author: AgriConnect
+      comment: "Create index on dds_reference for faster lookups"
+      changes:
+        - createIndex:
+            tableName: workflow_due_diligence_statements
+            indexName: idx_dds_reference
+            columns:
+              - column:
+                  name: dds_reference

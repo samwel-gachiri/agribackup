@@ -156,6 +156,35 @@ class HederaConsensusServices(
         return submitConsensusMessage(message)
     }
 
+    /**
+     * Record workflow processing event without requiring full entity
+     */
+    fun recordWorkflowProcessingEvent(
+        eventId: String,
+        processorId: String,
+        processingType: String,
+        inputQuantity: java.math.BigDecimal,
+        outputQuantity: java.math.BigDecimal,
+        processingDate: java.time.LocalDateTime,
+        processingNotes: String?
+    ): String {
+        val message = createConsensusMessage(
+            eventType = "WORKFLOW_PROCESSING_EVENT",
+            entityId = eventId,
+            entityType = "WorkflowProcessingEvent",
+            data = mapOf(
+                "processorId" to processorId,
+                "processingType" to processingType,
+                "inputQuantity" to inputQuantity.toString(),
+                "outputQuantity" to outputQuantity.toString(),
+                "processingDate" to processingDate.toString(),
+                "processingNotes" to (processingNotes ?: "")
+            )
+        )
+
+        return submitConsensusMessage(message)
+    }
+
     fun recordProductionUnitVerification(productionUnit: ProductionUnit): String {
         val message = createConsensusMessage(
             eventType = "PRODUCTION_UNIT_VERIFIED",

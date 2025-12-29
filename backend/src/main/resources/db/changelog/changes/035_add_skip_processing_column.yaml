@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 035-add-skip-processing-column
+      author: system
+      comment: "Add skip_processing column to supply_chain_workflows for optional processing stage"
+      changes:
+        - addColumn:
+            tableName: supply_chain_workflows
+            columns:
+              - column:
+                  name: skip_processing
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: true
+      rollback:
+        - dropColumn:
+            tableName: supply_chain_workflows
+            columnName: skip_processing

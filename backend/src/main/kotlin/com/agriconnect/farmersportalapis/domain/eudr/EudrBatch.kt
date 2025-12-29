@@ -1,5 +1,6 @@
 package com.agriconnect.farmersportalapis.domain.eudr
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
 import java.math.BigDecimal
@@ -49,10 +50,12 @@ class EudrBatch(
     @Column(name = "created_by", nullable = false)
     var createdBy: String,
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "aggregator_id")
     var aggregator: Aggregator? = null,
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "processor_id")
     var processor: Processor? = null,
@@ -78,24 +81,31 @@ class EudrBatch(
     @Column(name = "hedera_consensus_timestamp")
     var hederaConsensusTimestamp: Instant?,
 
+    @JsonIgnore
     @OneToMany(mappedBy = "batch", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var productionUnits: MutableList<BatchProductionUnit> = mutableListOf(),
 
+    @JsonIgnore
     @OneToMany(mappedBy = "batch", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var supplyChainEvents: MutableList<SupplyChainEvent> = mutableListOf(),
 
+    @JsonIgnore
     @OneToMany(mappedBy = "batch", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var documents: MutableList<EudrDocument> = mutableListOf(),
 
+    @JsonIgnore
     @OneToMany(mappedBy = "batch", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var processingEvents: MutableList<ProcessingEvent> = mutableListOf(),
 
+    @JsonIgnore
     @OneToMany(mappedBy = "batch", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var farmerCollections: MutableList<FarmerCollection> = mutableListOf(),
 
+    @JsonIgnore
     @OneToOne(mappedBy = "batch", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var shipment: BatchShipment? = null,
 
+    @JsonIgnore
     @OneToMany(mappedBy = "batch", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var inspections: MutableList<BatchInspection> = mutableListOf()
 )

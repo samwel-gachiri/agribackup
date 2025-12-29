@@ -1,163 +1,190 @@
 <template>
-  <div class="tw-h-full tw-flex tw-flex-col tw-bg-white tw-relative" :class="{ 'tw-fixed tw-inset-0 tw-z-50 tw-bottom-0 tw-left-0 tw-right-0 tw-top-0': isFullscreen }">
-    <!-- Map Container (Full Height) -->
-    <div ref="mapView" class="tw-w-full tw-h-full"></div>
-
-    <!-- Toolbar: Drawing Tools + Basemap Toggle + Fullscreen (Top Right) -->
-    <div class="tw-absolute tw-top-3 tw-right-3 tw-z-20 tw-bg-white tw-rounded-lg tw-shadow-lg tw-p-3 tw-flex tw-gap-2 tw-items-center">
-      <!-- Drawing Tools -->
-      <div class="tw-flex tw-gap-2">
-        <v-tooltip bottom>
-          <template #activator="{ on, attrs }">
-            <v-btn
-              v-bind="attrs"
-              v-on="on"
-              small
-              :color="isDrawing ? 'primary' : 'default'"
-              :disabled="isDrawing || loading"
-              @click="startDrawing"
-            >
-              Draw plot area
-              <v-icon small>mdi-pencil</v-icon>
-            </v-btn>
-          </template>
-          <span>Draw Unit</span>
-        </v-tooltip>
-
-        <v-tooltip bottom>
-          <template #activator="{ on, attrs }">
-            <v-btn
-              v-bind="attrs"
-              v-on="on"
-              small
-              color="red"
-              :disabled="!unitPolygon || loading"
-              @click="clearDrawing"
-              icon
-            >
-              <v-icon small>mdi-eraser</v-icon>
-            </v-btn>
-          </template>
-          <span>Clear</span>
-        </v-tooltip>
-
-        <v-tooltip bottom>
-          <template #activator="{ on, attrs }">
-            <v-btn
-              v-bind="attrs"
-              v-on="on"
-              small
-              color="success"
-              :disabled="!unitPolygon || loading"
-              @click="saveUnit"
-              icon
-            >
-              <v-icon small>mdi-check-circle</v-icon>
-            </v-btn>
-          </template>
-          <span>Done</span>
-        </v-tooltip>
+  <div class="production-unit-drawer">
+    <!-- Top Bar with Drawing Tools -->
+    <div class="top-bar">
+      <!-- Left: Instructions Toggle -->
+      <div class="top-bar-left">
+        <v-btn
+          v-if="!isDrawing"
+          small
+          text
+          :color="showInstructions ? 'primary' : 'grey'"
+          @click="showInstructions = !showInstructions"
+        >
+          <v-icon small left>mdi-help-circle-outline</v-icon>
+          Help
+        </v-btn>
+        <v-chip v-if="isDrawing" small color="blue" text-color="white" class="tw-animate-pulse">
+          <v-icon small left>mdi-pencil</v-icon>
+          Drawing: {{ currentDrawingPoints }} points
+        </v-chip>
       </div>
 
-      <!-- Separator -->
-      <v-divider vertical></v-divider>
+      <!-- Center: Main Drawing Controls -->
+      <div class="top-bar-center">
+        <v-btn
+          small
+          :color="isDrawing ? 'primary' : 'success'"
+          :disabled="isDrawing || loading"
+          @click="startDrawing"
+          class="tw-mx-1"
+        >
+          <v-icon small left>mdi-pencil</v-icon>
+          {{ isDrawing ? 'Drawing...' : 'Draw' }}
+        </v-btn>
 
-      <!-- Basemap Toggle -->
-      <v-menu offset-y>
-        <template #activator="{ on, attrs }">
-          <v-tooltip bottom>
-            <template #activator="{ on: onTooltip, attrs: attrsTooltip }">
-              <v-btn
-                v-bind="{ ...attrs, ...attrsTooltip }"
-                v-on="{ ...on, ...onTooltip }"
-                small
-                icon
-              >
-                <v-icon small>mdi-layers</v-icon>
-              </v-btn>
-            </template>
-            <span>Map Layer</span>
-          </v-tooltip>
-        </template>
-        <v-list dense>
-          <v-list-item @click="changeBasemap('hybrid')">
-            <v-list-item-title>
-              <v-icon small :color="currentBasemap === 'hybrid' ? 'primary' : ''">
-                mdi-check-circle
-              </v-icon>
-              Hybrid (Satellite + Labels)
-            </v-list-item-title>
-          </v-list-item>
-          <v-list-item @click="changeBasemap('satellite')">
-            <v-list-item-title>
-              <v-icon small :color="currentBasemap === 'satellite' ? 'primary' : ''">
-                mdi-check-circle
-              </v-icon>
-              Satellite Only
-            </v-list-item-title>
-          </v-list-item>
-          <v-list-item @click="changeBasemap('streets')">
-            <v-list-item-title>
-              <v-icon small :color="currentBasemap === 'streets' ? 'primary' : ''">
-                mdi-check-circle
-              </v-icon>
-              Street Map
-            </v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
+        <v-btn
+          small
+          outlined
+          color="error"
+          :disabled="!unitPolygon && !isDrawing || loading"
+          @click="clearDrawing"
+          class="tw-mx-1"
+        >
+          <v-icon small left>mdi-eraser</v-icon>
+          Clear
+        </v-btn>
 
-      <!-- Separator -->
-      <v-divider vertical></v-divider>
+        <v-btn
+          small
+          color="success"
+          :disabled="!unitPolygon || loading"
+          @click="saveUnit"
+          class="tw-mx-1"
+        >
+          <v-icon small left>mdi-check</v-icon>
+          Done
+        </v-btn>
 
-      <!-- Fullscreen Toggle -->
-      <v-tooltip bottom>
-        <template #activator="{ on, attrs }">
-          <v-btn
-            v-bind="attrs"
-            v-on="on"
-            small
-            :color="isFullscreen ? 'primary' : 'default'"
-            @click="toggleFullscreen"
-            icon
-          >
-            <v-icon small>{{ isFullscreen ? 'mdi-fullscreen-exit' : 'mdi-fullscreen' }}</v-icon>
-          </v-btn>
-        </template>
-        <span>{{ isFullscreen ? 'Exit Fullscreen' : 'Fullscreen' }}</span>
-      </v-tooltip>
+        <v-divider vertical class="tw-mx-2"></v-divider>
+
+        <v-text-field
+          v-model="searchQuery"
+          placeholder="Search location..."
+          dense
+          solo
+          flat
+          hide-details
+          clearable
+          prepend-inner-icon="mdi-magnify"
+          style="max-width: 200px;"
+          @keyup.enter="searchLocation"
+          @click:clear="searchQuery = ''"
+        />
+      </div>
+
+      <!-- Right: Map Controls -->
+      <div class="top-bar-right">
+        <v-btn x-small icon @click="zoomIn" :disabled="loading" class="tw-mx-1">
+          <v-icon small>mdi-plus</v-icon>
+        </v-btn>
+        <v-btn x-small icon @click="zoomOut" :disabled="loading" class="tw-mx-1">
+          <v-icon small>mdi-minus</v-icon>
+        </v-btn>
+        <v-btn small icon :loading="gettingLocation" @click="goToMyLocation" class="tw-mx-1">
+          <v-icon small>mdi-crosshairs-gps</v-icon>
+        </v-btn>
+        <v-menu offset-y>
+          <template #activator="{ on, attrs }">
+            <v-btn v-bind="attrs" v-on="on" small icon class="tw-mx-1">
+              <v-icon small>mdi-layers</v-icon>
+            </v-btn>
+          </template>
+          <v-list dense>
+            <v-subheader class="tw-text-xs">MAP STYLE</v-subheader>
+            <v-list-item @click="changeBasemap('hybrid')" :class="{ 'v-list-item--active': currentBasemap === 'hybrid' }">
+              <v-list-item-icon class="tw-mr-2"><v-icon small>mdi-satellite-variant</v-icon></v-list-item-icon>
+              <v-list-item-title class="tw-text-sm">Satellite + Labels</v-list-item-title>
+            </v-list-item>
+            <v-list-item @click="changeBasemap('satellite')" :class="{ 'v-list-item--active': currentBasemap === 'satellite' }">
+              <v-list-item-icon class="tw-mr-2"><v-icon small>mdi-satellite</v-icon></v-list-item-icon>
+              <v-list-item-title class="tw-text-sm">Satellite Only</v-list-item-title>
+            </v-list-item>
+            <v-list-item @click="changeBasemap('streets')" :class="{ 'v-list-item--active': currentBasemap === 'streets' }">
+              <v-list-item-icon class="tw-mr-2"><v-icon small>mdi-map</v-icon></v-list-item-icon>
+              <v-list-item-title class="tw-text-sm">Street Map</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+      </div>
     </div>
 
-    <!-- Coordinates Display (Top Right) -->
-    <!-- <div v-if="farmerLocation" class="tw-absolute tw-top-3 tw-right-3 tw-z-20">
-      <v-chip small color="white" text-color="green darken-2" class="tw-shadow-lg">
-        <v-icon left x-small>mdi-crosshairs-gps</v-icon>
-        {{ farmerLocation.lat.toFixed(4) }}, {{ farmerLocation.lng.toFixed(4) }}
-      </v-chip>
-    </div> -->
+    <!-- Main Content Area -->
+    <div class="main-content">
+      <!-- Left Sidebar: Instructions or Drawing Status -->
+      <div v-if="showInstructions || isDrawing" class="left-sidebar">
+        <!-- Instructions Panel -->
+        <v-card v-if="showInstructions && !isDrawing && !unitPolygon" class="tw-mb-2" outlined>
+          <v-card-text class="tw-py-2 tw-px-3">
+            <div class="tw-font-semibold tw-text-sm tw-text-gray-800 tw-mb-2">
+              <v-icon small color="green" class="tw-mr-1">mdi-help-circle</v-icon>
+              How to Draw
+            </div>
+            <div class="tw-space-y-1 tw-text-xs tw-text-gray-600">
+              <div><v-chip x-small color="primary">1</v-chip> Click "Draw" to start</div>
+              <div><v-chip x-small color="primary">2</v-chip> Click map to add points</div>
+              <div><v-chip x-small color="primary">3</v-chip> Double-click to finish</div>
+              <div><v-chip x-small color="success">4</v-chip> Click "Done" to confirm</div>
+            </div>
+          </v-card-text>
+        </v-card>
 
-    <!-- Unit Info (Bottom Left) -->
-    <div v-if="unitPolygon" class="tw-absolute tw-bottom-3 tw-left-3 tw-z-20">
-      <v-card class="tw-shadow-lg">
-        <v-card-text class="tw-py-2 tw-px-3">
-          <div class="tw-text-xs tw-space-y-1">
-            <div><strong>Area:</strong> {{ unitArea.toFixed(2) }} ha</div>
-            <div><strong>Perimeter:</strong> {{ unitPerimeter.toFixed(0) }} m</div>
-            <div><strong>Points:</strong> {{ unitPointCount }}</div>
-          </div>
-        </v-card-text>
-      </v-card>
-    </div>
+        <!-- Drawing Status Panel -->
+        <v-card v-if="isDrawing" class="tw-border-l-4 tw-border-blue-500" outlined>
+          <v-card-text class="tw-py-2 tw-px-3">
+            <div class="tw-font-semibold tw-text-sm tw-text-blue-800 tw-mb-2">
+              Drawing Mode Active
+            </div>
+            <div class="tw-text-sm">
+              Points: <v-chip small :color="currentDrawingPoints >= 3 ? 'success' : 'warning'">{{ currentDrawingPoints }}</v-chip>
+            </div>
+            <div v-if="currentDrawingPoints < 3" class="tw-text-xs tw-text-orange-600 tw-mt-1">
+              Need at least 3 points
+            </div>
+            <div v-else class="tw-text-xs tw-text-green-600 tw-mt-1">
+              Double-click to complete
+            </div>
+            <v-btn v-if="currentDrawingPoints > 0" x-small text color="error" class="tw-mt-2" @click="undoLastPoint">
+              <v-icon x-small left>mdi-undo</v-icon> Undo
+            </v-btn>
+          </v-card-text>
+        </v-card>
 
-    <!-- Status Indicator (Bottom Right) -->
-    <div v-if="isDrawing" class="tw-absolute tw-bottom-3 tw-right-3 tw-z-20">
-      <v-card class="tw-shadow-lg tw-bg-blue-50">
-        <v-card-text class="tw-py-2 tw-px-3">
-          <div class="tw-text-xs tw-font-medium tw-text-blue-700">
-            Drawing: {{ drawingPoints.length }} points
-          </div>
-        </v-card-text>
-      </v-card>
+        <!-- Boundary Info Panel -->
+        <v-card v-if="unitPolygon" class="tw-border-l-4 tw-border-green-500" outlined>
+          <v-card-text class="tw-py-2 tw-px-3">
+            <div class="tw-font-semibold tw-text-sm tw-text-green-800 tw-mb-2">
+              <v-icon small color="green" class="tw-mr-1">mdi-check-circle</v-icon>
+              Boundary Complete
+            </div>
+            <div class="tw-grid tw-grid-cols-3 tw-gap-2 tw-text-center tw-text-xs">
+              <div>
+                <div class="tw-font-bold tw-text-green-600">{{ unitArea.toFixed(2) }}</div>
+                <div class="tw-text-gray-500">Ha</div>
+              </div>
+              <div>
+                <div class="tw-font-bold tw-text-blue-600">{{ (unitPerimeter / 1000).toFixed(2) }}</div>
+                <div class="tw-text-gray-500">km</div>
+              </div>
+              <div>
+                <div class="tw-font-bold tw-text-purple-600">{{ unitPointCount }}</div>
+                <div class="tw-text-gray-500">Pts</div>
+              </div>
+            </div>
+          </v-card-text>
+        </v-card>
+      </div>
+
+      <!-- Map Container -->
+      <div class="map-area">
+        <div ref="mapView" class="map-container"></div>
+
+        <!-- Coordinates Display -->
+        <div v-if="cursorCoordinates" class="coordinates-display">
+          <v-icon x-small class="tw-mr-1">mdi-crosshairs</v-icon>
+          {{ cursorCoordinates.lat.toFixed(6) }}, {{ cursorCoordinates.lng.toFixed(6) }}
+        </div>
+      </div>
     </div>
 
     <!-- Loading Overlay -->
@@ -204,7 +231,7 @@
 </template>
 
 <script>
-import { loadModules, loadCss } from 'esri-loader';
+// Using global window.require from ArcGIS API (same as ZoneManagement.vue)
 
 export default {
   name: 'ProductionUnitDrawer',
@@ -244,6 +271,8 @@ export default {
       isDrawing: false,
       unitPolygon: null,
       drawingPoints: [],
+      currentDrawingPoints: 0,
+      drawingPointsRef: [], // Reference for undo functionality
 
       // UI state
       loading: true,
@@ -252,16 +281,32 @@ export default {
       showErrorMessage: false,
       successMessage: '',
       errorMessage: '',
-      isFullscreen: false,
       currentBasemap: 'hybrid',
+      showInstructions: true,
+
+      // Search and location
+      searchQuery: '',
+      searching: false,
+      gettingLocation: false,
+      cursorCoordinates: null,
 
       // Symbol configurations
       POLYGON_SYMBOL: {
+        // eslint-disable-next-line sonarjs/no-duplicate-string
         type: 'simple-fill',
         color: [51, 153, 51, 0.4],
         outline: {
           color: [51, 153, 51, 0.8],
           width: 2,
+        },
+      },
+      DRAWING_SYMBOL: {
+        type: 'simple-fill',
+        color: [66, 133, 244, 0.3],
+        outline: {
+          color: [66, 133, 244, 1],
+          width: 2,
+          style: 'dash',
         },
       },
     };
@@ -272,96 +317,77 @@ export default {
       lat: this.initialLocation.lat || -1.2921,
       lng: this.initialLocation.lng || 36.8219,
     };
-    // Add keyboard event listener for Escape key
-    document.addEventListener('keydown', this.handleKeydown);
 
-    // Load ArcGIS modules using esri-loader
-    await this.loadArcGIS();
+    // Load ArcGIS API first (similar to ZoneManagement.vue)
+    await this.loadArcGISScript();
+    await this.loadArcGISModules();
     this.$nextTick(() => {
       this.initializeMap();
     });
   },
 
   beforeDestroy() {
-    // Remove keyboard event listener
-    document.removeEventListener('keydown', this.handleKeydown);
     if (this.view) {
       this.view.destroy();
     }
   },
 
   methods: {
-    async loadArcGIS() {
+    async loadArcGISScript() {
+      // Load ArcGIS script if not already loaded (same pattern as ZoneManagement.vue)
+      if (!window.require) {
+        await new Promise((resolve, reject) => {
+          // Add CSS
+          const cssLink = document.createElement('link');
+          cssLink.rel = 'stylesheet';
+          cssLink.href = 'https://js.arcgis.com/4.28/esri/themes/light/main.css';
+          document.head.appendChild(cssLink);
+
+          // Add script
+          const script = document.createElement('script');
+          script.src = 'https://js.arcgis.com/4.28/init.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+    },
+
+    async loadArcGISModules() {
+      if (this.Map) return; // Already loaded
+
       try {
-        // Check if ArcGIS is already loaded (e.g., by parent component)
-        if (window.require && window.require.defined && window.require.defined('esri/Map')) {
-          // Load modules using existing require
-          const [
-            Map,
-            MapView,
-            Graphic,
-            GraphicsLayer,
-            Point,
-            Polygon,
-            geometryEngine,
-          ] = await new Promise((resolve, reject) => {
-            window.require([
-              'esri/Map',
-              'esri/views/MapView',
-              'esri/Graphic',
-              'esri/layers/GraphicsLayer',
-              'esri/geometry/Point',
-              'esri/geometry/Polygon',
-              'esri/geometry/geometryEngine',
-            ], (...modules) => resolve(modules), reject);
-          });
-
-          this.Map = Map;
-          this.MapView = MapView;
-          this.Graphic = Graphic;
-          this.GraphicsLayer = GraphicsLayer;
-          this.Point = Point;
-          this.Polygon = Polygon;
-          this.geometryEngine = geometryEngine;
-          return;
-        }
-
-        // Load CSS (only if not already loaded)
-        if (!document.querySelector('link[href*="arcgis"]')) {
-          loadCss('https://js.arcgis.com/4.28/esri/themes/light/main.css');
-        }
-
-        // Load ArcGIS modules using esri-loader
-        const [
-          Map,
-          MapView,
-          Graphic,
-          GraphicsLayer,
-          Point,
-          Polygon,
-          geometryEngine,
-        ] = await loadModules([
-          'esri/Map',
-          'esri/views/MapView',
-          'esri/Graphic',
-          'esri/layers/GraphicsLayer',
-          'esri/geometry/Point',
-          'esri/geometry/Polygon',
-          'esri/geometry/geometryEngine',
-        ], { version: '4.28' });
-
-        // Store modules in data
-        this.Map = Map;
-        this.MapView = MapView;
-        this.Graphic = Graphic;
-        this.GraphicsLayer = GraphicsLayer;
-        this.Point = Point;
-        this.Polygon = Polygon;
-        this.geometryEngine = geometryEngine;
+        await new Promise((resolve, reject) => {
+          window.require([
+            'esri/Map',
+            'esri/views/MapView',
+            'esri/Graphic',
+            'esri/layers/GraphicsLayer',
+            'esri/geometry/Point',
+            'esri/geometry/Polygon',
+            'esri/geometry/geometryEngine',
+          ], (Map, MapView, Graphic, GraphicsLayer, Point, Polygon, geometryEngine) => {
+            this.Map = Map;
+            this.MapView = MapView;
+            this.Graphic = Graphic;
+            this.GraphicsLayer = GraphicsLayer;
+            this.Point = Point;
+            this.Polygon = Polygon;
+            this.geometryEngine = geometryEngine;
+            resolve();
+          }, reject);
+        });
       } catch (error) {
+        console.error('Failed to load ArcGIS modules:', error);
         this.showError('Failed to load map resources');
         this.loading = false;
       }
+    },
+
+    async loadArcGIS() {
+      // Deprecated - keeping for compatibility but using new methods
+      await this.loadArcGISScript();
+      await this.loadArcGISModules();
     },
 
     initializeMap() {
@@ -416,82 +442,226 @@ export default {
     setupDrawingTools() {
       if (!this.view) return;
 
+      // Store reference to component
+      const self = this;
+
       // Simple polygon drawing with click handlers
-      let drawingPoints = [];
+      this.drawingPointsRef = [];
       let tempGraphic = null;
 
-      this.view.on('click', (event) => {
-        if (!this.isDrawing) return;
+      // Track cursor position for coordinate display
+      this.view.on('pointer-move', (event) => {
+        const point = self.view.toMap(event);
+        if (point) {
+          self.cursorCoordinates = {
+            lat: point.latitude,
+            lng: point.longitude,
+          };
+        }
+      });
 
-        const point = this.view.toMap(event);
+      this.view.on('click', (event) => {
+        if (!self.isDrawing) return;
+
+        const point = self.view.toMap(event);
         if (!point) return;
 
-        drawingPoints.push([point.longitude, point.latitude]);
+        self.drawingPointsRef.push([point.longitude, point.latitude]);
+        self.currentDrawingPoints = self.drawingPointsRef.length;
 
         // Remove temporary graphic
         if (tempGraphic) {
-          this.graphicsLayer.remove(tempGraphic);
+          self.graphicsLayer.remove(tempGraphic);
         }
 
-        // Draw temporary polygon
-        if (drawingPoints.length >= 2) {
-          const rings = [drawingPoints];
-          const polygon = new this.Polygon({
+        // Draw temporary polygon with dashed outline
+        if (self.drawingPointsRef.length >= 2) {
+          const rings = [self.drawingPointsRef];
+          const polygon = new self.Polygon({
             rings,
             spatialReference: { wkid: 4326 },
           });
 
-          tempGraphic = new this.Graphic({
+          tempGraphic = new self.Graphic({
             geometry: polygon,
-            symbol: this.POLYGON_SYMBOL,
+            symbol: self.DRAWING_SYMBOL,
           });
 
-          this.graphicsLayer.add(tempGraphic);
+          self.graphicsLayer.add(tempGraphic);
         }
+
+        // Add point marker for each vertex
+        const pointGraphic = new self.Graphic({
+          geometry: new self.Point({
+            longitude: point.longitude,
+            latitude: point.latitude,
+          }),
+          symbol: {
+            type: 'simple-marker',
+            color: [66, 133, 244],
+            size: 8,
+            outline: {
+              color: [255, 255, 255],
+              width: 2,
+            },
+          },
+          attributes: { isDrawingPoint: true },
+        });
+        self.graphicsLayer.add(pointGraphic);
       });
 
       // Double-click to finish drawing
       this.view.on('double-click', (event) => {
-        if (!this.isDrawing || drawingPoints.length < 3) return;
+        if (!self.isDrawing || self.drawingPointsRef.length < 3) return;
 
         event.stopPropagation();
 
         // Close the polygon
-        const rings = [drawingPoints];
+        const rings = [self.drawingPointsRef];
+        const polygon = new self.Polygon({
+          rings,
+          spatialReference: { wkid: 4326 },
+        });
+
+        // Remove temporary graphic and point markers
+        if (tempGraphic) {
+          self.graphicsLayer.remove(tempGraphic);
+        }
+        // Remove drawing point markers
+        const pointMarkers = self.graphicsLayer.graphics.toArray().filter((g) => g.attributes?.isDrawingPoint);
+        self.graphicsLayer.removeMany(pointMarkers);
+
+        // Add final polygon with solid outline
+        const finalGraphic = new self.Graphic({
+          geometry: polygon,
+          symbol: self.POLYGON_SYMBOL,
+        });
+
+        self.graphicsLayer.add(finalGraphic);
+
+        // Store geometry and calculate area
+        self.unitGeometry = polygon;
+        self.unitPolygon = polygon;
+        self.calculateUnitArea(polygon);
+
+        // Reset drawing state
+        self.isDrawing = false;
+        self.drawingPointsRef = [];
+        self.currentDrawingPoints = 0;
+        tempGraphic = null;
+
+        self.showSuccess('Boundary drawn successfully! Click Done to confirm.');
+        self.$emit('unit-drawn', {
+          geometry: self.unitGeometry,
+          area: self.unitArea,
+        });
+      });
+    },
+
+    undoLastPoint() {
+      if (this.drawingPointsRef.length === 0) return;
+
+      // Remove last point
+      this.drawingPointsRef.pop();
+      this.currentDrawingPoints = this.drawingPointsRef.length;
+
+      // Remove the last point marker
+      const pointMarkers = this.graphicsLayer.graphics.toArray().filter((g) => g.attributes?.isDrawingPoint);
+      if (pointMarkers.length > 0) {
+        this.graphicsLayer.remove(pointMarkers[pointMarkers.length - 1]);
+      }
+
+      // Redraw the temporary polygon
+      const tempGraphics = this.graphicsLayer.graphics.toArray().filter(
+        (g) => g.symbol?.outline?.style === 'dash',
+      );
+      this.graphicsLayer.removeMany(tempGraphics);
+
+      if (this.drawingPointsRef.length >= 2) {
+        const rings = [this.drawingPointsRef];
         const polygon = new this.Polygon({
           rings,
           spatialReference: { wkid: 4326 },
         });
 
-        // Remove temporary graphic
-        if (tempGraphic) {
-          this.graphicsLayer.remove(tempGraphic);
-        }
-
-        // Add final polygon
-        const finalGraphic = new this.Graphic({
+        const tempGraphic = new this.Graphic({
           geometry: polygon,
-          symbol: this.POLYGON_SYMBOL,
+          symbol: this.DRAWING_SYMBOL,
         });
 
-        this.graphicsLayer.add(finalGraphic);
+        this.graphicsLayer.add(tempGraphic);
+      }
 
-        // Store geometry and calculate area
-        this.unitGeometry = polygon;
-        this.unitPolygon = polygon;
-        this.calculateUnitArea(polygon);
+      this.showSuccess('Point removed');
+    },
 
-        // Reset drawing state
-        this.isDrawing = false;
-        drawingPoints = [];
-        tempGraphic = null;
+    async searchLocation() {
+      if (!this.searchQuery || !this.searchQuery.trim()) return;
 
-        this.showSuccess('Polygon drawn successfully');
-        this.$emit('unit-drawn', {
-          geometry: this.unitGeometry,
-          area: this.unitArea,
+      this.searching = true;
+      try {
+        // Use Nominatim (OpenStreetMap) for geocoding
+        const query = encodeURIComponent(this.searchQuery);
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`,
+        );
+        const results = await response.json();
+
+        if (results && results.length > 0) {
+          const { lat, lon } = results[0];
+          this.view.goTo({
+            center: [parseFloat(lon), parseFloat(lat)],
+            zoom: 16,
+          });
+          this.showSuccess(`Found: ${results[0].display_name.substring(0, 50)}...`);
+        } else {
+          this.showError('Location not found. Try a different search term.');
+        }
+      } catch (error) {
+        this.showError('Search failed. Please try again.');
+      } finally {
+        this.searching = false;
+      }
+    },
+
+    async goToMyLocation() {
+      if (!navigator.geolocation) {
+        this.showError('Geolocation is not supported by your browser');
+        return;
+      }
+
+      this.gettingLocation = true;
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+          });
         });
-      });
+
+        const { latitude, longitude } = position.coords;
+        this.view.goTo({
+          center: [longitude, latitude],
+          zoom: 17,
+        });
+        this.showSuccess('Moved to your current location');
+      } catch (error) {
+        this.showError('Could not get your location. Please enable location services.');
+      } finally {
+        this.gettingLocation = false;
+      }
+    },
+
+    zoomIn() {
+      if (this.view) {
+        this.view.zoom += 1;
+      }
+    },
+
+    zoomOut() {
+      if (this.view) {
+        this.view.zoom -= 1;
+      }
     },
 
     addFarmerLocationMarker() {
@@ -603,7 +773,9 @@ export default {
       this.unitPointCount = 0;
       this.isDrawing = false;
       this.drawingPoints = [];
-      this.showSuccess('Cleared drawing');
+      this.drawingPointsRef = [];
+      this.currentDrawingPoints = 0;
+      this.showSuccess('Drawing cleared');
     },
 
     saveUnit() {
@@ -637,27 +809,10 @@ export default {
       this.showErrorMessage = true;
     },
 
-    toggleFullscreen() {
-      this.isFullscreen = !this.isFullscreen;
-      if (this.view) {
-        // Force map to resize after fullscreen toggle
-        setTimeout(() => {
-          this.view.resize();
-        }, 100);
-      }
-    },
-
     changeBasemap(basemapName) {
       if (this.map) {
         this.map.basemap = basemapName;
         this.currentBasemap = basemapName;
-      }
-    },
-
-    handleKeydown(event) {
-      // Exit fullscreen when Escape is pressed
-      if (event.key === 'Escape' && this.isFullscreen) {
-        this.isFullscreen = false;
       }
     },
   },
@@ -665,9 +820,133 @@ export default {
 </script>
 
 <style scoped>
+/* Main container - flexbox column layout */
+.production-unit-drawer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #f5f5f5;
+}
+
+/* Top toolbar bar */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: white;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.top-bar-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Main content area - flexbox row */
+.main-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Left sidebar for instructions */
+.left-sidebar {
+  width: 220px;
+  padding: 12px;
+  background-color: #fafafa;
+  border-right: 1px solid #e0e0e0;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+/* Map area */
+.map-area {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+/* Map container fills the map area */
+.map-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Coordinates display at bottom right of map */
+.coordinates-display {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(255,255,255,0.9);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: monospace;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Transition animations */
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.3s ease;
+}
+.slide-fade-enter,
+.slide-fade-leave-to {
+  transform: translateX(-10px);
+  opacity: 0;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+.slide-up-enter,
+.slide-up-leave-to {
+  transform: translateY(10px);
+  opacity: 0;
+}
+
 /* Ensure proper z-indexing for floating elements */
 .tw-z-10 {
   z-index: 10;
+}
+
+.tw-z-20 {
+  z-index: 20;
+}
+
+/* Pulsing animation for drawing indicator */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.tw-animate-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 /* Custom scrollbar for small screens */

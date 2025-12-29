@@ -42,6 +42,8 @@
 		<liquibase.propertyFile>src/main/resources/application.yml</liquibase.propertyFile>
 		<liquibase.driver>com.mysql.cj.jdbc.Driver</liquibase.driver>
 		<liquibase-core.version>4.29.2</liquibase-core.version>
+		<!-- Protobuf version - must match Hedera SDK 2.61.0 gencode version -->
+		<protobuf.version>4.31.1</protobuf.version>
 		<!-- <liquibase-maven-plugin.version>4.6.1</liquibase-maven-plugin.version>
         <liquibase-hibernate5.version>4.5.0</liquibase-hibernate5.version> -->
 	</properties>
@@ -385,10 +387,22 @@
 			<version>2.25.27</version>
 		</dependency>
 		
-		<!-- Hedera SDK for DLT integration -->
+		<!-- Google Protobuf - explicit version to prevent Hedera SDK conflicts -->
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+			<version>${protobuf.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java-util</artifactId>
+			<version>${protobuf.version}</version>
+		</dependency>
+		
+		<!-- Hedera SDK FULL for DLT integration (uses protobuf-java, not protobuf-javalite) -->
 		<dependency>
 			<groupId>com.hedera.hashgraph</groupId>
-			<artifactId>sdk</artifactId>
+			<artifactId>sdk-full</artifactId>
 			<version>2.61.0</version>
 		</dependency>
 		
