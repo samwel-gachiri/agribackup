@@ -11,16 +11,11 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.client.j2se.MatrixToImageWriter
 import com.google.zxing.qrcode.QRCodeWriter
-import com.itextpdf.io.image.ImageDataFactory
-import com.itextpdf.kernel.colors.DeviceRgb
-import com.itextpdf.kernel.pdf.PdfDocument
-import com.itextpdf.kernel.pdf.PdfWriter
-import com.itextpdf.layout.Document
-import com.itextpdf.layout.element.Cell
-import com.itextpdf.layout.element.Image
-import com.itextpdf.layout.element.Paragraph
-import com.itextpdf.layout.element.Table
-import com.itextpdf.layout.properties.TextAlignment
+import com.lowagie.text.*
+import com.lowagie.text.pdf.PdfPCell
+import com.lowagie.text.pdf.PdfPTable
+import com.lowagie.text.pdf.PdfWriter
+import java.awt.Color
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
@@ -282,15 +277,15 @@ class DossierService(
         val outputStream = ByteArrayOutputStream()
         
         try {
-            val pdfWriter = PdfWriter(outputStream)
-            val pdfDocument = PdfDocument(pdfWriter)
-            val document = Document(pdfDocument)
+            val document = Document(PageSize.A4, 50f, 50f, 50f, 50f)
+            PdfWriter.getInstance(document, outputStream)
+            document.open()
             
             // Define colors
-            val primaryColor = DeviceRgb(33, 150, 83)  // Green
-            val headerColor = DeviceRgb(240, 248, 245)
-            val dangerColor = DeviceRgb(220, 53, 69)
-            val warningColor = DeviceRgb(255, 193, 7)
+            val primaryColor = Color(33, 150, 83)  // Green
+            val headerColor = Color(240, 248, 245)
+            val dangerColor = Color(220, 53, 69)
+            val warningColor = Color(255, 193, 7)
             
             // Add cover page
             addCoverPage(document, data, primaryColor)
@@ -340,31 +335,28 @@ class DossierService(
         }
     }
     
-    private fun addCoverPage(document: Document, data: DossierData, primaryColor: DeviceRgb) {
+    private fun addCoverPage(document: Document, data: DossierData, primaryColor: Color) {
         document.add(Paragraph("\n\n\n"))
         
         // Title
-        document.add(
-            Paragraph("EUDR COMPLIANCE DOSSIER")
-                .setFontSize(28f)
-                .setBold()
-                .setFontColor(primaryColor)
-                .setTextAlignment(TextAlignment.CENTER)
-        )
+        val titleFont = Font(Font.HELVETICA, 28f, Font.BOLD, primaryColor)
+        val titleParagraph = Paragraph("EUDR COMPLIANCE DOSSIER", titleFont)
+        titleParagraph.alignment = Element.ALIGN_CENTER
+        document.add(titleParagraph)
         
         document.add(Paragraph("\n"))
         
         // Batch code
-        document.add(
-            Paragraph("Batch: ${data.batch.batchCode}")
-                .setFontSize(18f)
-                .setTextAlignment(TextAlignment.CENTER)
-        )
+        val batchFont = Font(Font.HELVETICA, 18f, Font.NORMAL, Color.BLACK)
+        val batchParagraph = Paragraph("Batch: ${data.batch.batchCode}", batchFont)
+        batchParagraph.alignment = Element.ALIGN_CENTER
+        document.add(batchParagraph)
         
         document.add(Paragraph("\n"))
         
         // Key information table
-        val infoTable = Table(2).useAllAvailableWidth()
+        val infoTable = PdfPTable(2)
+        infoTable.widthPercentage = 100f
         infoTable.addCell(createCell("Commodity:", true))
         infoTable.addCell(createCell(data.batch.commodityDescription))
         infoTable.addCell(createCell("Country of Production:", true))
@@ -383,22 +375,23 @@ class DossierService(
         // QR Code for batch verification (Hedera link)
         val qrCode = generateQRCode("https://hashscan.io/testnet/topic/${data.batch.id}")
         if (qrCode != null) {
-            document.add(
-                Paragraph("Scan for Blockchain Verification")
-                    .setTextAlignment(TextAlignment.CENTER)
-                    .setFontSize(10f)
-            )
-            document.add(qrCode.setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER))
+            val qrParagraph = Paragraph("Scan for Blockchain Verification")
+            qrParagraph.alignment = Element.ALIGN_CENTER
+            val qrFont = Font(Font.HELVETICA, 10f)
+            qrParagraph.font = qrFont
+            document.add(qrParagraph)
+            qrCode.alignment = Element.ALIGN_CENTER
+            document.add(qrCode)
         }
         
-        document.add(com.itextpdf.layout.element.AreaBreak())
+        document.newPage()
     }
     
-    private fun addBatchSummary(document: Document, batch: BatchSummary, primaryColor: DeviceRgb, headerColor: DeviceRgb) {
+    private fun addBatchSummary(document: Document, batch: BatchSummary, primaryColor: Color, headerColor: Color) {
         document.add(createSectionHeader("1. BATCH SUMMARY", primaryColor))
         
-        val table = Table(2).useAllAvailableWidth()
-        table.setBackgroundColor(headerColor)
+        val table = PdfPTable(2)
+        table.widthPercentage = 100f
         
         table.addCell(createCell("Batch Code:", true))
         table.addCell(createCell(batch.batchCode))
@@ -420,10 +413,10 @@ class DossierService(
     private fun addRiskAssessmentSection(
         document: Document, 
         risk: RiskAssessmentResult, 
-        primaryColor: DeviceRgb,
-        headerColor: DeviceRgb,
-        dangerColor: DeviceRgb,
-        warningColor: DeviceRgb
+        primaryColor: Color,
+        headerColor: Color,
+        dangerColor: Color,
+        warningColor: Color
     ) {
         document.add(createSectionHeader("2. RISK ASSESSMENT", primaryColor))
         
@@ -434,27 +427,24 @@ class DossierService(
             else -> primaryColor
         }
         
-        document.add(
-            Paragraph("Overall Risk Level: ${risk.riskLevel.name}")
-                .setFontSize(14f)
-                .setBold()
-                .setFontColor(riskColor)
-        )
+        val riskFont = Font(Font.HELVETICA, 14f, Font.BOLD, riskColor)
+        document.add(Paragraph("Overall Risk Level: ${risk.riskLevel.name}", riskFont))
         
-        document.add(
-            Paragraph("Risk Score: ${String.format("%.2f", risk.overallScore)}/100")
-                .setFontSize(12f)
-        )
+        val scoreFont = Font(Font.HELVETICA, 12f)
+        document.add(Paragraph("Risk Score: ${String.format("%.2f", risk.overallScore)}/100", scoreFont))
         
         document.add(Paragraph("\n"))
         
         // Component breakdown
-        document.add(Paragraph("Risk Components:").setBold())
+        val componentsFont = Font(Font.HELVETICA, 12f, Font.BOLD)
+        document.add(Paragraph("Risk Components:", componentsFont))
         
-        val componentTable = Table(floatArrayOf(3f, 2f, 5f)).useAllAvailableWidth()
-        componentTable.addHeaderCell(createHeaderCell("Component", headerColor))
-        componentTable.addHeaderCell(createHeaderCell("Score", headerColor))
-        componentTable.addHeaderCell(createHeaderCell("Details", headerColor))
+        val componentTable = PdfPTable(3)
+        componentTable.widthPercentage = 100f
+        componentTable.setWidths(floatArrayOf(3f, 2f, 5f))
+        componentTable.addCell(createHeaderCell("Component", headerColor))
+        componentTable.addCell(createHeaderCell("Score", headerColor))
+        componentTable.addCell(createHeaderCell("Details", headerColor))
         
         // Add all risk components to table
         val allComponents = listOf(
@@ -477,9 +467,11 @@ class DossierService(
         // Recommendations
         if (risk.recommendations.isNotEmpty()) {
             document.add(Paragraph("\n"))
-            document.add(Paragraph("Recommendations:").setBold())
+            val recFont = Font(Font.HELVETICA, 12f, Font.BOLD)
+            document.add(Paragraph("Recommendations:", recFont))
+            val itemFont = Font(Font.HELVETICA, 10f)
             risk.recommendations.forEach { recommendation ->
-                document.add(Paragraph("• $recommendation").setFontSize(10f))
+                document.add(Paragraph("• $recommendation", itemFont))
             }
         }
         
@@ -489,20 +481,23 @@ class DossierService(
     private fun addSupplyChainTimeline(
         document: Document, 
         events: List<SupplyChainEventSummary>,
-        primaryColor: DeviceRgb,
-        headerColor: DeviceRgb
+        primaryColor: Color,
+        headerColor: Color
     ) {
         document.add(createSectionHeader("3. SUPPLY CHAIN TIMELINE", primaryColor))
         
         if (events.isEmpty()) {
-            document.add(Paragraph("No supply chain events recorded.").setItalic())
+            val italicFont = Font(Font.HELVETICA, 12f, Font.ITALIC)
+            document.add(Paragraph("No supply chain events recorded.", italicFont))
         } else {
-            val table = Table(floatArrayOf(2f, 2f, 3f, 2f, 2f)).useAllAvailableWidth()
-            table.addHeaderCell(createHeaderCell("Date", headerColor))
-            table.addHeaderCell(createHeaderCell("Action", headerColor))
-            table.addHeaderCell(createHeaderCell("From → To", headerColor))
-            table.addHeaderCell(createHeaderCell("Transport", headerColor))
-            table.addHeaderCell(createHeaderCell("Location", headerColor))
+            val table = PdfPTable(5)
+            table.widthPercentage = 100f
+            table.setWidths(floatArrayOf(2f, 2f, 3f, 2f, 2f))
+            table.addCell(createHeaderCell("Date", headerColor))
+            table.addCell(createHeaderCell("Action", headerColor))
+            table.addCell(createHeaderCell("From → To", headerColor))
+            table.addCell(createHeaderCell("Transport", headerColor))
+            table.addCell(createHeaderCell("Location", headerColor))
             
             events.forEach { event ->
                 table.addCell(createCell(event.timestamp.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))))
@@ -527,20 +522,23 @@ class DossierService(
     private fun addProcessingEvents(
         document: Document,
         events: List<ProcessingEventSummary>,
-        primaryColor: DeviceRgb,
-        headerColor: DeviceRgb
+        primaryColor: Color,
+        headerColor: Color
     ) {
         document.add(createSectionHeader("4. PROCESSING EVENTS", primaryColor))
         
         if (events.isEmpty()) {
-            document.add(Paragraph("No processing events recorded.").setItalic())
+            val italicFont = Font(Font.HELVETICA, 12f, Font.ITALIC)
+            document.add(Paragraph("No processing events recorded.", italicFont))
         } else {
-            val table = Table(floatArrayOf(2f, 2f, 2f, 2f, 3f)).useAllAvailableWidth()
-            table.addHeaderCell(createHeaderCell("Date", headerColor))
-            table.addHeaderCell(createHeaderCell("Type", headerColor))
-            table.addHeaderCell(createHeaderCell("Input", headerColor))
-            table.addHeaderCell(createHeaderCell("Output", headerColor))
-            table.addHeaderCell(createHeaderCell("Notes", headerColor))
+            val table = PdfPTable(5)
+            table.widthPercentage = 100f
+            table.setWidths(floatArrayOf(2f, 2f, 2f, 2f, 3f))
+            table.addCell(createHeaderCell("Date", headerColor))
+            table.addCell(createHeaderCell("Type", headerColor))
+            table.addCell(createHeaderCell("Input", headerColor))
+            table.addCell(createHeaderCell("Output", headerColor))
+            table.addCell(createHeaderCell("Notes", headerColor))
             
             events.forEach { event ->
                 table.addCell(createCell(event.processingDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))))
@@ -559,20 +557,23 @@ class DossierService(
     private fun addDocumentsSection(
         document: Document,
         documents: List<DocumentSummary>,
-        primaryColor: DeviceRgb,
-        headerColor: DeviceRgb
+        primaryColor: Color,
+        headerColor: Color
     ) {
         document.add(createSectionHeader("5. SUPPORTING DOCUMENTS", primaryColor))
         
         if (documents.isEmpty()) {
-            document.add(Paragraph("No documents attached.").setItalic())
+            val italicFont = Font(Font.HELVETICA, 12f, Font.ITALIC)
+            document.add(Paragraph("No documents attached.", italicFont))
         } else {
-            val table = Table(floatArrayOf(3f, 2f, 2f, 2f, 2f)).useAllAvailableWidth()
-            table.addHeaderCell(createHeaderCell("Document", headerColor))
-            table.addHeaderCell(createHeaderCell("Type", headerColor))
-            table.addHeaderCell(createHeaderCell("Issuer", headerColor))
-            table.addHeaderCell(createHeaderCell("Issue Date", headerColor))
-            table.addHeaderCell(createHeaderCell("Checksum", headerColor))
+            val table = PdfPTable(5)
+            table.widthPercentage = 100f
+            table.setWidths(floatArrayOf(3f, 2f, 2f, 2f, 2f))
+            table.addCell(createHeaderCell("Document", headerColor))
+            table.addCell(createHeaderCell("Type", headerColor))
+            table.addCell(createHeaderCell("Issuer", headerColor))
+            table.addCell(createHeaderCell("Issue Date", headerColor))
+            table.addCell(createHeaderCell("Checksum", headerColor))
             
             documents.forEach { doc ->
                 table.addCell(createCell(doc.fileName))
@@ -585,10 +586,10 @@ class DossierService(
             document.add(table)
             
             document.add(Paragraph("\n"))
-            document.add(Paragraph("Document Verification:").setBold().setFontSize(10f))
-            document.add(Paragraph("All documents are stored on IPFS with SHA-256 checksums for integrity verification.")
-                .setFontSize(9f)
-                .setItalic())
+            val boldFont = Font(Font.HELVETICA, 10f, Font.BOLD)
+            document.add(Paragraph("Document Verification:", boldFont))
+            val italicFont = Font(Font.HELVETICA, 9f, Font.ITALIC)
+            document.add(Paragraph("All documents are stored on IPFS with SHA-256 checksums for integrity verification.", italicFont))
         }
         
         document.add(Paragraph("\n"))
@@ -597,19 +598,22 @@ class DossierService(
     private fun addAuditTrail(
         document: Document,
         auditLogs: List<AuditLogSummary>,
-        primaryColor: DeviceRgb,
-        headerColor: DeviceRgb
+        primaryColor: Color,
+        headerColor: Color
     ) {
         document.add(createSectionHeader("6. AUDIT TRAIL", primaryColor))
         
         if (auditLogs.isEmpty()) {
-            document.add(Paragraph("No audit logs available.").setItalic())
+            val italicFont = Font(Font.HELVETICA, 12f, Font.ITALIC)
+            document.add(Paragraph("No audit logs available.", italicFont))
         } else {
-            val table = Table(floatArrayOf(2f, 2f, 2f, 4f)).useAllAvailableWidth()
-            table.addHeaderCell(createHeaderCell("Timestamp", headerColor))
-            table.addHeaderCell(createHeaderCell("Action", headerColor))
-            table.addHeaderCell(createHeaderCell("Actor", headerColor))
-            table.addHeaderCell(createHeaderCell("Details", headerColor))
+            val table = PdfPTable(4)
+            table.widthPercentage = 100f
+            table.setWidths(floatArrayOf(2f, 2f, 2f, 4f))
+            table.addCell(createHeaderCell("Timestamp", headerColor))
+            table.addCell(createHeaderCell("Action", headerColor))
+            table.addCell(createHeaderCell("Actor", headerColor))
+            table.addCell(createHeaderCell("Details", headerColor))
             
             auditLogs.take(20).forEach { log ->  // Limit to last 20 entries
                 table.addCell(createCell(log.timestamp.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))))
@@ -622,17 +626,16 @@ class DossierService(
             
             if (auditLogs.size > 20) {
                 document.add(Paragraph("\n"))
-                document.add(Paragraph("Showing 20 of ${auditLogs.size} audit entries. Full trail available in JSON format.")
-                    .setFontSize(9f)
-                    .setItalic())
+                val italicFont = Font(Font.HELVETICA, 9f, Font.ITALIC)
+                document.add(Paragraph("Showing 20 of ${auditLogs.size} audit entries. Full trail available in JSON format.", italicFont))
             }
         }
         
         document.add(Paragraph("\n"))
     }
     
-    private fun addComplianceStatement(document: Document, data: DossierData, primaryColor: DeviceRgb) {
-        document.add(com.itextpdf.layout.element.AreaBreak())
+    private fun addComplianceStatement(document: Document, data: DossierData, primaryColor: Color) {
+        document.newPage()
         document.add(createSectionHeader("7. COMPLIANCE STATEMENT", primaryColor))
         
         document.add(Paragraph(
@@ -648,55 +651,64 @@ class DossierService(
             RiskLevel.HIGH -> "NON-COMPLIANT - This batch presents significant deforestation risk and requires immediate mitigation."
         }
         
-        document.add(Paragraph(complianceStatus).setBold())
+        val boldFont = Font(Font.HELVETICA, 12f, Font.BOLD)
+        document.add(Paragraph(complianceStatus, boldFont))
         
         document.add(Paragraph("\n"))
         
         // Blockchain verification info
-        document.add(Paragraph("Blockchain Verification:").setBold())
+        document.add(Paragraph("Blockchain Verification:", boldFont))
+        val smallFont = Font(Font.HELVETICA, 10f)
         document.add(Paragraph(
             "All data in this dossier has been recorded on Hedera Hashgraph for immutable verification. " +
-            "Visit https://hashscan.io/testnet to verify transactions."
-        ).setFontSize(10f))
+            "Visit https://hashscan.io/testnet to verify transactions.", smallFont
+        ))
         
         document.add(Paragraph("\n\n"))
         
         // Signature area
-        val signatureTable = Table(2).useAllAvailableWidth()
-        signatureTable.addCell(createCell("Generated By:\n\n_____________________\n${data.generatedBy}", false, 80f))
-        signatureTable.addCell(createCell("Authority Signature:\n\n_____________________\nDate: __________", false, 80f))
+        val signatureTable = PdfPTable(2)
+        signatureTable.widthPercentage = 100f
+        val cell1 = PdfPCell(Paragraph("Generated By:\n\n_____________________\n${data.generatedBy}"))
+        cell1.minimumHeight = 80f
+        cell1.setPadding(5f)
+        signatureTable.addCell(cell1)
+        val cell2 = PdfPCell(Paragraph("Authority Signature:\n\n_____________________\nDate: __________"))
+        cell2.minimumHeight = 80f
+        cell2.setPadding(5f)
+        signatureTable.addCell(cell2)
         
         document.add(signatureTable)
         
         document.add(Paragraph("\n"))
-        document.add(
-            Paragraph("Document ID: ${data.batch.id}")
-                .setFontSize(8f)
-                .setTextAlignment(TextAlignment.CENTER)
-        )
+        val tinyFont = Font(Font.HELVETICA, 8f)
+        val docIdParagraph = Paragraph("Document ID: ${data.batch.id}", tinyFont)
+        docIdParagraph.alignment = Element.ALIGN_CENTER
+        document.add(docIdParagraph)
     }
     
-    private fun createSectionHeader(text: String, color: DeviceRgb): Paragraph {
-        return Paragraph(text)
-            .setFontSize(16f)
-            .setBold()
-            .setFontColor(color)
-            .setMarginTop(10f)
-            .setMarginBottom(10f)
+    private fun createSectionHeader(text: String, color: Color): Paragraph {
+        val font = Font(Font.HELVETICA, 16f, Font.BOLD, color)
+        val paragraph = Paragraph(text, font)
+        paragraph.spacingBefore = 10f
+        paragraph.spacingAfter = 10f
+        return paragraph
     }
     
-    private fun createHeaderCell(text: String, backgroundColor: DeviceRgb): Cell {
-        return Cell()
-            .add(Paragraph(text).setBold())
-            .setBackgroundColor(backgroundColor)
-            .setPadding(5f)
+    private fun createHeaderCell(text: String, backgroundColor: Color): PdfPCell {
+        val boldFont = Font(Font.HELVETICA, 10f, Font.BOLD)
+        val cell = PdfPCell(Paragraph(text, boldFont))
+        cell.backgroundColor = backgroundColor
+        cell.setPadding(5f)
+        return cell
     }
     
-    private fun createCell(text: String, bold: Boolean = false, minHeight: Float = 0f): Cell {
-        val cell = Cell().add(Paragraph(text).apply { if (bold) setBold() })
+    private fun createCell(text: String, bold: Boolean = false, minHeight: Float = 0f): PdfPCell {
+        val font = if (bold) Font(Font.HELVETICA, 10f, Font.BOLD) else Font(Font.HELVETICA, 10f)
+        val cell = PdfPCell(Paragraph(text, font))
         cell.setPadding(5f)
         if (minHeight > 0) {
-            cell.setMinHeight(minHeight)
+            cell.minimumHeight = minHeight
         }
         return cell
     }
@@ -707,8 +719,9 @@ class DossierService(
             val bitMatrix = qrCodeWriter.encode(url, BarcodeFormat.QR_CODE, 200, 200)
             val outputStream = ByteArrayOutputStream()
             MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream)
-            val imageData = ImageDataFactory.create(outputStream.toByteArray())
-            Image(imageData).scaleToFit(150f, 150f)
+            val img = Image.getInstance(outputStream.toByteArray())
+            img.scaleToFit(150f, 150f)
+            img
         } catch (e: Exception) {
             logger.warn("Failed to generate QR code", e)
             null

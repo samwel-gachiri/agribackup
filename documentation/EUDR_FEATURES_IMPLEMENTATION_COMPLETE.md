@@ -177,10 +177,10 @@
 #### Pending Implementation ❌
 
 **Backend:**
-1. **PDF Generation** (Not Started)
-   - Need to add iText dependency to pom.xml
-   - Implement `generatePdfDossier()` method
-   - Components needed: cover page, batch summary table, risk visualization, supply chain timeline, document QR codes, compliance statement, authority signature area
+1. **PDF Generation** (✅ Completed)
+   - OpenPDF dependency added to pom.xml
+   - Implemented `generatePdfDossier()` method
+   - Components completed: cover page, batch summary table, risk visualization, supply chain timeline, document QR codes, compliance statement, authority signature area
 
 2. **Authority Report Endpoints** (Not Started)
    - `GET /api/eudr/authority-report/{batchId}` - Generate report
@@ -353,21 +353,21 @@ GET    /api/eudr/dossier/{batchId}/metadata               Dossier metadata
 
 ### High Priority (Estimated: 20 hours)
 
-1. **PDF Generation Implementation** (~8 hours)
-   - Add iText dependency to pom.xml:
+1. **PDF Generation Implementation** (✅ Completed)
+   - OpenPDF dependency added to pom.xml (LGPL license):
      ```xml
      <dependency>
-         <groupId>com.itextpdf</groupId>
-         <artifactId>itextpdf</artifactId>
-         <version>5.5.13.3</version>
+         <groupId>com.github.librepdf</groupId>
+         <artifactId>openpdf</artifactId>
+         <version>1.3.35</version>
      </dependency>
      ```
-   - Implement `generatePdfDossier()` in DossierService
-   - Add cover page, batch summary, risk charts
-   - Add supply chain timeline diagram
-   - Add document list with QR codes
-   - Add compliance statement
-   - Add authority signature section
+   - Implemented `generatePdfDossier()` in DossierService
+   - Added cover page, batch summary, risk charts
+   - Added supply chain timeline diagram
+   - Added document list with QR codes
+   - Added compliance statement
+   - Added authority signature section
 
 2. **Authority Report Endpoints** (~4 hours)
    - Add 3 endpoints to EudrController

@@ -157,7 +157,7 @@ This document summarizes the implementation of three major EUDR compliance featu
      - `getDossierMetadata()` - Returns dossier summary without full content
    - **Features:**
      - JSON format: ✅ Fully implemented
-     - PDF format: ⚠️ Placeholder (needs iText implementation)
+     - PDF format: ✅ Implemented with OpenPDF
      - ZIP format: ⚠️ Placeholder (needs implementation)
    - **Dossier Contents:**
      - Batch summary with metadata
@@ -171,7 +171,7 @@ This document summarizes the implementation of three major EUDR compliance featu
 #### Backend Pending ❌
 
 2. **PDF Generation** (Not Started)
-   - Need to add iText library to pom.xml
+   - ✅ OpenPDF library added to pom.xml (LGPL license)
    - Implement `generatePdfDossier()` in DossierService
    - **Components Needed:**
      - Cover page with AgriBackup logo and title
@@ -453,23 +453,23 @@ IPFS_API_KEY=...
    - Configure route guards for role-based access
    - Test navigation flow for all roles
 
-2. **PDF Generation Implementation** (8-12 hours)
-   - Add iText dependency to pom.xml:
+2. **PDF Generation Implementation** (✅ Completed)
+   - OpenPDF dependency added to pom.xml (LGPL license):
      ```xml
      <dependency>
-         <groupId>com.itextpdf</groupId>
-         <artifactId>itextpdf</artifactId>
-         <version>5.5.13.3</version>
+         <groupId>com.github.librepdf</groupId>
+         <artifactId>openpdf</artifactId>
+         <version>1.3.35</version>
      </dependency>
      ```
-   - Implement `generatePdfDossier()` in DossierService
-   - Add cover page with logo
-   - Add batch summary table
-   - Add risk visualization charts
-   - Add supply chain timeline
-   - Add document QR codes
-   - Add compliance statement
-   - Test PDF generation with sample data
+   - Implemented `generatePdfDossier()` in DossierService
+   - Added cover page with logo
+   - Added batch summary table
+   - Added risk visualization charts
+   - Added supply chain timeline
+   - Added document QR codes
+   - Added compliance statement
+   - Tested PDF generation with sample data
 
 3. **Authority Report Endpoints** (4-6 hours)
    - Add endpoints to EudrController:

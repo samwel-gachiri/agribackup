@@ -50,7 +50,7 @@ The README.md file has been completely modernized to reflect the current **AgriB
   - EUDR Compliance Module (4 major services with line counts)
   - Supply Chain Module
   - Domain Models (45+ entities)
-- ✅ Key dependencies with versions (Hedera SDK, iText7, ZXing, PostGIS)
+- ✅ Key dependencies with versions (Hedera SDK, OpenPDF, ZXing, PostGIS)
 - ✅ Complete frontend architecture:
   - Farmer Portal
   - Exporter Portal (primary EUDR focus with 5 major components)
@@ -107,7 +107,7 @@ The README.md file has been completely modernized to reflect the current **AgriB
   - Spring Boot 3.3.2 + Kotlin 2.0.0
   - PostgreSQL 42.7.3 + PostGIS
   - Liquibase 4.24.0 (130+ migrations)
-  - iText7 7.2.5 (NEW)
+  - OpenPDF 1.3.35 (LGPL license)
   - ZXing 3.5.3 (NEW)
 - ✅ Updated Frontend section (all current versions)
 - ✅ Added External Integrations (GFW API, AWS S3, Hedera Testnet)
@@ -147,7 +147,7 @@ The README.md file has been completely modernized to reflect the current **AgriB
 ### 14. **Footer Section**
 - ✅ Updated to "AgriBackup Platform - EUDR Compliance Made Simple"
 - ✅ Added comprehensive badges (Hedera, Spring Boot, Vue.js, PostgreSQL, EUDR)
-- ✅ Updated acknowledgments (added iText, PostgreSQL+PostGIS)
+- ✅ Updated acknowledgments (added OpenPDF, PostgreSQL+PostGIS)
 
 ---
 

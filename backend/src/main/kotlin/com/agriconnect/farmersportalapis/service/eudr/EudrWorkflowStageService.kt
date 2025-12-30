@@ -16,18 +16,11 @@ import com.agriconnect.farmersportalapis.service.supplychain.DeforestationAlertS
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.client.j2se.MatrixToImageWriter
 import com.google.zxing.qrcode.QRCodeWriter
-import com.itextpdf.io.image.ImageDataFactory
-import com.itextpdf.kernel.colors.DeviceRgb
-import com.itextpdf.kernel.pdf.PdfDocument
-import com.itextpdf.kernel.pdf.PdfWriter
-import com.itextpdf.layout.Document
-import com.itextpdf.layout.element.Cell
-import com.itextpdf.layout.element.Image
-import com.itextpdf.layout.element.Paragraph
-import com.itextpdf.layout.element.Table
-import com.itextpdf.layout.properties.HorizontalAlignment
-import com.itextpdf.layout.properties.TextAlignment
-import com.itextpdf.layout.properties.UnitValue
+import com.lowagie.text.*
+import com.lowagie.text.pdf.PdfPCell
+import com.lowagie.text.pdf.PdfPTable
+import com.lowagie.text.pdf.PdfWriter
+import java.awt.Color
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -620,40 +613,44 @@ class EudrWorkflowStageService(
         val linkedUnits = workflowProductionUnitRepository.findByWorkflowId(workflowId)
         
         val outputStream = ByteArrayOutputStream()
-        val pdfWriter = PdfWriter(outputStream)
-        val pdfDocument = PdfDocument(pdfWriter)
-        val document = Document(pdfDocument)
+        val document = Document(PageSize.A4, 50f, 50f, 50f, 50f)
+        PdfWriter.getInstance(document, outputStream)
+        document.open()
         
-        val primaryColor = DeviceRgb(0, 100, 0)  // Green for agriculture theme
-        val headerColor = DeviceRgb(34, 139, 34) // Forest green
+        val primaryColor = Color(0, 100, 0)  // Green for agriculture theme
+        val headerColor = Color(34, 139, 34) // Forest green
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         
         // ===== COVER/HEADER SECTION =====
-        document.add(Paragraph("EU Due Diligence Statement")
-            .setFontSize(24f)
-            .setBold()
-            .setFontColor(primaryColor)
-            .setTextAlignment(TextAlignment.CENTER))
+        val titleFont = Font(Font.HELVETICA, 24f, Font.BOLD, primaryColor)
+        val titleParagraph = Paragraph("EU Due Diligence Statement", titleFont)
+        titleParagraph.alignment = Element.ALIGN_CENTER
+        document.add(titleParagraph)
         
-        document.add(Paragraph("EUDR Regulation 2023/1115 Compliance Documentation")
-            .setFontSize(12f)
-            .setTextAlignment(TextAlignment.CENTER)
-            .setMarginBottom(10f))
+        val subtitleFont = Font(Font.HELVETICA, 12f)
+        val subtitleParagraph = Paragraph("EUDR Regulation 2023/1115 Compliance Documentation", subtitleFont)
+        subtitleParagraph.alignment = Element.ALIGN_CENTER
+        subtitleParagraph.spacingAfter = 10f
+        document.add(subtitleParagraph)
         
         // Reference Information with QR Code
-        val headerTable = Table(UnitValue.createPercentArray(floatArrayOf(70f, 30f)))
-            .useAllAvailableWidth()
+        val headerTable = PdfPTable(2)
+        headerTable.widthPercentage = 100f
+        headerTable.setWidths(floatArrayOf(70f, 30f))
         
         // Left side - Reference info
-        val refCell = Cell()
-        refCell.add(Paragraph("DDS Reference: ${dds.ddsReference}").setBold().setFontSize(12f))
-        refCell.add(Paragraph("Generated: ${dds.generatedAt.format(dateFormatter)}").setFontSize(10f))
-        refCell.add(Paragraph("Workflow ID: $workflowId").setFontSize(9f).setItalic())
-        headerTable.addCell(refCell.setBorder(null))
+        val refBoldFont = Font(Font.HELVETICA, 12f, Font.BOLD)
+        val refNormalFont = Font(Font.HELVETICA, 10f)
+        val refItalicFont = Font(Font.HELVETICA, 9f, Font.ITALIC)
+        val refCell = PdfPCell()
+        refCell.addElement(Paragraph("DDS Reference: ${dds.ddsReference}", refBoldFont))
+        refCell.addElement(Paragraph("Generated: ${dds.generatedAt.format(dateFormatter)}", refNormalFont))
+        refCell.addElement(Paragraph("Workflow ID: $workflowId", refItalicFont))
+        refCell.border = Rectangle.NO_BORDER
+        headerTable.addCell(refCell)
         
         // Right side - QR Code for verification
-        val qrCell = Cell()
-        // Build verification URL - prioritize certificate transaction, then DDS transaction, then NFT token
+        val qrCell = PdfPCell()
         val verificationUrl = when {
             workflow.complianceCertificateTransactionId != null -> 
                 "https://hashscan.io/testnet/transaction/${workflow.complianceCertificateTransactionId}"
@@ -662,21 +659,27 @@ class EudrWorkflowStageService(
             workflow.complianceCertificateNftId != null -> 
                 "https://hashscan.io/testnet/token/${workflow.complianceCertificateNftId}"
             else -> 
-                "https://hashscan.io/testnet" // Generic fallback - user can search
+                "https://hashscan.io/testnet"
         }
         val qrCode = generateQRCode(verificationUrl, 80)
         if (qrCode != null) {
-            qrCell.add(qrCode.setHorizontalAlignment(HorizontalAlignment.CENTER))
-            qrCell.add(Paragraph("Scan to Verify").setFontSize(7f).setTextAlignment(TextAlignment.CENTER))
+            qrCode.alignment = Element.ALIGN_CENTER
+            qrCell.addElement(qrCode)
+            val qrLabelFont = Font(Font.HELVETICA, 7f)
+            val qrLabel = Paragraph("Scan to Verify", qrLabelFont)
+            qrLabel.alignment = Element.ALIGN_CENTER
+            qrCell.addElement(qrLabel)
         }
-        headerTable.addCell(qrCell.setBorder(null))
+        qrCell.border = Rectangle.NO_BORDER
+        headerTable.addCell(qrCell)
         document.add(headerTable)
-        document.add(Paragraph().setMarginBottom(15f))
+        document.add(Paragraph("\n"))
         
         // ===== SECTION 1: OPERATOR INFORMATION =====
         document.add(createSectionHeader("1. Operator Information", headerColor))
-        val operatorTable = Table(UnitValue.createPercentArray(floatArrayOf(30f, 70f)))
-            .useAllAvailableWidth()
+        val operatorTable = PdfPTable(2)
+        operatorTable.widthPercentage = 100f
+        operatorTable.setWidths(floatArrayOf(30f, 70f))
         operatorTable.addCell(createLabelCell("Operator ID:"))
         operatorTable.addCell(createValueCell(workflow.exporter.userProfile.id ?: "N/A"))
         operatorTable.addCell(createLabelCell("Company Name:"))
@@ -684,14 +687,15 @@ class EudrWorkflowStageService(
         operatorTable.addCell(createLabelCell("Export License:"))
         operatorTable.addCell(createValueCell(workflow.exporter.licenseId ?: "N/A"))
         operatorTable.addCell(createLabelCell("Country:"))
-//        operatorTable.addCell(createValueCell(workflow.exporter.originCountry ?: "N/A"))
+        operatorTable.addCell(createValueCell(workflow.exporter.originCountry ?: "N/A"))
         document.add(operatorTable)
-        document.add(Paragraph().setMarginBottom(10f))
+        document.add(Paragraph("\n"))
         
         // ===== SECTION 2: PRODUCT INFORMATION =====
         document.add(createSectionHeader("2. Product Information", headerColor))
-        val productTable = Table(UnitValue.createPercentArray(floatArrayOf(30f, 70f)))
-            .useAllAvailableWidth()
+        val productTable = PdfPTable(2)
+        productTable.widthPercentage = 100f
+        productTable.setWidths(floatArrayOf(30f, 70f))
         productTable.addCell(createLabelCell("Product Type:"))
         productTable.addCell(createValueCell(workflow.produceType))
         productTable.addCell(createLabelCell("Total Quantity:"))
@@ -701,23 +705,25 @@ class EudrWorkflowStageService(
         productTable.addCell(createLabelCell("HS Code:"))
         productTable.addCell(createValueCell(getHsCodeForProduct(workflow.produceType)))
         document.add(productTable)
-        document.add(Paragraph().setMarginBottom(10f))
+        document.add(Paragraph("\n"))
         
-        // ===== SECTION 3: PRODUCTION UNITS - DETAILED GEOLOCATION (EUDR Article 9) =====
+        // ===== SECTION 3: PRODUCTION UNITS - DETAILED GEOLOCATION =====
         document.add(createSectionHeader("3. Production Units - Geolocation Data", headerColor))
-        document.add(Paragraph("Per EUDR Article 9(1)(a), geolocation of all plots of land where the commodity was produced:")
-            .setFontSize(9f).setItalic().setMarginBottom(5f))
+        val geoNoteFont = Font(Font.HELVETICA, 9f, Font.ITALIC)
+        val geoNoteParagraph = Paragraph("Per EUDR Article 9(1)(a), geolocation of all plots of land where the commodity was produced:", geoNoteFont)
+        geoNoteParagraph.spacingAfter = 5f
+        document.add(geoNoteParagraph)
         
         if (productionUnits.isNotEmpty()) {
-            val geoTable = Table(UnitValue.createPercentArray(floatArrayOf(15f, 25f, 30f, 15f, 15f)))
-                .useAllAvailableWidth()
+            val geoTable = PdfPTable(5)
+            geoTable.widthPercentage = 100f
+            geoTable.setWidths(floatArrayOf(15f, 25f, 30f, 15f, 15f))
             
-            // Header row
-            geoTable.addHeaderCell(createHeaderCell("Unit ID"))
-            geoTable.addHeaderCell(createHeaderCell("Unit Name"))
-            geoTable.addHeaderCell(createHeaderCell("WGS84 Coordinates"))
-            geoTable.addHeaderCell(createHeaderCell("Area (ha)"))
-            geoTable.addHeaderCell(createHeaderCell("Verified"))
+            geoTable.addCell(createHeaderCell("Unit ID"))
+            geoTable.addCell(createHeaderCell("Unit Name"))
+            geoTable.addCell(createHeaderCell("WGS84 Coordinates"))
+            geoTable.addCell(createHeaderCell("Area (ha)"))
+            geoTable.addCell(createHeaderCell("Verified"))
             
             productionUnits.forEach { unit ->
                 val linkedUnit = linkedUnits.find { it.productionUnit.id == unit.id }
@@ -729,9 +735,10 @@ class EudrWorkflowStageService(
             }
             document.add(geoTable)
         } else {
-            document.add(Paragraph("No production units linked").setItalic())
+            val italicFont = Font(Font.HELVETICA, 10f, Font.ITALIC)
+            document.add(Paragraph("No production units linked", italicFont))
         }
-        document.add(Paragraph().setMarginBottom(10f))
+        document.add(Paragraph("\n"))
         
         // ===== SECTION 4: DEFORESTATION VERIFICATION =====
         document.add(createSectionHeader("4. Deforestation-Free Verification", headerColor))
@@ -739,8 +746,9 @@ class EudrWorkflowStageService(
         val deforestationClear = linkedUnits.count { it.deforestationClear == true }
         val deforestationChecked = linkedUnits.count { it.deforestationChecked }
         
-        val deforestTable = Table(UnitValue.createPercentArray(floatArrayOf(50f, 50f)))
-            .useAllAvailableWidth()
+        val deforestTable = PdfPTable(2)
+        deforestTable.widthPercentage = 100f
+        deforestTable.setWidths(floatArrayOf(50f, 50f))
         deforestTable.addCell(createLabelCell("Plots Geo-verified:"))
         deforestTable.addCell(createValueCell("$geoVerified / ${linkedUnits.size} (${if (linkedUnits.isNotEmpty()) (geoVerified * 100 / linkedUnits.size) else 0}%)"))
         deforestTable.addCell(createLabelCell("Deforestation Checks Performed:"))
@@ -750,14 +758,14 @@ class EudrWorkflowStageService(
         deforestTable.addCell(createLabelCell("Cutoff Date Compliance:"))
         deforestTable.addCell(createValueCell("December 31, 2020"))
         document.add(deforestTable)
-        document.add(Paragraph().setMarginBottom(10f))
+        document.add(Paragraph("\n"))
         
         // ===== SECTION 5: SUPPLY CHAIN TRACEABILITY =====
         document.add(createSectionHeader("5. Supply Chain Traceability", headerColor))
         
-        // Summary table
-        val traceTable = Table(UnitValue.createPercentArray(floatArrayOf(50f, 50f)))
-            .useAllAvailableWidth()
+        val traceTable = PdfPTable(2)
+        traceTable.widthPercentage = 100f
+        traceTable.setWidths(floatArrayOf(50f, 50f))
         traceTable.addCell(createLabelCell("Collection Events:"))
         traceTable.addCell(createValueCell("${dds.collectionsCount}"))
         traceTable.addCell(createLabelCell("Consolidation Events:"))
@@ -766,111 +774,140 @@ class EudrWorkflowStageService(
         traceTable.addCell(createValueCell("${dds.processingsCount}"))
         document.add(traceTable)
         
-        // Detailed supply chain events with blockchain transaction IDs
+        // Collection events table
         if (collections.isNotEmpty()) {
-            document.add(Paragraph("Collection Events with Blockchain Verification:").setBold().setFontSize(10f).setMarginTop(10f))
-            val collTable = Table(UnitValue.createPercentArray(floatArrayOf(15f, 25f, 15f, 25f, 20f)))
-                .useAllAvailableWidth()
-            collTable.addHeaderCell(createHeaderCell("Date"))
-            collTable.addHeaderCell(createHeaderCell("From"))
-            collTable.addHeaderCell(createHeaderCell("Qty (kg)"))
-            collTable.addHeaderCell(createHeaderCell("To"))
-            collTable.addHeaderCell(createHeaderCell("Hedera TX"))
+            val collHeaderFont = Font(Font.HELVETICA, 10f, Font.BOLD)
+            val collHeader = Paragraph("Collection Events with Blockchain Verification:", collHeaderFont)
+            collHeader.spacingBefore = 10f
+            document.add(collHeader)
+            
+            val collTable = PdfPTable(5)
+            collTable.widthPercentage = 100f
+            collTable.setWidths(floatArrayOf(15f, 25f, 15f, 25f, 20f))
+            collTable.addCell(createHeaderCell("Date"))
+            collTable.addCell(createHeaderCell("From"))
+            collTable.addCell(createHeaderCell("Qty (kg)"))
+            collTable.addCell(createHeaderCell("To"))
+            collTable.addCell(createHeaderCell("Hedera TX"))
             
             collections.take(10).forEach { event ->
                 collTable.addCell(createValueCell(event.collectionDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))))
                 collTable.addCell(createValueCell(event.farmer.userProfile.fullName ?: "Farmer"))
                 collTable.addCell(createValueCell(event.quantityCollectedKg.toString()))
                 collTable.addCell(createValueCell(event.collectorSupplier.supplierName))
-                // Show full transaction ID or pending status
+                val txFont = Font(Font.HELVETICA, 7f)
                 val txCell = if (event.hederaTransactionId != null) {
-                    createValueCell(event.hederaTransactionId!!).setFontSize(7f)
+                    PdfPCell(Paragraph(event.hederaTransactionId!!, txFont))
                 } else {
-                    createValueCell("Pending").setItalic()
+                    val italicFont = Font(Font.HELVETICA, 10f, Font.ITALIC)
+                    PdfPCell(Paragraph("Pending", italicFont))
                 }
+                txCell.setPadding(5f)
                 collTable.addCell(txCell)
             }
             document.add(collTable)
             if (collections.size > 10) {
-                document.add(Paragraph("... and ${collections.size - 10} more collection events").setFontSize(8f).setItalic())
+                val moreFont = Font(Font.HELVETICA, 8f, Font.ITALIC)
+                document.add(Paragraph("... and ${collections.size - 10} more collection events", moreFont))
             }
         }
         
-        // Add Consolidation Events if present
+        // Consolidation events table
         if (consolidations.isNotEmpty()) {
-            document.add(Paragraph("Consolidation Events (Supplier → Supplier Transfers):").setBold().setFontSize(10f).setMarginTop(10f))
-            val consTable = Table(UnitValue.createPercentArray(floatArrayOf(15f, 25f, 15f, 25f, 20f)))
-                .useAllAvailableWidth()
-            consTable.addHeaderCell(createHeaderCell("Date"))
-            consTable.addHeaderCell(createHeaderCell("From"))
-            consTable.addHeaderCell(createHeaderCell("Qty (kg)"))
-            consTable.addHeaderCell(createHeaderCell("To"))
-            consTable.addHeaderCell(createHeaderCell("Hedera TX"))
+            val consHeaderFont = Font(Font.HELVETICA, 10f, Font.BOLD)
+            val consHeader = Paragraph("Consolidation Events (Supplier → Supplier Transfers):", consHeaderFont)
+            consHeader.spacingBefore = 10f
+            document.add(consHeader)
+            
+            val consTable = PdfPTable(5)
+            consTable.widthPercentage = 100f
+            consTable.setWidths(floatArrayOf(15f, 25f, 15f, 25f, 20f))
+            consTable.addCell(createHeaderCell("Date"))
+            consTable.addCell(createHeaderCell("From"))
+            consTable.addCell(createHeaderCell("Qty (kg)"))
+            consTable.addCell(createHeaderCell("To"))
+            consTable.addCell(createHeaderCell("Hedera TX"))
             
             consolidations.take(10).forEach { event ->
                 consTable.addCell(createValueCell(event.consolidationDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))))
                 consTable.addCell(createValueCell(event.sourceSupplier.supplierName))
                 consTable.addCell(createValueCell(event.quantitySentKg.toString()))
                 consTable.addCell(createValueCell(event.targetSupplier.supplierName))
+                val txFont = Font(Font.HELVETICA, 7f)
                 val txCell = if (event.hederaTransactionId != null) {
-                    createValueCell(event.hederaTransactionId!!).setFontSize(7f)
+                    PdfPCell(Paragraph(event.hederaTransactionId!!, txFont))
                 } else {
-                    createValueCell("Pending").setItalic()
+                    val italicFont = Font(Font.HELVETICA, 10f, Font.ITALIC)
+                    PdfPCell(Paragraph("Pending", italicFont))
                 }
+                txCell.setPadding(5f)
                 consTable.addCell(txCell)
             }
             document.add(consTable)
         }
         
-        // Add Processing Events if present
+        // Processing events table
         if (processings.isNotEmpty()) {
-            document.add(Paragraph("Processing Events:").setBold().setFontSize(10f).setMarginTop(10f))
-            val procTable = Table(UnitValue.createPercentArray(floatArrayOf(15f, 25f, 15f, 15f, 30f)))
-                .useAllAvailableWidth()
-            procTable.addHeaderCell(createHeaderCell("Date"))
-            procTable.addHeaderCell(createHeaderCell("Processor"))
-            procTable.addHeaderCell(createHeaderCell("Input (kg)"))
-            procTable.addHeaderCell(createHeaderCell("Output (kg)"))
-            procTable.addHeaderCell(createHeaderCell("Hedera TX"))
+            val procHeaderFont = Font(Font.HELVETICA, 10f, Font.BOLD)
+            val procHeader = Paragraph("Processing Events:", procHeaderFont)
+            procHeader.spacingBefore = 10f
+            document.add(procHeader)
+            
+            val procTable = PdfPTable(5)
+            procTable.widthPercentage = 100f
+            procTable.setWidths(floatArrayOf(15f, 25f, 15f, 15f, 30f))
+            procTable.addCell(createHeaderCell("Date"))
+            procTable.addCell(createHeaderCell("Processor"))
+            procTable.addCell(createHeaderCell("Input (kg)"))
+            procTable.addCell(createHeaderCell("Output (kg)"))
+            procTable.addCell(createHeaderCell("Hedera TX"))
             
             processings.take(10).forEach { event ->
                 procTable.addCell(createValueCell(event.processingDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))))
                 procTable.addCell(createValueCell(event.processorSupplier.supplierName))
                 procTable.addCell(createValueCell(event.quantityProcessedKg.toString()))
                 procTable.addCell(createValueCell(event.outputQuantityKg?.toString() ?: "N/A"))
+                val txFont = Font(Font.HELVETICA, 7f)
                 val txCell = if (event.hederaTransactionId != null) {
-                    createValueCell(event.hederaTransactionId!!).setFontSize(7f)
+                    PdfPCell(Paragraph(event.hederaTransactionId!!, txFont))
                 } else {
-                    createValueCell("Pending").setItalic()
+                    val italicFont = Font(Font.HELVETICA, 10f, Font.ITALIC)
+                    PdfPCell(Paragraph("Pending", italicFont))
                 }
+                txCell.setPadding(5f)
                 procTable.addCell(txCell)
             }
             document.add(procTable)
         }
-        document.add(Paragraph().setMarginBottom(10f))
+        document.add(Paragraph("\n"))
         
         // ===== SECTION 6: RISK ASSESSMENT =====
         document.add(createSectionHeader("6. Risk Assessment", headerColor))
         val riskColor = when (dds.riskClassification) {
-            EudrRiskClassification.NEGLIGIBLE -> DeviceRgb(0, 128, 0)
-            EudrRiskClassification.LOW -> DeviceRgb(34, 139, 34)
-            EudrRiskClassification.STANDARD -> DeviceRgb(255, 165, 0)
-            EudrRiskClassification.HIGH -> DeviceRgb(255, 69, 0)
+            EudrRiskClassification.NEGLIGIBLE -> Color(0, 128, 0)
+            EudrRiskClassification.LOW -> Color(34, 139, 34)
+            EudrRiskClassification.STANDARD -> Color(255, 165, 0)
+            EudrRiskClassification.HIGH -> Color(255, 69, 0)
         }
-        val riskTable = Table(UnitValue.createPercentArray(floatArrayOf(30f, 70f)))
-            .useAllAvailableWidth()
+        val riskTable = PdfPTable(2)
+        riskTable.widthPercentage = 100f
+        riskTable.setWidths(floatArrayOf(30f, 70f))
         riskTable.addCell(createLabelCell("Risk Classification:"))
-        riskTable.addCell(Cell().add(Paragraph(dds.riskClassification.name).setFontColor(riskColor).setBold()))
+        val riskFont = Font(Font.HELVETICA, 10f, Font.BOLD, riskColor)
+        val riskValueCell = PdfPCell(Paragraph(dds.riskClassification.name, riskFont))
+        riskValueCell.setPadding(5f)
+        riskTable.addCell(riskValueCell)
         riskTable.addCell(createLabelCell("Assessment Date:"))
         riskTable.addCell(createValueCell(workflow.riskAssessedAt?.format(dateFormatter) ?: "Pending"))
         riskTable.addCell(createLabelCell("Due Diligence Level:"))
         riskTable.addCell(createValueCell(dds.riskClassification.requiredDueDiligence))
         document.add(riskTable)
-        document.add(Paragraph().setMarginBottom(10f))
+        document.add(Paragraph("\n"))
         
         // ===== SECTION 7: COMPLIANCE DECLARATION =====
         document.add(createSectionHeader("7. Compliance Declaration", headerColor))
-        document.add(Paragraph("""
+        val declarationFont = Font(Font.HELVETICA, 9f)
+        val declaration = Paragraph("""
             I, the undersigned operator, hereby declare that:
             
             ✓ The relevant product is deforestation-free (Article 3(a))
@@ -882,9 +919,9 @@ class EudrWorkflowStageService(
             ✓ Risk mitigation measures have been applied where necessary (Article 11)
             
             The information contained in this statement is accurate and complete to the best of my knowledge.
-        """.trimIndent())
-            .setFontSize(9f)
-            .setMarginBottom(15f))
+        """.trimIndent(), declarationFont)
+        declaration.spacingAfter = 15f
+        document.add(declaration)
         
         // ===== SECTION 8: BLOCKCHAIN VERIFICATION =====
         document.add(createSectionHeader("8. Blockchain Verification (Hedera Hashgraph)", headerColor))
@@ -895,52 +932,58 @@ class EudrWorkflowStageService(
             workflow.certificateStatus == CertificateStatus.PENDING_VERIFICATION -> "⏳ CERTIFICATE PENDING"
             else -> "⏳ CERTIFICATE NOT YET ISSUED"
         }
-        val statusColor = if (workflow.complianceCertificateNftId != null) DeviceRgb(0, 128, 0) else DeviceRgb(255, 165, 0)
-        document.add(Paragraph(certStatus)
-            .setFontColor(statusColor)
-            .setBold()
-            .setFontSize(11f)
-            .setMarginBottom(10f))
+        val statusColor = if (workflow.complianceCertificateNftId != null) Color(0, 128, 0) else Color(255, 165, 0)
+        val statusFont = Font(Font.HELVETICA, 11f, Font.BOLD, statusColor)
+        val statusParagraph = Paragraph(certStatus, statusFont)
+        statusParagraph.spacingAfter = 10f
+        document.add(statusParagraph)
         
-        val blockchainTable = Table(UnitValue.createPercentArray(floatArrayOf(35f, 65f)))
-            .useAllAvailableWidth()
+        val blockchainTable = PdfPTable(2)
+        blockchainTable.widthPercentage = 100f
+        blockchainTable.setWidths(floatArrayOf(35f, 65f))
         
-        // Certificate NFT with clickable link
+        // Certificate NFT
         blockchainTable.addCell(createLabelCell("Certificate NFT Token:"))
         if (workflow.complianceCertificateNftId != null) {
             val nftUrl = "https://hashscan.io/testnet/token/${workflow.complianceCertificateNftId}"
-            blockchainTable.addCell(createValueCell("${workflow.complianceCertificateNftId}\n→ $nftUrl").setFontSize(8f))
+            val smallFont = Font(Font.HELVETICA, 8f)
+            blockchainTable.addCell(PdfPCell(Paragraph("${workflow.complianceCertificateNftId}\n→ $nftUrl", smallFont)).also { it.setPadding(5f) })
         } else {
-            blockchainTable.addCell(createValueCell("Will be created when certificate is issued").setItalic())
+            val italicFont = Font(Font.HELVETICA, 10f, Font.ITALIC)
+            blockchainTable.addCell(PdfPCell(Paragraph("Will be created when certificate is issued", italicFont)).also { it.setPadding(5f) })
         }
         
         blockchainTable.addCell(createLabelCell("Certificate Serial #:"))
         blockchainTable.addCell(createValueCell(workflow.complianceCertificateSerialNumber?.toString() ?: "Pending"))
         
-        // Certificate TX with full link
         blockchainTable.addCell(createLabelCell("Certificate TX:"))
         if (workflow.complianceCertificateTransactionId != null) {
             val certTxUrl = "https://hashscan.io/testnet/transaction/${workflow.complianceCertificateTransactionId}"
-            blockchainTable.addCell(createValueCell("${workflow.complianceCertificateTransactionId}\n→ $certTxUrl").setFontSize(8f))
+            val smallFont = Font(Font.HELVETICA, 8f)
+            blockchainTable.addCell(PdfPCell(Paragraph("${workflow.complianceCertificateTransactionId}\n→ $certTxUrl", smallFont)).also { it.setPadding(5f) })
         } else {
-            blockchainTable.addCell(createValueCell("Pending").setItalic())
+            val italicFont = Font(Font.HELVETICA, 10f, Font.ITALIC)
+            blockchainTable.addCell(PdfPCell(Paragraph("Pending", italicFont)).also { it.setPadding(5f) })
         }
         
-        // DDS TX with full link
         blockchainTable.addCell(createLabelCell("DDS Consensus TX:"))
         if (workflow.ddsHederaTransactionId != null) {
             val ddsTxUrl = "https://hashscan.io/testnet/transaction/${workflow.ddsHederaTransactionId}"
-            blockchainTable.addCell(createValueCell("${workflow.ddsHederaTransactionId}\n→ $ddsTxUrl").setFontSize(8f))
+            val smallFont = Font(Font.HELVETICA, 8f)
+            blockchainTable.addCell(PdfPCell(Paragraph("${workflow.ddsHederaTransactionId}\n→ $ddsTxUrl", smallFont)).also { it.setPadding(5f) })
         } else {
-            blockchainTable.addCell(createValueCell("Pending").setItalic())
+            val italicFont = Font(Font.HELVETICA, 10f, Font.ITALIC)
+            blockchainTable.addCell(PdfPCell(Paragraph("Pending", italicFont)).also { it.setPadding(5f) })
         }
         
         document.add(blockchainTable)
         
         // Verification instructions
-        document.add(Paragraph().setMarginTop(10f))
-        document.add(Paragraph("HOW TO VERIFY THIS DOCUMENT:").setBold().setFontSize(9f))
-        document.add(Paragraph("""
+        document.add(Paragraph("\n"))
+        val howToFont = Font(Font.HELVETICA, 9f, Font.BOLD)
+        document.add(Paragraph("HOW TO VERIFY THIS DOCUMENT:", howToFont))
+        val instructionsFont = Font(Font.HELVETICA, 8f)
+        val instructions = Paragraph("""
             1. Scan the QR code above OR visit hashscan.io/testnet
             2. Search for the Transaction ID or Token ID listed above
             3. Verify the transaction timestamp matches the document date
@@ -949,20 +992,26 @@ class EudrWorkflowStageService(
             
             All Hedera transactions are immutable and publicly verifiable.
             Network: Hedera Testnet (use Mainnet for production)
-        """.trimIndent())
-            .setFontSize(8f)
-            .setMarginTop(5f))
+        """.trimIndent(), instructionsFont)
+        instructions.spacingBefore = 5f
+        document.add(instructions)
         
         // ===== FOOTER =====
-        document.add(Paragraph().setMarginTop(30f))
-        document.add(Paragraph("─".repeat(80)).setTextAlignment(TextAlignment.CENTER).setFontSize(8f))
-        document.add(Paragraph("Generated by AgriConnect EUDR Compliance System")
-            .setFontSize(8f)
-            .setTextAlignment(TextAlignment.CENTER)
-            .setItalic())
-        document.add(Paragraph("Document ID: ${dds.ddsReference} | Workflow: $workflowId | Generated: ${dds.generatedAt.format(dateFormatter)}")
-            .setFontSize(7f)
-            .setTextAlignment(TextAlignment.CENTER))
+        document.add(Paragraph("\n\n"))
+        val dividerFont = Font(Font.HELVETICA, 8f)
+        val divider = Paragraph("─".repeat(80), dividerFont)
+        divider.alignment = Element.ALIGN_CENTER
+        document.add(divider)
+        
+        val footerItalicFont = Font(Font.HELVETICA, 8f, Font.ITALIC)
+        val footerParagraph = Paragraph("Generated by AgriConnect EUDR Compliance System", footerItalicFont)
+        footerParagraph.alignment = Element.ALIGN_CENTER
+        document.add(footerParagraph)
+        
+        val docIdFont = Font(Font.HELVETICA, 7f)
+        val docIdParagraph = Paragraph("Document ID: ${dds.ddsReference} | Workflow: $workflowId | Generated: ${dds.generatedAt.format(dateFormatter)}", docIdFont)
+        docIdParagraph.alignment = Element.ALIGN_CENTER
+        document.add(docIdParagraph)
         
         document.close()
         return outputStream.toByteArray()
@@ -977,35 +1026,43 @@ class EudrWorkflowStageService(
             val bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, size, size)
             val outputStream = ByteArrayOutputStream()
             MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream)
-            val imageData = ImageDataFactory.create(outputStream.toByteArray())
-            Image(imageData)
+            val img = Image.getInstance(outputStream.toByteArray())
+            img
         } catch (e: Exception) {
             logger.warn("Failed to generate QR code: ${e.message}")
             null
         }
     }
     
-    private fun createHeaderCell(text: String): Cell {
-        return Cell().add(Paragraph(text).setBold().setFontSize(9f))
-            .setBackgroundColor(DeviceRgb(200, 230, 200))
+    private fun createHeaderCell(text: String): PdfPCell {
+        val boldFont = Font(Font.HELVETICA, 9f, Font.BOLD)
+        val cell = PdfPCell(Paragraph(text, boldFont))
+        cell.backgroundColor = Color(200, 230, 200)
+        cell.setPadding(5f)
+        return cell
     }
     
-    private fun createSectionHeader(title: String, color: DeviceRgb): Paragraph {
-        return Paragraph(title)
-            .setFontSize(14f)
-            .setBold()
-            .setFontColor(color)
-            .setMarginTop(15f)
-            .setMarginBottom(8f)
+    private fun createSectionHeader(title: String, color: Color): Paragraph {
+        val font = Font(Font.HELVETICA, 14f, Font.BOLD, color)
+        val paragraph = Paragraph(title, font)
+        paragraph.spacingBefore = 15f
+        paragraph.spacingAfter = 8f
+        return paragraph
     }
     
-    private fun createLabelCell(text: String): Cell {
-        return Cell().add(Paragraph(text).setBold().setFontSize(10f))
-            .setBackgroundColor(DeviceRgb(240, 240, 240))
+    private fun createLabelCell(text: String): PdfPCell {
+        val boldFont = Font(Font.HELVETICA, 10f, Font.BOLD)
+        val cell = PdfPCell(Paragraph(text, boldFont))
+        cell.backgroundColor = Color(240, 240, 240)
+        cell.setPadding(5f)
+        return cell
     }
     
-    private fun createValueCell(text: String): Cell {
-        return Cell().add(Paragraph(text).setFontSize(10f))
+    private fun createValueCell(text: String): PdfPCell {
+        val font = Font(Font.HELVETICA, 10f)
+        val cell = PdfPCell(Paragraph(text, font))
+        cell.setPadding(5f)
+        return cell
     }
 
     /**

@@ -181,7 +181,7 @@ class FarmerReportsService(
     }
 
     fun exportReportsPDF(farmerId: String, startDate: String?, endDate: String?, includeCharts: Boolean): ByteArray {
-        // In a real implementation, this would generate a PDF using a library like iText
+        // In a real implementation, this would generate a PDF using OpenPDF library
         // For now, return a mock PDF content
         val content = "Farmer Reports PDF for farmer $farmerId from $startDate to $endDate"
         return content.toByteArray()

@@ -203,11 +203,11 @@ AgriBackup leverages the world's most sustainable and efficient distributed ledg
     <version>2.40.0</version>
 </dependency>
 
-<!-- PDF Generation -->
+<!-- PDF Generation (OpenPDF - LGPL license) -->
 <dependency>
-    <groupId>com.itextpdf</groupId>
-    <artifactId>itext7-core</artifactId>
-    <version>7.2.5</version>
+    <groupId>com.github.librepdf</groupId>
+    <artifactId>openpdf</artifactId>
+    <version>1.3.35</version>
 </dependency>
 
 <!-- Spatial Database -->
@@ -455,7 +455,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 - **EU Commission**: For the EUDR regulation driving supply chain transparency
 - **Global Forest Watch**: For deforestation monitoring API
 - **Spring Boot & Vue.js Communities**: For excellent frameworks and documentation
-- **iText**: For professional PDF generation library
+- **OpenPDF**: For professional PDF generation library (LGPL)
 - **PostgreSQL + PostGIS**: For powerful spatial database capabilities
 
 ---
