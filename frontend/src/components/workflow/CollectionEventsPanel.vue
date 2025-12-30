@@ -285,7 +285,7 @@ export default {
         const response = await axios.get(`/api/v1/supply-chain/workflows/${this.workflowId}/collection`);
         this.collectionEvents = response.data || [];
       } catch (error) {
-        console.error('Failed to load collection events:', error);
+        this.$toast.error('Failed to load collection events:', error.message);
       } finally {
         this.loading = false;
       }
@@ -303,7 +303,7 @@ export default {
           farmerName: wu.farmerName,
         }));
       } catch (error) {
-        console.error('Failed to load linked production units:', error);
+        this.$toast.error('Failed to load linked production units:', error.message);
       }
     },
 
@@ -342,7 +342,7 @@ export default {
             }));
         }
       } catch (error) {
-        console.error('Failed to load collector suppliers:', error);
+        this.$toast.error('Failed to load collector suppliers:', error.message);
         // Don't show error to user, just log it - they may need to add suppliers first
       }
     },
@@ -378,7 +378,7 @@ export default {
         await this.loadCollectionEvents();
         this.closeDialog();
       } catch (error) {
-        console.error('Failed to save collection event:', error);
+        this.$toast.error('Failed to save collection event:', error.message);
         this.$emit('error', error.response?.data?.message || 'Failed to save collection event');
       } finally {
         this.saving = false;

@@ -62,7 +62,8 @@ class EudrWorkflowStageService(
     private val countryRiskRepository: CountryRiskRepository,
     private val deforestationAlertService: DeforestationAlertService,
     private val riskAssessmentService: RiskAssessmentService,
-    private val asyncHederaService: AsyncHederaService
+    private val asyncHederaService: AsyncHederaService,
+    private val productionUnitService: com.agriconnect.farmersportalapis.service.supplychain.ProductionUnitService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -380,8 +381,8 @@ class EudrWorkflowStageService(
         // Calculate risk factors
         val riskFactors = mutableListOf<RiskFactor>()
         
-        // 1. Country Risk - use country codes from production units
-        val countryRiskScore = calculateCountryRiskScore(productionUnits)
+        // 1. Country Risk - use country codes from production units, fallback to exporter origin
+        val countryRiskScore = calculateCountryRiskScore(productionUnits, workflow.exporter.originCountry)
         riskFactors.add(RiskFactor(
             type = "COUNTRY",
             description = "Country of origin risk based on EUDR benchmarking",
@@ -445,12 +446,21 @@ class EudrWorkflowStageService(
         
         logger.info("Risk assessment completed for workflow {}: {} (score: {})", workflowId, classification, overallScore)
         
+        // *** SAVE RISK ASSESSMENT RESULTS TO WORKFLOW ***
+        workflow.riskClassification = classification
+        workflow.riskScore = overallScore
+        workflow.riskAssessedAt = LocalDateTime.now()
+        workflow.updatedAt = LocalDateTime.now()
+        workflowRepository.save(workflow)
+        
+        logger.info("Risk assessment SAVED to workflow {} - classification: {}, score: {}", workflowId, classification, overallScore)
+        
         return RiskAssessmentResultDto(
             workflowId = workflowId,
             overallScore = overallScore,
             classification = classification,
             riskFactors = riskFactors,
-            assessedAt = LocalDateTime.now(),
+            assessedAt = workflow.riskAssessedAt!!,
             recommendedActions = getRecommendedActionsForRisk(classification)
         )
     }
@@ -460,32 +470,51 @@ class EudrWorkflowStageService(
      */
     private data class CountryRiskResult(val score: Double, val details: String, val level: String)
     
-    private fun calculateCountryRiskScore(productionUnits: List<com.agriconnect.farmersportalapis.domain.eudr.ProductionUnit>): CountryRiskResult {
+    private fun calculateCountryRiskScore(productionUnits: List<com.agriconnect.farmersportalapis.domain.eudr.ProductionUnit>, fallbackCountry: String? = null): CountryRiskResult {
         if (productionUnits.isEmpty()) {
-            return CountryRiskResult(50.0, "No production units - risk unknown", "STANDARD")
+            // Try fallback country if no production units
+            return if (fallbackCountry != null) {
+                val code = inferCountryCode(fallbackCountry) ?: fallbackCountry
+                lookupCountryRisk(listOf(code), "from exporter origin")
+            } else {
+                CountryRiskResult(50.0, "No production units - risk unknown", "STANDARD")
+            }
         }
-        
-        // Try to determine country from production unit data
-        // Infer from administrative region since countryCode field may not exist
+
+        // Priority 1: Use direct countryCode field OR detect on-the-fly from geometry
         val countryCodes = productionUnits.mapNotNull { pu ->
-            inferCountryCode(pu.administrativeRegion)
+            // Try existing country code first, then detect from geometry
+            productionUnitService.getOrDetectCountryCode(pu)
         }.distinct()
         
-        if (countryCodes.isEmpty()) {
-            return CountryRiskResult(50.0, "Country could not be determined from production unit data", "STANDARD")
+        if (countryCodes.isNotEmpty()) {
+            return lookupCountryRisk(countryCodes, "from production unit country (detected from geometry)")
         }
-        
-        // Look up each country in the risk matrix
+
+        // Priority 2: Infer from administrative region
+        val inferredCodes = productionUnits.mapNotNull { pu ->
+            inferCountryCode(pu.administrativeRegion)
+        }.distinct()
+        if (inferredCodes.isNotEmpty()) {
+            return lookupCountryRisk(inferredCodes, "inferred from administrative region")
+        }
+
+        // Priority 3: Use fallback exporter origin country
+        if (fallbackCountry != null) {
+            val fallbackCode = inferCountryCode(fallbackCountry) ?: fallbackCountry
+            return lookupCountryRisk(listOf(fallbackCode), "from exporter origin (fallback)")
+        }
+
+        return CountryRiskResult(50.0, "Country could not be determined from production unit data", "STANDARD")
+    }
+
+    private fun lookupCountryRisk(countryCodes: List<String>, source: String): CountryRiskResult {
         val countryRisks = countryCodes.mapNotNull { code ->
             countryRiskRepository.findByCountryCode(code)
         }
-        
         if (countryRisks.isEmpty()) {
-            // Countries not in our database - assume standard risk
-            return CountryRiskResult(50.0, "Countries not in risk database: ${countryCodes.joinToString()}", "STANDARD")
+            return CountryRiskResult(50.0, "Countries not in risk database: ${countryCodes.joinToString()} ($source)", "STANDARD")
         }
-        
-        // Calculate average score based on found countries
         val scores = countryRisks.map { cr ->
             when (cr.riskLevel) {
                 CountryRiskLevel.LOW -> 15.0
@@ -493,16 +522,14 @@ class EudrWorkflowStageService(
                 CountryRiskLevel.HIGH -> 85.0
             }
         }
-        
         val avgScore = scores.average()
         val level = when {
             avgScore >= 60 -> "HIGH"
             avgScore >= 35 -> "STANDARD"
             else -> "LOW"
         }
-        
         val countryNames = countryRisks.map { "${it.countryName} (${it.riskLevel})" }.joinToString(", ")
-        return CountryRiskResult(avgScore, "Countries: $countryNames", level)
+        return CountryRiskResult(avgScore, "Countries: $countryNames ($source)", level)
     }
     
     /**
@@ -1157,7 +1184,11 @@ class EudrWorkflowStageService(
                 // Note: Processing events are optional - exporters can proceed with raw produce
             }
             EudrComplianceStage.DUE_DILIGENCE_STATEMENT -> {
-                // Stage 7: Check for certificate
+                // Stage 7: Check that risk assessment has been completed AND certificate status
+                // Risk assessment MUST be completed before generating DDS
+                if (workflow.riskAssessedAt == null || workflow.riskClassification == null) {
+                    blockers.add("Risk assessment has not been completed. Run risk assessment before generating the Due Diligence Statement.")
+                }
                 if (workflow.certificateStatus == CertificateStatus.NOT_CREATED) {
                     blockers.add("Compliance certificate not yet created")
                 }

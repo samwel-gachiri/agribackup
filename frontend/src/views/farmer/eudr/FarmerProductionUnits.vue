@@ -178,54 +178,59 @@
             <v-skeleton-loader type="table-row@5"></v-skeleton-loader>
           </template>
 
-          <template #item.name="{ item }">
+          <template #item.unitName="{ item }">
             <div class="tw-flex tw-items-center tw-gap-3 tw-py-2">
               <div class="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-green-100 tw-flex tw-items-center tw-justify-center tw-flex-shrink-0">
                 <v-icon color="green" size="20">mdi-terrain</v-icon>
               </div>
               <div>
-                <div class="tw-font-medium tw-text-gray-800">{{ item.name }}</div>
-                <div v-if="item.coordinates" class="tw-text-xs tw-text-gray-500 tw-font-mono">
-                  {{ item.coordinates }}
+                <div class="tw-font-medium tw-text-gray-800">{{ item.unitName }}</div>
+                <div v-if="item.wgs84Coordinates" class="tw-text-xs tw-text-gray-500 tw-font-mono tw-truncate tw-max-w-[200px]">
+                  {{ item.wgs84Coordinates.split(';')[0] }}...
                 </div>
               </div>
             </div>
           </template>
 
-          <template #item.area="{ item }">
-            <div class="tw-font-semibold">{{ item.area?.toFixed(2) || '—' }}</div>
+          <template #item.areaHectares="{ item }">
+            <div class="tw-font-semibold">{{ item.areaHectares?.toFixed(2) || '—' }}</div>
             <div class="tw-text-xs tw-text-gray-500">hectares</div>
           </template>
 
-          <template #item.status="{ item }">
-            <v-chip
-              :color="getStatusColor(item.status)"
-              small
-              :outlined="item.status !== 'Verified'"
-              class="tw-font-medium"
-            >
-              <v-icon left x-small>{{ getStatusIcon(item.status) }}</v-icon>
-              {{ item.status }}
+          <template #item.administrativeRegion="{ item }">
+            <span class="tw-text-gray-600">{{ item.administrativeRegion || '—' }}</span>
+          </template>
+
+          <template #item.hederaTransactionId="{ item }">
+            <div v-if="item.hederaTransactionId" class="tw-flex tw-items-center tw-gap-2">
+              <v-chip small color="success" outlined>
+                <v-icon left x-small>mdi-check-decagram</v-icon>
+                Verified
+              </v-chip>
+              <v-tooltip bottom>
+                <template #activator="{ on, attrs }">
+                  <v-btn
+                    v-bind="attrs"
+                    v-on="on"
+                    x-small
+                    icon
+                    color="primary"
+                    @click="openHederaExplorer(item.hederaTransactionId)"
+                  >
+                    <v-icon x-small>mdi-open-in-new</v-icon>
+                  </v-btn>
+                </template>
+                <span>View on Hedera Explorer</span>
+              </v-tooltip>
+            </div>
+            <v-chip v-else small color="grey" outlined>
+              <v-icon left x-small>mdi-clock-outline</v-icon>
+              Pending
             </v-chip>
           </template>
 
-          <template #item.region="{ item }">
-            <span class="tw-text-gray-600">{{ item.region || '—' }}</span>
-          </template>
-
-          <template #item.alerts="{ item }">
-            <v-chip
-              :color="item.alerts > 0 ? 'error' : 'success'"
-              small
-              :outlined="item.alerts === 0"
-            >
-              <v-icon left x-small>{{ item.alerts > 0 ? 'mdi-alert' : 'mdi-check' }}</v-icon>
-              {{ item.alerts || 0 }}
-            </v-chip>
-          </template>
-
-          <template #item.createdAt="{ item }">
-            <div class="tw-text-sm tw-text-gray-600">{{ formatDate(item.createdAt) }}</div>
+          <template #item.lastVerifiedAt="{ item }">
+            <div class="tw-text-sm tw-text-gray-600">{{ formatDate(item.lastVerifiedAt) }}</div>
           </template>
 
           <template #item.actions="{ item }">
@@ -456,6 +461,129 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Production Unit Details Drawer -->
+    <v-navigation-drawer
+      v-model="showDetailsDrawer"
+      right
+      width="450"
+      temporary
+      fixed
+      class="tw-z-50"
+    >
+      <div v-if="selectedUnit" class="tw-h-full tw-flex tw-flex-col">
+        <!-- Header -->
+        <div class="tw-bg-green-600 tw-text-white tw-px-4 tw-py-4 tw-flex tw-items-center tw-justify-between">
+          <div>
+            <h3 class="tw-font-semibold tw-text-lg">{{ selectedUnit.unitName }}</h3>
+            <p class="tw-text-sm tw-opacity-90">Production Unit Details</p>
+          </div>
+          <v-btn icon dark @click="showDetailsDrawer = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+
+        <!-- Content -->
+        <div class="tw-flex-1 tw-overflow-auto tw-p-4">
+          <!-- Area Info -->
+          <div class="tw-bg-green-50 tw-rounded-lg tw-p-4 tw-mb-4">
+            <div class="tw-flex tw-items-center tw-gap-3">
+              <div class="tw-w-12 tw-h-12 tw-rounded-full tw-bg-green-100 tw-flex tw-items-center tw-justify-center">
+                <v-icon color="green">mdi-ruler-square</v-icon>
+              </div>
+              <div>
+                <div class="tw-text-2xl tw-font-bold tw-text-green-700">{{ selectedUnit.areaHectares?.toFixed(2) || '—' }}</div>
+                <div class="tw-text-sm tw-text-green-600">Hectares</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Details List -->
+          <div class="tw-space-y-4">
+            <div class="tw-flex tw-justify-between tw-items-start tw-py-2 tw-border-b tw-border-gray-100">
+              <span class="tw-text-gray-500 tw-text-sm">Region</span>
+              <span class="tw-font-medium tw-text-gray-800">{{ selectedUnit.administrativeRegion || '—' }}</span>
+            </div>
+
+            <div class="tw-flex tw-justify-between tw-items-start tw-py-2 tw-border-b tw-border-gray-100">
+              <span class="tw-text-gray-500 tw-text-sm">Country Code</span>
+              <span class="tw-font-medium tw-text-gray-800">{{ selectedUnit.countryCode || '—' }}</span>
+            </div>
+
+            <div class="tw-flex tw-justify-between tw-items-start tw-py-2 tw-border-b tw-border-gray-100">
+              <span class="tw-text-gray-500 tw-text-sm">Last Verified</span>
+              <span class="tw-font-medium tw-text-gray-800">{{ formatDate(selectedUnit.lastVerifiedAt) }}</span>
+            </div>
+
+            <!-- Hedera Verification Section -->
+            <div class="tw-py-3">
+              <h4 class="tw-font-semibold tw-text-gray-800 tw-mb-3 tw-flex tw-items-center tw-gap-2">
+                <v-icon small color="purple">mdi-check-decagram</v-icon>
+                Blockchain Verification
+              </h4>
+              <div v-if="selectedUnit.hederaTransactionId" class="tw-bg-purple-50 tw-rounded-lg tw-p-4">
+                <div class="tw-flex tw-items-center tw-gap-2 tw-mb-3">
+                  <v-chip color="success" small>
+                    <v-icon left x-small>mdi-check</v-icon>
+                    Verified on Hedera
+                  </v-chip>
+                </div>
+                <div class="tw-space-y-2 tw-text-sm">
+                  <div>
+                    <span class="tw-text-gray-500">Transaction ID:</span>
+                    <div class="tw-font-mono tw-text-xs tw-bg-white tw-p-2 tw-rounded tw-mt-1 tw-break-all">
+                      {{ selectedUnit.hederaTransactionId }}
+                    </div>
+                  </div>
+                  <div v-if="selectedUnit.hederaHash">
+                    <span class="tw-text-gray-500">Document Hash:</span>
+                    <div class="tw-font-mono tw-text-xs tw-bg-white tw-p-2 tw-rounded tw-mt-1 tw-break-all">
+                      {{ selectedUnit.hederaHash }}
+                    </div>
+                  </div>
+                </div>
+                <v-btn
+                  color="primary"
+                  small
+                  class="tw-mt-3"
+                  @click="openHederaExplorer(selectedUnit.hederaTransactionId)"
+                >
+                  <v-icon left small>mdi-open-in-new</v-icon>
+                  View on Explorer
+                </v-btn>
+              </div>
+              <div v-else class="tw-bg-gray-50 tw-rounded-lg tw-p-4 tw-text-center">
+                <v-icon color="grey" size="48">mdi-clock-outline</v-icon>
+                <p class="tw-text-gray-500 tw-mt-2">Pending blockchain verification</p>
+              </div>
+            </div>
+
+            <!-- Coordinates -->
+            <div v-if="selectedUnit.wgs84Coordinates" class="tw-py-3">
+              <h4 class="tw-font-semibold tw-text-gray-800 tw-mb-3 tw-flex tw-items-center tw-gap-2">
+                <v-icon small color="blue">mdi-map-marker</v-icon>
+                Coordinates (WGS84)
+              </h4>
+              <div class="tw-font-mono tw-text-xs tw-bg-gray-50 tw-p-3 tw-rounded tw-break-all tw-max-h-24 tw-overflow-auto">
+                {{ selectedUnit.wgs84Coordinates }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="tw-border-t tw-border-gray-200 tw-p-4 tw-bg-gray-50">
+          <div class="tw-flex tw-gap-2">
+            <v-btn outlined color="warning" @click="editUnit(selectedUnit); showDetailsDrawer = false">
+              <v-icon left small>mdi-pencil</v-icon>
+              Edit
+            </v-btn>
+            <v-spacer></v-spacer>
+            <v-btn text @click="showDetailsDrawer = false">Close</v-btn>
+          </div>
+        </div>
+      </div>
+    </v-navigation-drawer>
   </default-layout>
 </template>
 
@@ -492,20 +620,19 @@ export default {
       checkingDeforestation: false,
       deforestationCheckResult: null,
       searchQuery: '',
+      showDetailsDrawer: false,
+      selectedUnit: null,
       headers: [
-        { text: 'Unit Name', value: 'name', sortable: true },
+        { text: 'Unit Name', value: 'unitName', sortable: true },
         {
-          text: 'Area', value: 'area', sortable: true, width: '100px',
+          text: 'Area (ha)', value: 'areaHectares', sortable: true, width: '100px',
+        },
+        { text: 'Region', value: 'administrativeRegion', sortable: true },
+        {
+          text: 'Hedera Verification', value: 'hederaTransactionId', sortable: false, width: '180px',
         },
         {
-          text: 'Status', value: 'status', sortable: true, width: '130px',
-        },
-        { text: 'Region', value: 'region', sortable: true },
-        {
-          text: 'Alerts', value: 'alerts', sortable: true, width: '100px',
-        },
-        {
-          text: 'Created', value: 'createdAt', sortable: true, width: '120px',
+          text: 'Last Verified', value: 'lastVerifiedAt', sortable: true, width: '140px',
         },
         {
           text: 'Actions', value: 'actions', sortable: false, width: '140px', align: 'center',
@@ -521,18 +648,17 @@ export default {
     stats() {
       return {
         totalUnits: this.productionUnits.length,
-        totalArea: this.productionUnits.reduce((sum, unit) => sum + (unit.area || 0), 0),
-        verifiedUnits: this.productionUnits.filter((unit) => unit.status === 'Verified').length,
-        alertCount: this.productionUnits.reduce((sum, unit) => sum + (unit.alerts || 0), 0),
+        totalArea: this.productionUnits.reduce((sum, unit) => sum + (unit.areaHectares || 0), 0),
+        verifiedUnits: this.productionUnits.filter((unit) => unit.hederaTransactionId).length,
+        alertCount: 0, // Would come from deforestation alerts API
       };
     },
     filteredUnits() {
       if (!this.searchQuery) return this.productionUnits;
       const query = this.searchQuery.toLowerCase();
       return this.productionUnits.filter(
-        (unit) => unit.name?.toLowerCase().includes(query)
-          || unit.region?.toLowerCase().includes(query)
-          || unit.status?.toLowerCase().includes(query),
+        (unit) => unit.unitName?.toLowerCase().includes(query)
+          || unit.administrativeRegion?.toLowerCase().includes(query),
       );
     },
     deforestationAlertType() {
@@ -787,8 +913,8 @@ export default {
       return icons[status] || 'mdi-help-circle';
     },
     viewUnit(unit) {
-      // Navigate to unit details or show modal
-      this.$toast.info(`Viewing details for ${unit.name}`);
+      this.selectedUnit = unit;
+      this.showDetailsDrawer = true;
     },
 
     editUnit(unit) {
@@ -830,6 +956,12 @@ export default {
         month: 'short',
         day: 'numeric',
       }).format(date);
+    },
+    openHederaExplorer(transactionId) {
+      if (!transactionId) return;
+      const network = 'testnet'; // or 'mainnet'
+      const url = `https://hashscan.io/${network}/transaction/${transactionId}`;
+      window.open(url, '_blank');
     },
   },
 };

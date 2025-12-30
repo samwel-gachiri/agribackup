@@ -105,95 +105,112 @@
 
       <!-- Workflow Details Dialog -->
       <v-dialog v-model="showWorkflowDetails" fullscreen scrollable>
-        <v-card v-if="selectedWorkflow">
-          <!-- Compact Header -->
-          <v-toolbar flat dense class="tw-border-b">
-            <v-toolbar-title>
-              <span class="tw-font-medium">{{ selectedWorkflow.workflowName }}</span>
-              <span class="tw-text-sm tw-text-gray-500 tw-ml-2">{{ selectedWorkflow.produceType }}</span>
-            </v-toolbar-title>
+        <v-card v-if="selectedWorkflow" class="workflow-dialog-card">
+          <!-- Modern Gradient Header -->
+          <div class="workflow-dialog-header">
+            <div class="tw-flex tw-items-center tw-justify-between tw-px-6 tw-py-4">
+              <!-- Left Section: Title & Produce Type -->
+              <div class="tw-flex tw-items-center tw-gap-4">
+                <div class="tw-w-12 tw-h-12 tw-rounded-xl tw-bg-white/20 tw-backdrop-blur-sm tw-flex tw-items-center tw-justify-center">
+                  <v-icon color="white" size="28">mdi-transit-connection-variant</v-icon>
+                </div>
+                <div>
+                  <h1 class="tw-text-xl tw-font-bold tw-text-white tw-mb-1">{{ selectedWorkflow.workflowName }}</h1>
+                  <div class="tw-flex tw-items-center tw-gap-2">
+                    <v-chip x-small color="white" text-color="primary" class="tw-font-semibold">
+                      {{ selectedWorkflow.produceType }}
+                    </v-chip>
+                    <span class="tw-text-white/70 tw-text-sm">•</span>
+                    <span class="tw-text-white/70 tw-text-sm">{{ formatDate(selectedWorkflow.createdAt) }}</span>
+                  </div>
+                </div>
+              </div>
 
-            <!-- Progress Chips - Inline -->
-            <div class="tw-flex tw-items-center tw-gap-1 tw-ml-6">
-              <v-chip
-                v-for="stage in ['Collection', 'Consolidation', 'Processing', 'Shipment']"
-                :key="stage"
-                x-small
-                :color="getProgressStageColor(stage, selectedWorkflow.currentStage)"
-                :text-color="isStageActive(stage, selectedWorkflow.currentStage) ? 'white' : 'grey'"
-              >
-                <v-icon v-if="isStageCompleted(stage, selectedWorkflow.currentStage)" left x-small>mdi-check</v-icon>
-                {{ stage }}
-              </v-chip>
+              <!-- Center Section: Progress Steps -->
+              <div class="tw-hidden lg:tw-flex tw-items-center tw-gap-2 tw-bg-white/10 tw-backdrop-blur-sm tw-rounded-full tw-px-4 tw-py-2">
+                <div
+                  v-for="(stage, idx) in ['Collection', 'Consolidation', 'Processing', 'Shipment']"
+                  :key="stage"
+                  class="tw-flex tw-items-center"
+                >
+                  <div
+                    class="tw-w-8 tw-h-8 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-text-xs tw-font-bold tw-transition-all"
+                    :class="getProgressBadgeClass(stage, selectedWorkflow.currentStage)"
+                  >
+                    <v-icon v-if="isStageCompleted(stage, selectedWorkflow.currentStage)" x-small color="white">mdi-check</v-icon>
+                    <span v-else>{{ idx + 1 }}</span>
+                  </div>
+                  <div
+                    v-if="idx < 3"
+                    class="tw-w-8 tw-h-0.5 tw-mx-1"
+                    :class="isStageCompleted(stage, selectedWorkflow.currentStage) ? 'tw-bg-green-400' : 'tw-bg-white/30'"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Right Section: Stats & Actions -->
+              <div class="tw-flex tw-items-center tw-gap-6">
+                <!-- Quantity Stats -->
+                <div class="tw-hidden md:tw-flex tw-items-center tw-gap-4">
+                  <div class="tw-text-center tw-px-3 tw-py-1 tw-bg-white/10 tw-rounded-lg">
+                    <p class="tw-text-2xl tw-font-bold tw-text-white">{{ selectedWorkflow.totalCollected.toFixed(0) }}</p>
+                    <p class="tw-text-xs tw-text-white/70">kg collected</p>
+                  </div>
+                  <div class="tw-text-center tw-px-3 tw-py-1 tw-bg-white/10 tw-rounded-lg">
+                    <p class="tw-text-2xl tw-font-bold tw-text-white">{{ (selectedWorkflow.totalProcessed || 0).toFixed(0) }}</p>
+                    <p class="tw-text-xs tw-text-white/70">kg processed</p>
+                  </div>
+                  <div class="tw-text-center tw-px-3 tw-py-1 tw-bg-white/10 tw-rounded-lg">
+                    <p class="tw-text-2xl tw-font-bold tw-text-white">{{ selectedWorkflow.totalShipped.toFixed(0) }}</p>
+                    <p class="tw-text-xs tw-text-white/70">kg shipped</p>
+                  </div>
+                </div>
+
+                <!-- Certificate Action -->
+                <v-btn
+                  v-if="selectedWorkflow.certificateStatus === 'NOT_CREATED' && canIssueCertificate(selectedWorkflow)"
+                  color="white"
+                  depressed
+                  @click.stop="openCertificateDialog"
+                  class="tw-text-primary tw-font-semibold"
+                >
+                  <v-icon left>mdi-certificate</v-icon>
+                  Issue Certificate
+                </v-btn>
+                <v-btn
+                  v-else-if="canTransferCertificate(selectedWorkflow)"
+                  color="white"
+                  outlined
+                  @click.stop="openTransferDialog"
+                >
+                  <v-icon left>mdi-swap-horizontal</v-icon>
+                  Transfer
+                </v-btn>
+                <v-chip
+                  v-else-if="selectedWorkflow.certificateStatus && selectedWorkflow.certificateStatus !== 'NOT_CREATED'"
+                  color="white"
+                  :text-color="getCertificateStatusColor(selectedWorkflow.certificateStatus)"
+                  class="tw-font-semibold"
+                >
+                  <v-icon left small>{{ getCertificateStatusIcon(selectedWorkflow.certificateStatus) }}</v-icon>
+                  {{ selectedWorkflow.certificateStatus }}
+                </v-chip>
+
+                <!-- Close Button -->
+                <v-btn
+                  icon
+                  @click="showWorkflowDetails = false"
+                  class="tw-bg-white/10 hover:tw-bg-white/20"
+                >
+                  <v-icon color="white">mdi-close</v-icon>
+                </v-btn>
+              </div>
             </div>
+          </div>
 
-            <!-- Stats - Inline -->
-            <v-spacer></v-spacer>
-            <div class="tw-flex tw-items-center tw-gap-4 tw-text-xs">
-              <div>
-                <span class="tw-text-gray-600">Collected:</span>
-                <span class="tw-font-bold tw-text-blue-600 tw-ml-1">{{ selectedWorkflow.totalCollected.toFixed(0) }} kg</span>
-              </div>
-              <div>
-                <span class="tw-text-gray-600">Processed:</span>
-                <span class="tw-font-bold tw-text-orange-600 tw-ml-1">{{ (selectedWorkflow.totalProcessed || 0).toFixed(0) }} kg</span>
-              </div>
-              <div>
-                <span class="tw-text-gray-600">Shipped:</span>
-                <span class="tw-font-bold tw-text-green-600 tw-ml-1">{{ selectedWorkflow.totalShipped.toFixed(0) }} kg</span>
-              </div>
-            </div>
-
-            <!-- Certificate Action Button -->
-            <v-btn
-              v-if="selectedWorkflow.certificateStatus === 'NOT_CREATED' && canIssueCertificate(selectedWorkflow)"
-              small
-              color="success"
-              depressed
-              @click.stop="openCertificateDialog"
-              class="tw-ml-4"
-            >
-              <v-icon left small>mdi-certificate</v-icon>
-              Issue Certificate
-            </v-btn>
-            <!-- Transfer Certificate Button - visible when COMPLIANT or IN_TRANSIT -->
-            <v-btn
-              v-else-if="canTransferCertificate(selectedWorkflow)"
-              small
-              color="purple"
-              depressed
-              @click.stop="openTransferDialog"
-              class="tw-ml-4"
-            >
-              <v-icon left small>mdi-swap-horizontal</v-icon>
-              Transfer to Importer
-            </v-btn>
-            <v-chip
-              v-else-if="selectedWorkflow.certificateStatus && selectedWorkflow.certificateStatus !== 'NOT_CREATED'"
-              small
-              :color="getCertificateStatusColor(selectedWorkflow.certificateStatus)"
-              text-color="white"
-              class="tw-ml-4"
-            >
-              <v-icon left small>{{ getCertificateStatusIcon(selectedWorkflow.certificateStatus) }}</v-icon>
-              {{ selectedWorkflow.certificateStatus }}
-            </v-chip>
-
-            <!-- Close Button - Always Visible -->
-            <v-btn
-              icon
-              @click="showWorkflowDetails = false"
-              class="tw-ml-4"
-              color="error"
-              title="Close"
-            >
-              <v-icon>mdi-close</v-icon>
-            </v-btn>
-          </v-toolbar>
-
-          <!-- Canvas - Full Height -->
-          <v-card-text class="tw-p-6" style="height: calc(100vh - 64px); overflow-y: auto;">
-            <div class="tw-max-w-6xl tw-mx-auto">
+          <!-- Canvas - Full Width Content Area -->
+          <v-card-text class="workflow-dialog-content tw-p-4 tw-h-full" style="height: calc(100vh - 100px); overflow: hidden;">
+            <div class="tw-w-full tw-h-full">
 
               <!-- EUDR Compliance Stage Progress -->
               <EudrStageProgress
@@ -834,6 +851,16 @@ export default {
       return stageIndex < currentIndex;
     },
 
+    getProgressBadgeClass(stage, currentStage) {
+      if (this.isStageCompleted(stage, currentStage)) {
+        return 'progress-badge-completed';
+      }
+      if (this.isStageActive(stage, currentStage)) {
+        return 'progress-badge-active';
+      }
+      return 'progress-badge-pending';
+    },
+
     formatDate(dateString) {
       if (!dateString) return 'N/A';
       const date = new Date(dateString);
@@ -897,7 +924,7 @@ export default {
           port: i.destinationPort,
         }));
       } catch (error) {
-        console.error('Failed to load importers:', error);
+        this.$toast.error('Failed to load importers:', error.message);
         this.availableImporters = [];
         this.showSnackbar('Failed to load importers', 'error');
       } finally {
@@ -943,7 +970,7 @@ export default {
           this.transferStep = 4;
         }
       } catch (error) {
-        console.error('Failed to transfer certificate:', error);
+        this.$toast.error('Failed to transfer certificate:', error.message);
         this.transferError = error.response?.data?.message || 'Failed to transfer certificate. Please try again.';
         this.transferStep = 4;
         this.showSnackbar('Failed to transfer certificate', 'error');
@@ -1025,7 +1052,7 @@ export default {
                 setTimeout(pollForCertificate, 2000); // Poll every 2 seconds
               }
             } catch (pollError) {
-              console.error('Error polling certificate status:', pollError);
+              this.$toast.error('Error polling certificate status:', pollError.message);
               if (attempts >= maxAttempts) {
                 this.certificateError = 'Failed to check certificate status. Please refresh.';
                 this.certificateStep = 4;
@@ -1207,5 +1234,68 @@ export default {
 
 .tw-animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Modern Workflow Dialog Styles */
+.workflow-dialog-card {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+}
+
+.workflow-dialog-header {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #3d7ab5 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.workflow-dialog-header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  animation: shimmer 15s infinite linear;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.workflow-dialog-content {
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+/* Progress badge classes */
+.progress-badge-completed {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+}
+
+.progress-badge-active {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  animation: pulse-soft 2s infinite;
+}
+
+.progress-badge-pending {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.6);
+  }
 }
 </style>

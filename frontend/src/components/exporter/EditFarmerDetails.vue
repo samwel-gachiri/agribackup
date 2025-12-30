@@ -260,7 +260,7 @@ export default {
             };
           }
         } catch (e) {
-          console.warn('Failed to parse geometry for unit:', unit.unitName, e);
+          this.$toast.error('Failed to parse geometry for unit:', e.message);
         }
         return {
           id: unit.id,

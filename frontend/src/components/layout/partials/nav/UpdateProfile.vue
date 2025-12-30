@@ -4,7 +4,7 @@
     <v-dialog
         v-model="dialog"
         persistent
-        max-width="600"
+        max-width="700"
     >
       <v-card>
         <div class="tw-py-4 tw-flex tw-flex-col tw-justify-center">
@@ -25,20 +25,22 @@
             <v-tabs-slider></v-tabs-slider>
 
             <v-tab class="tw-p-1" href="#tab-1">
+              <v-icon left small>mdi-account</v-icon>
               Profile
             </v-tab>
-            <!-- <v-tab href="#tab-3">
-              Change Password
-            </v-tab> -->
+            <v-tab href="#tab-2">
+              <v-icon left small>mdi-account-group</v-icon>
+              Roles
+            </v-tab>
           </v-tabs>
 
           <v-tabs-items v-model="tab">
             <v-tab-item value="tab-1">
               <user-form />
             </v-tab-item>
-            <!-- <v-tab-item value="tab-2">
-              <password-form />
-            </v-tab-item> -->
+            <v-tab-item value="tab-2">
+              <roles-form />
+            </v-tab-item>
           </v-tabs-items>
         </div>
         <v-card-actions>
@@ -60,12 +62,12 @@
 import { mapState } from 'vuex';
 import AvatarIcon from 'vue-avatar';
 import UserForm from '@/components/layout/partials/nav/UserForm.vue';
-// import PasswordForm from '@/components/layout/partials/nav/PasswordForm.vue';
+import RolesForm from '@/components/layout/partials/nav/RolesForm.vue';
 
 export default {
   name: 'UpdateProfile',
   components: {
-    UserForm, AvatarIcon,
+    UserForm, AvatarIcon, RolesForm,
   },
   data() {
     return {

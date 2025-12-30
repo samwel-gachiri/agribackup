@@ -55,6 +55,7 @@ class ProduceListing(
     var farmerProduce: FarmerProduce,
 
     @OneToMany(mappedBy = "produceListing", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @JsonIgnore
     val listingOrders: MutableList<ListingOrder> = mutableListOf()
 )
 

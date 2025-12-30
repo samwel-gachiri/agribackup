@@ -307,6 +307,19 @@ class FlexibleSupplyChainService(
     }
 
     /**
+     * Get sub-suppliers (children) for a supplier
+     */
+    fun getSubSuppliersForSupplier(supplierId: String): List<SupplierDto> {
+        val supplier = supplierRepository.findById(supplierId)
+            .orElseThrow { IllegalArgumentException("Supplier not found: $supplierId") }
+        
+        // Get all suppliers where parentSupplier = this supplier
+        val subSuppliers = supplierRepository.findByParentSupplier_Id(supplierId)
+        log.info("Found ${subSuppliers.size} sub-suppliers for supplier $supplierId")
+        return subSuppliers.map { it.toDto() }
+    }
+
+    /**
      * Create a direct connection between a supplier and exporter (not workflow-based)
      * This links a supplier to an exporter so they can use them in workflows
      */
@@ -362,14 +375,15 @@ class FlexibleSupplyChainService(
     // ==================== SUPPLIER INVITE MANAGEMENT ====================
 
     /**
-     * Create a supplier invite
+     * Create a supplier invite - supports both exporter and supplier inviters
      */
     @Transactional
     fun createSupplierInvite(
         email: String,
         supplierName: String?,
         supplierType: SupplierType?,
-        exporterId: String?,
+        inviterId: String?,
+        inviterType: String = "EXPORTER",
         message: String?
     ): SupplierInviteDto {
         // Check if invite already exists for this email
@@ -378,25 +392,46 @@ class FlexibleSupplyChainService(
             throw IllegalArgumentException("An invite is already pending for this email")
         }
         
-        // Get inviter info - prioritize user's full name for personal touch
-        val exporter = exporterId?.let { exporterRepository.findById(it).orElse(null) }
-        val inviterName = exporter?.userProfile?.fullName ?: exporter?.companyName
-        val inviterCompany = exporter?.companyName
+        // Get inviter info based on inviter type
+        var inviterName: String? = null
+        var inviterCompany: String? = null
+        var parentSupplierId: String? = null
+
+        if (inviterId != null) {
+            if (inviterType == "SUPPLIER") {
+                // Supplier inviting a sub-supplier
+                val inviterSupplier = supplierRepository.findById(inviterId).orElse(null)
+                if (inviterSupplier != null) {
+                    inviterName = inviterSupplier.getContactPerson() ?: inviterSupplier.supplierName
+                    inviterCompany = inviterSupplier.supplierName
+                    parentSupplierId = inviterId  // Set parent relationship for sub-supplier
+                }
+            } else {
+                // Exporter inviting a supplier (existing flow)
+                val exporter = exporterRepository.findById(inviterId).orElse(null)
+                if (exporter != null) {
+                    inviterName = exporter.userProfile?.fullName ?: exporter.companyName
+                    inviterCompany = exporter.companyName
+                }
+            }
+        }
         
         val invite = SupplierInvite(
             email = email,
             supplierName = supplierName,
             supplierType = supplierType,
-            inviterId = exporterId,
+            inviterId = inviterId,
             inviterName = inviterName,
             inviterCompany = inviterCompany,
             message = message,
+            parentSupplierId = parentSupplierId,
+            inviterType = inviterType,
             status = InviteStatus.PENDING,
             lastSentAt = LocalDateTime.now()
         )
         
         val saved = inviteRepository.save(invite)
-        log.info("Created supplier invite: ${saved.id} for email: $email")
+        log.info("Created supplier invite: ${saved.id} for email: $email (inviterType: $inviterType, parentSupplierId: $parentSupplierId)")
         
         return saved.toDto()
     }
@@ -471,12 +506,24 @@ class FlexibleSupplyChainService(
         invite.acceptedAt = LocalDateTime.now()
         inviteRepository.save(invite)
         
-        // If there's an inviter, create the connection
-        if (invite.inviterId != null) {
+        val newSupplier = supplierRepository.findById(supplierId).orElse(null)
+        
+        // Handle based on inviter type
+        if (invite.inviterType == "SUPPLIER" && invite.parentSupplierId != null) {
+            // Sub-supplier invite - set up parent-child relationship
+            val parentSupplier = supplierRepository.findById(invite.parentSupplierId!!).orElse(null)
+            if (parentSupplier != null && newSupplier != null) {
+                newSupplier.parentSupplier = parentSupplier
+                newSupplier.updatedAt = LocalDateTime.now()
+                supplierRepository.save(newSupplier)
+                log.info("Set up parent-child relationship: ${parentSupplier.supplierName} -> ${newSupplier.supplierName}")
+            }
+        } else if (invite.inviterId != null) {
+            // Exporter invite - create connection to exporter
             createDirectSupplierConnection(supplierId, invite.inviterId!!, "SUPPLY_AGREEMENT")
         }
         
-        log.info("Accepted invite: $inviteId, supplier: $supplierId")
+        log.info("Accepted invite: $inviteId, supplier: $supplierId (inviterType: ${invite.inviterType})")
     }
 
     private fun SupplierInvite.toDto() = SupplierInviteDto(
@@ -488,6 +535,8 @@ class FlexibleSupplyChainService(
         inviterName = this.inviterName,
         inviterCompany = this.inviterCompany,
         message = this.message,
+        parentSupplierId = this.parentSupplierId,
+        inviterType = this.inviterType,
         status = this.status.name,
         resentCount = this.resentCount,
         lastSentAt = this.lastSentAt,
@@ -662,6 +711,8 @@ data class SupplierInviteDto(
     val inviterName: String?,
     val inviterCompany: String?,
     val message: String?,
+    val parentSupplierId: String?,
+    val inviterType: String?,
     val status: String,
     val resentCount: Int,
     val lastSentAt: LocalDateTime,

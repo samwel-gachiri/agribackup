@@ -4,6 +4,8 @@ import com.agriconnect.farmersportalapis.application.dtos.auth.*
 import com.agriconnect.farmersportalapis.service.common.impl.AuthService
 import com.agriconnect.farmersportalapis.service.common.impl.SmsService
 import org.slf4j.LoggerFactory
+import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -111,6 +113,17 @@ class AuthController(private val authService: AuthService, private val smsServic
 
         @PostMapping("/assign-roles")
         fun assignRoles(@RequestBody request: AssignRolesDto) = authService.assignRoles(request)
+
+        @GetMapping("/my-roles")
+        fun getMyRoles(
+                @org.springframework.web.bind.annotation.RequestHeader("Authorization") authHeader: String?
+        ): com.agriconnect.farmersportalapis.application.util.Result<List<RoleOption>> {
+                if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                        return com.agriconnect.farmersportalapis.application.util.ResultFactory.getFailResult("Not authenticated")
+                }
+                val token = authHeader.substring(7)
+                return authService.getUserRolesFromToken(token)
+        }
 
         @PostMapping("/test-sms")
         fun testSms(@RequestBody request: TestSmsRequest): Map<String, String> {

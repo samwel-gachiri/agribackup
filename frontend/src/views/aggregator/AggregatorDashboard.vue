@@ -93,6 +93,10 @@
                 <v-icon left>mdi-chart-bar</v-icon>
                 Analytics
               </v-tab>
+              <v-tab>
+                <v-icon left>mdi-account-group</v-icon>
+                Sub-Suppliers
+              </v-tab>
             </v-tabs>
 
             <v-tabs-items v-model="activeTab">
@@ -291,6 +295,77 @@
                   </v-row>
                 </v-card-text>
               </v-tab-item>
+
+              <!-- Sub-Suppliers Tab -->
+              <v-tab-item>
+                <v-card-text>
+                  <div class="tw-flex tw-items-center tw-justify-between tw-mb-4">
+                    <h3 class="tw-text-lg tw-font-semibold tw-text-gray-800">Your Sub-Suppliers</h3>
+                    <v-btn color="success" @click="showSubSupplierInviteDialog = true">
+                      <v-icon left>mdi-email-plus</v-icon>
+                      Invite Sub-Supplier
+                    </v-btn>
+                  </div>
+
+                  <v-data-table
+                    :headers="subSupplierHeaders"
+                    :items="subSuppliers"
+                    :loading="loadingSubSuppliers"
+                    class="elevation-1"
+                  >
+                    <template v-slot:item.supplierName="{ item }">
+                      <div class="tw-flex tw-items-center tw-gap-3 tw-py-2">
+                        <v-avatar color="teal" size="40">
+                          <v-icon color="white">mdi-account-tie</v-icon>
+                        </v-avatar>
+                        <div>
+                          <div class="tw-font-semibold">{{ item.supplierName }}</div>
+                          <v-chip x-small color="teal" text-color="white">{{ formatSupplierType(item.supplierType) }}</v-chip>
+                        </div>
+                      </div>
+                    </template>
+
+                    <template v-slot:item.contact="{ item }">
+                      <div class="tw-text-sm">{{ item.email || 'N/A' }}</div>
+                    </template>
+
+                    <template v-slot:item.verificationStatus="{ item }">
+                      <v-chip small :color="getVerificationColor(item.verificationStatus)">
+                        {{ item.verificationStatus }}
+                      </v-chip>
+                    </template>
+
+                    <template v-slot:no-data>
+                      <div class="tw-text-center tw-py-8">
+                        <v-icon size="64" color="grey lighten-1">mdi-account-group</v-icon>
+                        <p class="tw-text-gray-500 tw-mt-2">No sub-suppliers yet</p>
+                        <v-btn color="success" class="tw-mt-4" @click="showSubSupplierInviteDialog = true">
+                          Invite Your First Sub-Supplier
+                        </v-btn>
+                      </div>
+                    </template>
+                  </v-data-table>
+
+                  <!-- Pending Invites Section -->
+                  <div class="tw-mt-6" v-if="pendingInvites.length > 0">
+                    <h4 class="tw-font-semibold tw-text-gray-700 tw-mb-3">Pending Invitations</h4>
+                    <v-list dense>
+                      <v-list-item v-for="invite in pendingInvites" :key="invite.id">
+                        <v-list-item-avatar>
+                          <v-icon color="orange">mdi-email-outline</v-icon>
+                        </v-list-item-avatar>
+                        <v-list-item-content>
+                          <v-list-item-title>{{ invite.email }}</v-list-item-title>
+                          <v-list-item-subtitle>{{ invite.supplierName || 'Pending acceptance' }}</v-list-item-subtitle>
+                        </v-list-item-content>
+                        <v-list-item-action>
+                          <v-btn x-small color="primary" @click="resendInvite(invite.id)">Resend</v-btn>
+                        </v-list-item-action>
+                      </v-list-item>
+                    </v-list>
+                  </div>
+                </v-card-text>
+              </v-tab-item>
             </v-tabs-items>
           </v-card>
         </v-col>
@@ -413,6 +488,69 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Sub-Supplier Invite Dialog -->
+    <v-dialog v-model="showSubSupplierInviteDialog" max-width="500" persistent>
+      <v-card>
+        <v-card-title class="tw-bg-success tw-text-white">
+          <v-icon color="white" class="tw-mr-2">mdi-email-plus</v-icon>
+          Invite Sub-Supplier
+        </v-card-title>
+
+        <v-card-text class="tw-pt-4">
+          <v-alert type="info" dense class="tw-mb-4">
+            Invite a supplier to join your network as a sub-supplier. They'll receive an email with a registration link.
+          </v-alert>
+
+          <v-form ref="subSupplierInviteForm" v-model="subSupplierInviteFormValid">
+            <v-text-field
+              v-model="subSupplierInvite.email"
+              label="Email *"
+              type="email"
+              outlined
+              dense
+              prepend-inner-icon="mdi-email"
+              :rules="[rules.required, v => /.+@.+\..+/.test(v) || 'Valid email required']"
+            ></v-text-field>
+
+            <v-text-field
+              v-model="subSupplierInvite.supplierName"
+              label="Supplier/Business Name"
+              outlined
+              dense
+              prepend-inner-icon="mdi-domain"
+            ></v-text-field>
+
+            <v-select
+              v-model="subSupplierInvite.supplierType"
+              label="Supplier Type"
+              :items="supplierTypes"
+              outlined
+              dense
+              prepend-inner-icon="mdi-tag"
+            ></v-select>
+
+            <v-textarea
+              v-model="subSupplierInvite.message"
+              label="Personal Message (Optional)"
+              outlined
+              dense
+              rows="3"
+              placeholder="Add a note to the invitation..."
+            ></v-textarea>
+          </v-form>
+        </v-card-text>
+
+        <v-card-actions class="tw-px-6 tw-pb-4">
+          <v-spacer></v-spacer>
+          <v-btn text @click="showSubSupplierInviteDialog = false">Cancel</v-btn>
+          <v-btn color="success" :loading="sendingInvite" @click="sendSubSupplierInvite">
+            <v-icon left>mdi-send</v-icon>
+            Send Invitation
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -472,6 +610,34 @@ export default {
         { text: 'Hedera', value: 'hederaVerification' },
         { text: 'Actions', value: 'actions', sortable: false },
       ],
+      // Sub-supplier management
+      subSuppliers: [],
+      pendingInvites: [],
+      loadingSubSuppliers: false,
+      showSubSupplierInviteDialog: false,
+      subSupplierInviteFormValid: false,
+      sendingInvite: false,
+      subSupplierInvite: {
+        email: '',
+        supplierName: '',
+        supplierType: '',
+        message: '',
+      },
+      subSupplierHeaders: [
+        { text: 'Supplier', value: 'supplierName' },
+        { text: 'Contact', value: 'contact' },
+        { text: 'Country', value: 'countryCode' },
+        { text: 'Status', value: 'verificationStatus' },
+      ],
+      supplierTypes: [
+        { text: 'Farmer', value: 'FARMER' },
+        { text: 'Farmer Group', value: 'FARMER_GROUP' },
+        { text: 'Aggregator', value: 'AGGREGATOR' },
+        { text: 'Cooperative', value: 'COOPERATIVE' },
+        { text: 'Trader', value: 'TRADER' },
+        { text: 'Processor', value: 'PROCESSOR' },
+        { text: 'Warehouse', value: 'WAREHOUSE' },
+      ],
     };
   },
   computed: {
@@ -494,6 +660,8 @@ export default {
         this.loadStatistics(),
         this.loadCollectionEvents(),
         this.loadConsolidatedBatches(),
+        this.loadSubSuppliers(),
+        this.loadPendingInvites(),
       ]);
     },
 
@@ -597,6 +765,102 @@ export default {
         SHIPPED: 'info',
         DELIVERED: 'success',
         CANCELLED: 'error',
+      };
+      return colors[status] || 'grey';
+    },
+
+    // ========== SUB-SUPPLIER METHODS ==========
+
+    async loadSubSuppliers() {
+      this.loadingSubSuppliers = true;
+      try {
+        const supplierId = this.$store.state.user?.supplierId || this.aggregatorId;
+        if (!supplierId) return;
+
+        const response = await axios.get(`/api/v1/supply-chain/suppliers/${supplierId}/sub-suppliers`);
+        this.subSuppliers = response.data?.data || [];
+      } catch (error) {
+        this.$toast.error('Failed to load sub-suppliers:', error.message);
+        this.subSuppliers = [];
+      } finally {
+        this.loadingSubSuppliers = false;
+      }
+    },
+
+    async loadPendingInvites() {
+      try {
+        const supplierId = this.$store.state.user?.supplierId || this.aggregatorId;
+        if (!supplierId) return;
+
+        const response = await axios.get(`/api/v1/supply-chain/suppliers/${supplierId}/invites`);
+        this.pendingInvites = response.data?.data || [];
+      } catch (error) {
+        this.$toast.error('Failed to load pending invites:', error.message);
+        this.pendingInvites = [];
+      }
+    },
+
+    async sendSubSupplierInvite() {
+      if (!this.$refs.subSupplierInviteForm.validate()) return;
+
+      this.sendingInvite = true;
+      try {
+        const supplierId = this.$store.state.user?.supplierId || this.aggregatorId;
+
+        await axios.post('/api/v1/supply-chain/invites', {
+          email: this.subSupplierInvite.email,
+          supplierName: this.subSupplierInvite.supplierName,
+          supplierType: this.subSupplierInvite.supplierType,
+          inviterId: supplierId,
+          inviterType: 'SUPPLIER',
+          message: this.subSupplierInvite.message,
+        });
+
+        if (this.$toast) {
+          this.$toast.success('Invitation sent successfully!');
+        }
+        this.showSubSupplierInviteDialog = false;
+        this.subSupplierInvite = {
+          email: '',
+          supplierName: '',
+          supplierType: '',
+          message: '',
+        };
+        await this.loadPendingInvites();
+      } catch (err) {
+        const msg = err.response?.data?.message || err.message;
+        if (this.$toast) {
+          this.$toast.error(`Failed to send invite: ${msg}`);
+        }
+      } finally {
+        this.sendingInvite = false;
+      }
+    },
+
+    async resendInvite(inviteId) {
+      try {
+        await axios.post(`/api/v1/supply-chain/invites/${inviteId}/resend`);
+        if (this.$toast) {
+          this.$toast.success('Invitation resent!');
+        }
+      } catch (err) {
+        if (this.$toast) {
+          this.$toast.error('Failed to resend invite');
+        }
+      }
+    },
+
+    formatSupplierType(type) {
+      if (!type) return 'N/A';
+      return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+    },
+
+    getVerificationColor(status) {
+      const colors = {
+        VERIFIED: 'success',
+        PENDING: 'warning',
+        UNDER_REVIEW: 'info',
+        REJECTED: 'error',
       };
       return colors[status] || 'grey';
     },

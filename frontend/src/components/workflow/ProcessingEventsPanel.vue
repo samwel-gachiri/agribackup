@@ -297,7 +297,7 @@ export default {
         const response = await axios.get(`/api/v1/supply-chain/workflows/${this.workflowId}/processing`);
         this.processingEvents = response.data || [];
       } catch (error) {
-        console.error('Failed to load processing events:', error);
+        this.$toast.error('Failed to load processing events:', error.message);
       } finally {
         this.loading = false;
       }
@@ -332,7 +332,7 @@ export default {
           }));
         }
       } catch (error) {
-        console.error('Failed to load processors:', error);
+        this.$toast.error('Failed to load processors:', error.message);
       }
     },
 
@@ -358,7 +358,7 @@ export default {
         await this.loadProcessingEvents();
         this.closeDialog();
       } catch (error) {
-        console.error('Failed to save processing event:', error);
+        this.$toast.error('Failed to save processing event:', error.message);
         this.$emit('error', error.response?.data?.message || 'Failed to save processing event');
       } finally {
         this.saving = false;

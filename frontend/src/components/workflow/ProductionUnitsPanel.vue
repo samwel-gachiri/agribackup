@@ -351,7 +351,6 @@ export default {
 
         this.productionUnits = units;
       } catch (error) {
-        console.error('Failed to load production units:', error);
         this.$emit('error', 'Failed to load production units');
         this.productionUnits = [];
       } finally {
@@ -391,7 +390,6 @@ export default {
         }
         this.$emit('unit-linked', unit);
       } catch (error) {
-        console.error('Failed to link unit:', error);
         this.$emit('error', error.response?.data?.message || 'Failed to link production unit to workflow');
       } finally {
         this.processingUnitId = null;
@@ -412,7 +410,6 @@ export default {
         this.linkedUnitsData = newData;
         this.$emit('unit-unlinked', unit);
       } catch (error) {
-        console.error('Failed to unlink unit:', error);
         this.$emit('error', 'Failed to unlink production unit from workflow');
       } finally {
         this.processingUnitId = null;
@@ -430,7 +427,6 @@ export default {
         }
         this.$emit('unit-verified', unit);
       } catch (error) {
-        console.error('Failed to verify geolocation:', error);
         this.$emit('error', error.response?.data?.message || 'Failed to verify geolocation');
       } finally {
         this.processingUnitId = null;
@@ -448,7 +444,6 @@ export default {
         }
         this.$emit('deforestation-checked', unit, response.data?.deforestationClear);
       } catch (error) {
-        console.error('Failed to check deforestation:', error);
         this.$emit('error', error.response?.data?.message || 'Failed to check deforestation');
       } finally {
         this.processingUnitId = null;

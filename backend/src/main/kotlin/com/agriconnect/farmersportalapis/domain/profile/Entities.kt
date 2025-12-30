@@ -68,12 +68,13 @@ class FarmerProduce(
     @Enumerated(EnumType.STRING)
     var status: FarmerProduceStatus,
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "produce_images_urls", joinColumns = [JoinColumn(name = "produce_id")])
     @Column(name = "image_url")
     var imageUrls: List<String>? = listOf(),
 
     @OneToMany(mappedBy = "farmerProduce", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @JsonIgnore
     val yields: MutableList<ProduceYield> = mutableListOf(),
 
     // --- Harvest prediction & tracking fields ---

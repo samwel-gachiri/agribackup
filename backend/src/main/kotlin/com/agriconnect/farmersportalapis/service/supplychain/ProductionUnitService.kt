@@ -36,7 +36,8 @@ class ProductionUnitService(
         farmer: Farmer,
         unitName: String,
         geoJsonPolygon: String,
-        administrativeRegion: String? = null
+        administrativeRegion: String? = null,
+        countryCode: String? = null
     ): ProductionUnit {
 
         // Validate and parse GeoJSON
@@ -48,6 +49,9 @@ class ProductionUnitService(
         // Extract WGS84 coordinates
         val wgs84Coordinates = extractWgs84Coordinates(geometry)
 
+        // Auto-detect country code from coordinates if not provided
+        val resolvedCountryCode = countryCode ?: detectCountryFromGeometry(geometry)
+
         // Create production unit
         val productionUnit = ProductionUnit(
             farmer = farmer,
@@ -56,6 +60,7 @@ class ProductionUnitService(
             areaHectares = areaHectares,
             wgs84Coordinates = wgs84Coordinates,
             administrativeRegion = administrativeRegion,
+            countryCode = resolvedCountryCode,
             lastVerifiedAt = LocalDateTime.now(),
             hederaHash = null,
             hederaTransactionId = null
@@ -82,7 +87,8 @@ class ProductionUnitService(
         unitId: String,
         unitName: String? = null,
         geoJsonPolygon: String? = null,
-        administrativeRegion: String? = null
+        administrativeRegion: String? = null,
+        countryCode: String? = null
     ): ProductionUnit {
 
         val existingUnit = productionUnitRepository.findById(unitId)
@@ -93,6 +99,7 @@ class ProductionUnitService(
         // Update fields if provided
         unitName?.let { existingUnit.unitName = it }
         administrativeRegion?.let { existingUnit.administrativeRegion = it }
+        countryCode?.let { existingUnit.countryCode = it }
 
         // Update geometry if provided
         geoJsonPolygon?.let { geoJson ->
@@ -140,6 +147,82 @@ class ProductionUnitService(
         productionUnitRepository.delete(unit)
         logger.info("Deleted production unit $unitId")
     }
+
+    /**
+     * Update country code for a specific production unit by detecting from its geometry.
+     * Returns the detected country code or null if detection fails.
+     */
+    fun updateCountryCodeForUnit(unitId: String): String? {
+        val unit = productionUnitRepository.findById(unitId)
+            .orElseThrow { IllegalArgumentException("Production unit not found: $unitId") }
+
+        if (unit.parcelGeometry == null) {
+            logger.warn("Production unit $unitId has no geometry - cannot detect country")
+            return null
+        }
+
+        val detectedCountry = detectCountryFromGeometry(unit.parcelGeometry!!)
+        if (detectedCountry != null) {
+            unit.countryCode = detectedCountry
+            productionUnitRepository.save(unit)
+            logger.info("Updated production unit $unitId with country code: $detectedCountry")
+        }
+        return detectedCountry
+    }
+
+    /**
+     * Backfill country codes for all production units that have null country_code.
+     * Returns count of updated units.
+     */
+    fun backfillCountryCodesForAllUnits(): Int {
+        val allUnits = productionUnitRepository.findAll()
+        var updatedCount = 0
+
+        allUnits.filter { it.countryCode.isNullOrBlank() && it.parcelGeometry != null }.forEach { unit ->
+            try {
+                val detectedCountry = detectCountryFromGeometry(unit.parcelGeometry!!)
+                if (detectedCountry != null) {
+                    unit.countryCode = detectedCountry
+                    productionUnitRepository.save(unit)
+                    updatedCount++
+                    logger.info("Backfilled country code $detectedCountry for unit ${unit.id}")
+                }
+                // Add small delay to avoid rate limiting on Nominatim API
+                Thread.sleep(1100)  // Nominatim requires 1 request per second
+            } catch (e: Exception) {
+                logger.error("Failed to backfill country code for unit ${unit.id}", e)
+            }
+        }
+
+        logger.info("Backfilled country codes for $updatedCount production units")
+        return updatedCount
+    }
+
+    /**
+     * Get country code for a production unit, detecting from geometry if not set.
+     * This can be called during risk assessment for units without country codes.
+     */
+    fun getOrDetectCountryCode(unit: ProductionUnit): String? {
+        // If already set, return it
+        if (!unit.countryCode.isNullOrBlank()) {
+            return unit.countryCode
+        }
+
+        // Try to detect from geometry
+        if (unit.parcelGeometry != null) {
+            val detectedCountry = detectCountryFromGeometry(unit.parcelGeometry!!)
+            if (detectedCountry != null) {
+                // Save it for future use
+                unit.countryCode = detectedCountry
+                productionUnitRepository.save(unit)
+                logger.info("Detected and saved country code $detectedCountry for unit ${unit.id}")
+            }
+            return detectedCountry
+        }
+
+        return null
+    }
+
 
     /**
      * Get all production units from farmers connected to an exporter
@@ -376,5 +459,80 @@ class ProductionUnitService(
             logger.error("Failed to calculate polygon hash", e)
             ""
         }
+    }
+
+    /**
+     * Detect country code from geometry using reverse geocoding API.
+     * Uses Nominatim (OpenStreetMap) free reverse geocoding service.
+     */
+    private fun detectCountryFromGeometry(geometry: Geometry): String? {
+        return try {
+            val centroid = geometry.centroid
+            val lat = centroid.y
+            val lon = centroid.x
+
+            logger.info("Detecting country from coordinates using reverse geocoding: lat=$lat, lon=$lon")
+
+            // Use Nominatim reverse geocoding API (free, no API key required)
+            // Format: https://nominatim.openstreetmap.org/reverse?lat=X&lon=Y&format=json
+            val url = "https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json&zoom=3"
+
+            val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("User-Agent", "AgriBackup-EUDR-Compliance/1.0")
+            connection.setRequestProperty("Accept", "application/json")
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+
+            if (connection.responseCode == 200) {
+                val response = connection.inputStream.bufferedReader().readText()
+                val jsonResponse = objectMapper.readTree(response)
+
+                // Extract country code from address object
+                val address = jsonResponse.get("address")
+                val countryCode2 = address?.get("country_code")?.asText()?.uppercase()
+
+                // Convert ISO 3166-1 alpha-2 to alpha-3
+                val countryCode3 = countryCode2?.let { convertToAlpha3(it) }
+
+                if (countryCode3 != null) {
+                    logger.info("Detected country $countryCode3 (from $countryCode2) via reverse geocoding for lat=$lat, lon=$lon")
+                } else {
+                    logger.warn("Could not extract country code from reverse geocoding response for lat=$lat, lon=$lon")
+                }
+
+                countryCode3
+            } else {
+                logger.warn("Reverse geocoding API returned status ${connection.responseCode} for lat=$lat, lon=$lon")
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to detect country from geometry via reverse geocoding", e)
+            null
+        }
+    }
+
+    /**
+     * Convert ISO 3166-1 alpha-2 country code to alpha-3
+     */
+    private fun convertToAlpha3(alpha2: String): String? {
+        val mapping = mapOf(
+            "KE" to "KEN", "ET" to "ETH", "UG" to "UGA", "TZ" to "TZA", "RW" to "RWA",
+            "BI" to "BDI", "GH" to "GHA", "CI" to "CIV", "NG" to "NGA", "CM" to "CMR",
+            "CD" to "COD", "BR" to "BRA", "CO" to "COL", "ID" to "IDN", "VN" to "VNM",
+            "MY" to "MYS", "IN" to "IND", "PE" to "PER", "EC" to "ECU", "GT" to "GTM",
+            "HN" to "HND", "CR" to "CRI", "NI" to "NIC", "MX" to "MEX", "SV" to "SLV",
+            "PA" to "PAN", "PH" to "PHL", "TH" to "THA", "MM" to "MMR", "LA" to "LAO",
+            "KH" to "KHM", "PG" to "PNG", "LR" to "LBR", "SL" to "SLE", "GN" to "GIN",
+            "SN" to "SEN", "ML" to "MLI", "BF" to "BFA", "NE" to "NER", "TD" to "TCD",
+            "CF" to "CAF", "CG" to "COG", "AO" to "AGO", "ZM" to "ZMB", "ZW" to "ZWE",
+            "MZ" to "MOZ", "MW" to "MWI", "MG" to "MDG", "SO" to "SOM", "DJ" to "DJI",
+            "ER" to "ERI", "SS" to "SSD", "SD" to "SDN", "EG" to "EGY", "LY" to "LBY",
+            "TN" to "TUN", "DZ" to "DZA", "MA" to "MAR", "MR" to "MRT", "CV" to "CPV",
+            "GM" to "GMB", "GW" to "GNB", "TG" to "TGO", "BJ" to "BEN", "GA" to "GAB",
+            "GQ" to "GNQ", "ST" to "STP", "NA" to "NAM", "BW" to "BWA", "LS" to "LSO",
+            "SZ" to "SWZ", "ZA" to "ZAF"
+        )
+        return mapping[alpha2.uppercase()]
     }
 }

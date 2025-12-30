@@ -563,7 +563,7 @@ export default {
         const response = await axios.get(`/api/v1/supply-chain/workflows/${this.workflowId}/shipment`);
         this.shipmentEvents = response.data || [];
       } catch (error) {
-        console.error('Failed to load shipment events:', error);
+        this.$toast.error('Failed to load shipment events:', error.message);
       } finally {
         this.loading = false;
       }
@@ -583,7 +583,7 @@ export default {
           }))
           .sort((a, b) => a.name.localeCompare(b.name));
       } catch (error) {
-        console.error('Failed to load countries from API, using fallback:', error);
+        this.$toast.error('Failed to load countries from API, using fallback:', error.message);
         // Fallback to static list of common countries
         this.countries = [
           {
@@ -662,7 +662,7 @@ export default {
         const exporterId = this.exporterId || this.$store?.state?.auth?.user?.id;
 
         if (!exporterId) {
-          console.warn('No exporterId available, cannot load connected importers');
+          this.$toast.error('No exporterId available, cannot load connected importers');
           this.importers = [];
           return;
         }
@@ -683,7 +683,7 @@ export default {
           port: i.destinationPort,
         }));
       } catch (error) {
-        console.error('Failed to load importers:', error);
+        this.$toast.error('Failed to load importers:', error.message);
         // Fallback to empty list
         this.importers = [];
       } finally {
@@ -787,7 +787,6 @@ export default {
         await this.loadShipmentEvents();
         this.closeDialog();
       } catch (error) {
-        console.error('Failed to save shipment:', error);
         this.$emit('error', error.response?.data?.message || 'Failed to create shipment');
       } finally {
         this.saving = false;
@@ -803,7 +802,6 @@ export default {
         this.$emit('shipment-updated');
         await this.loadShipmentEvents();
       } catch (error) {
-        console.error('Failed to update shipment status:', error);
         this.$emit('error', error.response?.data?.message || 'Failed to update shipment');
       }
     },

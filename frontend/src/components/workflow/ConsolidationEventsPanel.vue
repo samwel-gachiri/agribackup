@@ -390,7 +390,7 @@ export default {
         const response = await axios.get(`/api/v1/supply-chain/workflows/${this.workflowId}/consolidation`);
         this.consolidationEvents = response.data || [];
       } catch (error) {
-        console.error('Failed to load consolidation events:', error);
+        this.$toast.error('Failed to load consolidation events:', error.message);
       }
     },
 
@@ -410,7 +410,7 @@ export default {
 
         this.allSuppliers = suppliers;
       } catch (error) {
-        console.error('Failed to load suppliers:', error);
+        this.$toast.error('Failed to load suppliers:', error.message);
       }
     },
 
@@ -452,7 +452,7 @@ export default {
 
         this.supplierBalances = balances;
       } catch (error) {
-        console.error('Failed to calculate supplier balances:', error);
+        this.$toast.error('Failed to calculate supplier balances:', error.message);
       }
     },
 
@@ -489,7 +489,6 @@ export default {
         await this.loadData();
         this.closeDialog();
       } catch (error) {
-        console.error('Failed to save consolidation event:', error);
         this.$emit('error', error.response?.data?.message || 'Failed to save consolidation event');
       } finally {
         this.saving = false;

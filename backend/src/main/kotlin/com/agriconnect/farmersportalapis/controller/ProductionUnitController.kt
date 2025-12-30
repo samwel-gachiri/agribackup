@@ -52,7 +52,8 @@ class ProductionUnitController(
                 farmer = farmer,
                 unitName = request.unitName,
                 geoJsonPolygon = request.geoJsonPolygon,
-                administrativeRegion = request.administrativeRegion
+                administrativeRegion = request.administrativeRegion,
+                countryCode = request.countryCode
             )
             
             ResponseEntity.ok(ApiResponse.success(productionUnit))
@@ -86,7 +87,8 @@ class ProductionUnitController(
                 unitId = unitId,
                 unitName = request.unitName,
                 geoJsonPolygon = request.geoJsonPolygon,
-                administrativeRegion = request.administrativeRegion
+                administrativeRegion = request.administrativeRegion,
+                countryCode = request.countryCode
             )
             
             ResponseEntity.ok(ApiResponse.success(productionUnit))
@@ -315,19 +317,55 @@ class ProductionUnitController(
                 .body(ApiResponse.error("Failed to get production units"))
         }
     }
+
+    @PostMapping("/backfill-country-codes")
+    @Operation(summary = "Backfill country codes for all production units", description = "Uses reverse geocoding API to detect and save country codes from geometry for all units with missing country codes")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    fun backfillCountryCodes(): ResponseEntity<ApiResponse<Map<String, Int>>> {
+        
+        return try {
+            val updatedCount = productionUnitService.backfillCountryCodesForAllUnits()
+            ResponseEntity.ok(ApiResponse.success(mapOf("updatedCount" to updatedCount)))
+        } catch (e: Exception) {
+            logger.error("Failed to backfill country codes", e)
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Failed to backfill country codes: ${e.message}"))
+        }
+    }
+
+    @PostMapping("/{unitId}/detect-country")
+    @Operation(summary = "Detect and update country code for a specific production unit")
+    @PreAuthorize("hasRole('FARMER') or hasRole('ZONE_SUPERVISOR') or hasRole('SYSTEM_ADMIN')")
+    fun detectAndUpdateCountryCode(
+        @PathVariable unitId: String
+    ): ResponseEntity<ApiResponse<Map<String, String?>>> {
+        
+        return try {
+            val detectedCountry = productionUnitService.updateCountryCodeForUnit(unitId)
+            ResponseEntity.ok(ApiResponse.success(mapOf("countryCode" to detectedCountry, "unitId" to unitId)))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(ApiResponse.error(e.message ?: "Invalid request"))
+        } catch (e: Exception) {
+            logger.error("Failed to detect country code for unit $unitId", e)
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Failed to detect country code: ${e.message}"))
+        }
+    }
     
     // Request/Response DTOs
     data class CreateProductionUnitRequest(
         val farmerId: String,
         val unitName: String,
         val geoJsonPolygon: String,
-        val administrativeRegion: String? = null
+        val administrativeRegion: String? = null,
+        val countryCode: String? = null
     )
     
     data class UpdateProductionUnitRequest(
         val unitName: String? = null,
         val geoJsonPolygon: String? = null,
-        val administrativeRegion: String? = null
+        val administrativeRegion: String? = null,
+        val countryCode: String? = null
     )
     
     data class ValidatePolygonRequest(

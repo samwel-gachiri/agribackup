@@ -326,7 +326,7 @@ export default {
           this.blockchainTransactionId = data.blockchainTransactionId;
         }
       } catch (error) {
-        console.error('Failed to load compliance data:', error);
+        this.$toast.error('Failed to load compliance data:', error.message);
       } finally {
         this.loading = false;
       }
@@ -349,7 +349,7 @@ export default {
           this.$emit('risk-assessed', response.data);
         }
       } catch (error) {
-        console.error('Failed to run risk assessment:', error);
+        this.$toast.error('Failed to run risk assessment:', error.message);
         this.$emit('error', error.response?.data?.message || 'Failed to run risk assessment');
       } finally {
         this.assessingRisk = false;
@@ -367,7 +367,7 @@ export default {
           this.$emit('dds-generated', response.data);
         }
       } catch (error) {
-        console.error('Failed to generate DDS:', error);
+        this.$toast.error('Failed to generate DDS:', error.message);
         this.$emit('error', error.response?.data?.message || 'Failed to generate Due Diligence Statement');
       } finally {
         this.generatingDDS = false;
@@ -397,7 +397,6 @@ export default {
         // Clean up
         window.URL.revokeObjectURL(url);
       } catch (error) {
-        console.error('Failed to download DDS:', error);
         this.$emit('error', 'Failed to download Due Diligence Statement');
       }
     },
@@ -415,7 +414,7 @@ export default {
         const url = window.URL.createObjectURL(blob);
         window.open(url, '_blank');
       } catch (error) {
-        console.error('Failed to preview DDS:', error);
+        this.$toast.error('Failed to preview DDS:', error.message);
         this.$emit('error', 'Failed to preview Due Diligence Statement');
       }
     },

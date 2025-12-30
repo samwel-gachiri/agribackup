@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="dialog" max-width="700px" persistent>
+  <v-dialog fullscreen v-model="dialog" max-width="700px" persistent>
     <v-card>
       <v-card-title class="tw-font-bold tw-text-lg tw-bg-blue-100">
         Add Farmers to Zone: <span class="tw-text-blue-700 tw-ml-2">{{ zone?.name }}</span>

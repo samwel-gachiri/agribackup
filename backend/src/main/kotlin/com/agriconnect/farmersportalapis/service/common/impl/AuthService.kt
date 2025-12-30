@@ -2201,6 +2201,71 @@ class AuthService(
         return ResultFactory.getSuccessResult(true, "Roles assigned successfully")
     }
 
+    /**
+     * Get all roles for a user by their userId (email or id used in JWT)
+     */
+    @Transactional(readOnly = true)
+    fun getUserRoles(userId: String): Result<List<RoleOption>> {
+        logger.info("Getting roles for user: {}", userId)
+        return try {
+            // Try to find user by email first (common JWT subject), then by id
+            val user = userRepository.findByEmail(userId)
+                ?: userRepository.findByPhoneNumber(userId)
+                ?: userRepository.findById(userId).orElse(null)
+                ?: return ResultFactory.getFailResult("User not found")
+
+            val roleOptions = user.roles.map { role ->
+                RoleOption(
+                    roleType = role.name,
+                    displayName = getRoleDisplayName(role.name),
+                    description = getRoleDescription(role.name)
+                )
+            }
+
+            logger.info("Found {} roles for user {}: {}", roleOptions.size, userId, roleOptions.map { it.roleType })
+            ResultFactory.getSuccessResult(roleOptions)
+        } catch (e: Exception) {
+            logger.error("Failed to get roles for user {}: {}", userId, e.message, e)
+            ResultFactory.getFailResult("Failed to get user roles: ${e.message}")
+        }
+    }
+
+    /**
+     * Get all roles for a user by extracting email from JWT token
+     */
+    @Transactional(readOnly = true)
+    fun getUserRolesFromToken(token: String): Result<List<RoleOption>> {
+        return try {
+            // Extract user details from JWT token
+            val userDetails = jwtUtil.getUserDetailsFromToken(token)
+            val email = userDetails["email"] as? String
+            val phoneNumber = userDetails["phone_number"] as? String
+
+            logger.info("Getting roles from token - email: {}, phone: {}", email, phoneNumber)
+
+            // Find user by email or phone
+            val user = when {
+                !email.isNullOrBlank() -> userRepository.findByEmail(email)
+                !phoneNumber.isNullOrBlank() -> userRepository.findByPhoneNumber(phoneNumber)
+                else -> null
+            } ?: return ResultFactory.getFailResult("User not found - no email or phone in token")
+
+            val roleOptions = user.roles.map { role ->
+                RoleOption(
+                    roleType = role.name,
+                    displayName = getRoleDisplayName(role.name),
+                    description = getRoleDescription(role.name)
+                )
+            }
+
+            logger.info("Found {} roles for user: {}", roleOptions.size, roleOptions.map { it.roleType })
+            ResultFactory.getSuccessResult(roleOptions)
+        } catch (e: Exception) {
+            logger.error("Failed to get roles from token: {}", e.message, e)
+            ResultFactory.getFailResult("Failed to get user roles: ${e.message}")
+        }
+    }
+
     // Helper function to get display name for role
     private fun getRoleDisplayName(roleName: String): String {
         return when (roleName) {

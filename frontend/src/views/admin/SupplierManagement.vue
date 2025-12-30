@@ -811,7 +811,6 @@ export default {
           return (a.supplierName || '').localeCompare(b.supplierName || '');
         });
       } catch (error) {
-        console.error('Failed to load suppliers:', error);
         this.$toast.error('Failed to load suppliers');
         this.suppliers = [];
       } finally {
@@ -834,7 +833,7 @@ export default {
           this.pendingInvites = [];
         }
       } catch (error) {
-        console.error('Failed to load pending invites:', error);
+        this.$toast.error('Failed to load pending invites');
         this.pendingInvites = [];
       }
     },

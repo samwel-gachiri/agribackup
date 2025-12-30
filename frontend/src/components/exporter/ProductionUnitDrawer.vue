@@ -378,7 +378,7 @@ export default {
           }, reject);
         });
       } catch (error) {
-        console.error('Failed to load ArcGIS modules:', error);
+        this.$toast.error('Failed to load ArcGIS modules:', error.message);
         this.showError('Failed to load map resources');
         this.loading = false;
       }

@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_country_code_to_production_units
+      author: Samwel Gachiri
+      comment: Add country_code column to production_units for EUDR risk assessment
+      changes:
+        - addColumn:
+            tableName: production_units
+            columns:
+              - column:
+                  name: country_code
+                  type: VARCHAR(3)
+                  remarks: ISO 3166-1 alpha-3 country code (e.g., KEN, ETH, UGA)
+      rollback:
+        - dropColumn:
+            tableName: production_units
+            columnName: country_code

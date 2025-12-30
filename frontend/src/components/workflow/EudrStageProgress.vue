@@ -1,224 +1,229 @@
 <template>
-  <div class="eudr-stage-progress">
-    <!-- Simple 5-Step Progress Bar -->
-    <div class="tw-bg-white tw-rounded-xl tw-border tw-border-gray-200 tw-p-6 tw-mb-6">
-      <!-- 5 Stage Groups -->
-      <div class="tw-flex tw-items-center tw-justify-between tw-mb-6">
-        <div
-          v-for="(group, index) in stageGroups"
-          :key="group.key"
-          class="tw-flex tw-items-center tw-flex-1"
-        >
-          <!-- Stage Group Circle -->
-          <div class="tw-flex tw-flex-col tw-items-center">
+  <div class="eudr-workflow-layout">
+    <!-- Professional Two-Column Layout -->
+    <div class="tw-flex tw-gap-6 tw-h-full">
+
+      <!-- LEFT SIDEBAR: Stage Navigation -->
+      <div v-if="false" class="stage-sidebar tw-w-72 tw-flex-shrink-0">
+        <div class="tw-sticky tw-top-0">
+          <!-- Progress Summary Card -->
+          <div class="progress-summary-card tw-rounded-2xl tw-p-5 tw-mb-6">
+            <div class="tw-flex tw-items-center tw-justify-between tw-mb-4">
+              <div>
+                <p class="tw-text-xs tw-text-white/70 tw-uppercase tw-tracking-wider tw-font-medium">EUDR Progress</p>
+                <h3 class="tw-text-2xl tw-font-bold tw-text-white">{{ overallProgress }}%</h3>
+              </div>
+              <!-- Circular Progress -->
+              <div class="tw-relative tw-w-14 tw-h-14">
+                <svg class="tw-w-full tw-h-full tw-transform -tw-rotate-90">
+                  <circle cx="28" cy="28" r="24" stroke="rgba(255,255,255,0.2)" stroke-width="4" fill="none" />
+                  <circle
+                    cx="28" cy="28" r="24" stroke="white" stroke-width="4" fill="none" stroke-linecap="round"
+                    :stroke-dasharray="150" :stroke-dashoffset="150 - (150 * overallProgress / 100)"
+                    class="tw-transition-all tw-duration-500"
+                  />
+                </svg>
+                <div class="tw-absolute tw-inset-0 tw-flex tw-items-center tw-justify-center">
+                  <span class="tw-text-white tw-font-bold tw-text-xs">{{ getCurrentStageNumber() }}/10</span>
+                </div>
+              </div>
+            </div>
+            <div class="tw-w-full tw-bg-white/20 tw-rounded-full tw-h-1.5">
+              <div class="tw-bg-white tw-rounded-full tw-h-1.5 tw-transition-all" :style="{ width: overallProgress + '%' }"></div>
+            </div>
+          </div>
+
+          <!-- Vertical Stage Steps -->
+          <div class="tw-space-y-1">
             <div
-              class="tw-w-12 tw-h-12 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-transition-all tw-cursor-pointer"
-              :class="getGroupClass(group)"
+              v-for="(group, index) in stageGroups"
+              :key="group.key"
+              class="stage-nav-item tw-rounded-xl tw-p-3 tw-cursor-pointer tw-transition-all"
+              :class="getNavItemClass(group)"
               @click="selectGroup(group)"
             >
-              <v-icon v-if="isGroupCompleted(group)" color="white">mdi-check</v-icon>
-              <v-icon v-else :color="isGroupActive(group) ? 'white' : 'grey'">{{ group.icon }}</v-icon>
+              <div class="tw-flex tw-items-center tw-gap-3">
+                <!-- Step Number/Check -->
+                <div
+                  class="tw-w-9 tw-h-9 tw-rounded-lg tw-flex tw-items-center tw-justify-center tw-font-bold tw-text-sm tw-flex-shrink-0"
+                  :class="getStepBadgeClass(group)"
+                >
+                  <v-icon v-if="isGroupCompleted(group)" color="white" size="18">mdi-check</v-icon>
+                  <span v-else>{{ index + 1 }}</span>
+                </div>
+                <!-- Step Info -->
+                <div class="tw-flex-1 tw-min-w-0">
+                  <p class="tw-font-semibold tw-text-sm tw-truncate" :class="isGroupActive(group) ? 'tw-text-blue-700' : 'tw-text-gray-700'">
+                    {{ group.label }}
+                  </p>
+                  <p class="tw-text-xs tw-truncate" :class="isGroupActive(group) ? 'tw-text-blue-500' : 'tw-text-gray-400'">
+                    {{ getGroupStatus(group) }}
+                  </p>
+                </div>
+                <!-- Active Indicator -->
+                <v-icon v-if="isGroupActive(group)" color="primary" size="18">mdi-chevron-right</v-icon>
+              </div>
             </div>
-            <span
-              class="tw-text-xs tw-font-medium tw-mt-2 tw-text-center tw-max-w-20"
-              :class="isGroupActive(group) ? 'tw-text-blue-600' : 'tw-text-gray-500'"
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN CONTENT AREA -->
+      <div class="tw-flex-1 tw-flex tw-flex-col tw-min-w-0">
+        <!-- Content Header -->
+        <div class="content-header tw-rounded-xl tw-p-4 tw-mb-4 tw-flex tw-items-center tw-justify-between">
+          <div class="tw-flex tw-items-center tw-gap-3">
+            <div class="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-primary tw-flex tw-items-center tw-justify-center">
+              <v-icon color="white" size="22">{{ getCurrentStageIcon() }}</v-icon>
+            </div>
+            <div>
+              <h2 class="tw-text-lg tw-font-bold tw-text-gray-900">{{ getCurrentStageName() }}</h2>
+              <p class="tw-text-sm tw-text-gray-500">{{ getCurrentStageDescription() }}</p>
+            </div>
+          </div>
+          <!-- Quick Actions -->
+          <div class="tw-flex tw-items-center tw-gap-2">
+            <v-chip v-if="blockers.length > 0" color="warning" small outlined>
+              <v-icon left x-small>mdi-alert</v-icon>
+              {{ blockers.length }} Blocker{{ blockers.length > 1 ? 's' : '' }}
+            </v-chip>
+          </div>
+        </div>
+
+        <!-- Blockers Alert -->
+        <v-alert
+          v-if="blockers.length > 0"
+          type="warning"
+          border="left"
+          colored-border
+          elevation="0"
+          class="tw-mb-4 tw-rounded-xl"
+        >
+          <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+            <span class="tw-font-semibold">Action Required</span>
+          </div>
+          <ul class="tw-text-sm tw-ml-4">
+            <li v-for="(blocker, idx) in blockers" :key="idx">{{ blocker }}</li>
+          </ul>
+        </v-alert>
+
+        <!-- Dynamic Panel Content -->
+        <div class="panel-content tw-flex-1 tw-overflow-auto">
+          <!-- Production Units Panel (Source Farms Stage) -->
+          <ProductionUnitsPanel
+            v-if="isSourceFarmsStage"
+            :workflow-id="workflowId"
+            :exporter-id="effectiveExporterId"
+            :current-stage="currentStageInfo.stage"
+            @navigate-to-farmers="$emit('navigate-to-farmers')"
+            @unit-linked="handleUnitLinked"
+            @unit-verified="handleUnitVerified"
+            @deforestation-checked="handleDeforestationChecked"
+          />
+
+          <!-- Collection Events Panel (Collection Stage) -->
+          <CollectionEventsPanel
+            v-else-if="isCollectionStage"
+            :workflow-id="workflowId"
+            :exporter-id="effectiveExporterId"
+            @collection-added="handleCollectionAdded"
+            @error="$emit('error', $event)"
+          />
+
+          <!-- Processing Stage: Consolidation + Processing Events -->
+          <div v-else-if="isProcessingStage" class="tw-space-y-4">
+            <ConsolidationEventsPanel
+              :workflow-id="workflowId"
+              :exporter-id="effectiveExporterId"
+              @consolidation-added="handleConsolidationAdded"
+              @error="$emit('error', $event)"
+            />
+            <ProcessingEventsPanel
+              :workflow-id="workflowId"
+              :exporter-id="effectiveExporterId"
+              @processing-added="handleProcessingAdded"
+              @stage-skipped="handleProcessingSkipped"
+              @error="$emit('error', $event)"
+            />
+          </div>
+
+          <!-- Compliance Panel (Risk Assessment & DDS Stage) -->
+          <CompliancePanel
+            v-else-if="isComplianceStage"
+            :workflow-id="workflowId"
+            :current-stage="currentStageInfo.stage"
+            @risk-assessed="handleRiskAssessed"
+            @dds-generated="handleDDSGenerated"
+            @error="$emit('error', $event)"
+          />
+
+          <!-- Export & Shipment Panel (Export Stages) -->
+          <ExportShipmentPanel
+            v-else-if="isExportStage"
+            :workflow-id="workflowId"
+            :exporter-id="effectiveExporterId"
+            :current-stage="currentStageInfo.stage"
+            @shipment-created="handleShipmentCreated"
+            @shipment-updated="handleShipmentUpdated"
+            @error="$emit('error', $event)"
+          />
+
+          <!-- Fallback Content -->
+          <div v-else class="tw-bg-white tw-rounded-xl tw-border tw-p-6 tw-text-center tw-text-gray-500">
+            <v-icon size="48" color="grey lighten-1">mdi-information-outline</v-icon>
+            <p class="tw-mt-3">{{ getCurrentStageDescription() }}</p>
+          </div>
+        </div>
+
+        <!-- Action Buttons - Fixed Bottom Bar -->
+        <div class="action-buttons-bar tw-flex tw-items-center tw-justify-between tw-rounded-xl tw-p-4 tw-mt-4">
+          <v-btn
+            outlined
+            color="grey darken-1"
+            :disabled="!canRevert"
+            @click="revertStage"
+            :loading="reverting"
+          >
+            <v-icon left>mdi-arrow-left</v-icon>
+            Previous
+          </v-btn>
+
+          <div class="tw-flex tw-items-center tw-gap-3">
+            <v-btn
+              v-if="showRiskAssessmentButton"
+              color="amber darken-1"
+              depressed
+              @click="triggerRiskAssessment"
+              :loading="assessingRisk"
             >
-              {{ group.label }}
-            </span>
-          </div>
-          <!-- Connector Line -->
-          <div
-            v-if="index < stageGroups.length - 1"
-            class="tw-flex-1 tw-h-1 tw-mx-3 tw-rounded"
-            :class="isGroupCompleted(group) ? 'tw-bg-green-500' : 'tw-bg-gray-200'"
-          ></div>
-        </div>
-      </div>
+              <v-icon left>mdi-shield-search</v-icon>
+              Assess Risk
+            </v-btn>
 
-      <!-- Current Stage Info Bar -->
-      <div class="tw-bg-gradient-to-r tw-from-blue-500 tw-to-blue-600 tw-rounded-lg tw-p-4 tw-flex tw-items-center tw-justify-between">
-        <div class="tw-text-white">
-          <p class="tw-text-xs tw-text-blue-100 tw-uppercase tw-tracking-wide">Current Step</p>
-          <h3 class="tw-text-lg tw-font-semibold">{{ getCurrentStageName() }}</h3>
-        </div>
-        <div class="tw-flex tw-items-center tw-gap-4">
-          <div class="tw-text-right tw-text-white">
-            <span class="tw-text-2xl tw-font-bold">{{ overallProgress }}%</span>
-            <p class="tw-text-xs tw-text-blue-100">Complete</p>
-          </div>
-          <div class="tw-w-32 tw-bg-blue-700 tw-rounded-full tw-h-2">
-            <div
-              class="tw-bg-white tw-rounded-full tw-h-2 tw-transition-all tw-duration-500"
-              :style="{ width: overallProgress + '%' }"
-            ></div>
+            <v-btn
+              v-if="showDDSButton"
+              color="primary"
+              depressed
+              @click="generateDDS"
+              :loading="generatingDDS"
+            >
+              <v-icon left>mdi-file-document</v-icon>
+              Generate DDS
+            </v-btn>
+
+            <v-btn
+              color="success"
+              depressed
+              :disabled="!canAdvance || blockers.length > 0"
+              @click="advanceStage"
+              :loading="advancing"
+              class="advance-btn tw-px-6"
+            >
+              <span class="tw-font-semibold">Advance</span>
+              <v-icon right>mdi-arrow-right</v-icon>
+            </v-btn>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Stage Content Area -->
-    <div class="tw-mb-6">
-      <!-- Main Content -->
-      <div>
-        <!-- Production Units Panel (Source Farms Stage) -->
-        <ProductionUnitsPanel
-          v-if="isSourceFarmsStage"
-          :workflow-id="workflowId"
-          :exporter-id="effectiveExporterId"
-          :current-stage="currentStageInfo.stage"
-          @navigate-to-farmers="$emit('navigate-to-farmers')"
-          @unit-linked="handleUnitLinked"
-          @unit-verified="handleUnitVerified"
-          @deforestation-checked="handleDeforestationChecked"
-        />
-
-        <!-- Collection Events Panel (Collection Stage) -->
-        <CollectionEventsPanel
-          v-else-if="isCollectionStage"
-          :workflow-id="workflowId"
-          :exporter-id="effectiveExporterId"
-          @collection-added="handleCollectionAdded"
-          @error="$emit('error', $event)"
-        />
-
-        <!-- Processing Stage: Consolidation + Processing Events -->
-        <div v-else-if="isProcessingStage" class="tw-space-y-6">
-          <!-- Consolidation Events Panel -->
-          <ConsolidationEventsPanel
-            :workflow-id="workflowId"
-            :exporter-id="effectiveExporterId"
-            @consolidation-added="handleConsolidationAdded"
-            @error="$emit('error', $event)"
-          />
-
-          <!-- Processing Events Panel -->
-          <ProcessingEventsPanel
-            :workflow-id="workflowId"
-            :exporter-id="effectiveExporterId"
-            @processing-added="handleProcessingAdded"
-            @stage-skipped="handleProcessingSkipped"
-            @error="$emit('error', $event)"
-          />
-        </div>
-
-        <!-- Compliance Panel (Risk Assessment & DDS Stage) -->
-        <CompliancePanel
-          v-else-if="isComplianceStage"
-          :workflow-id="workflowId"
-          :current-stage="currentStageInfo.stage"
-          @risk-assessed="handleRiskAssessed"
-          @dds-generated="handleDDSGenerated"
-          @error="$emit('error', $event)"
-        />
-
-        <!-- Export & Shipment Panel (Export Stages) -->
-        <ExportShipmentPanel
-          v-else-if="isExportStage"
-          :workflow-id="workflowId"
-          :exporter-id="effectiveExporterId"
-          :current-stage="currentStageInfo.stage"
-          @shipment-created="handleShipmentCreated"
-          @shipment-updated="handleShipmentUpdated"
-          @error="$emit('error', $event)"
-        />
-
-        <!-- Fallback Generic Stage Content -->
-        <div v-else class="tw-bg-white tw-rounded-xl tw-border tw-border-gray-200 tw-p-6">
-          <div class="tw-flex tw-items-start tw-gap-4">
-            <div class="tw-w-10 tw-h-10 tw-rounded-full tw-bg-blue-100 tw-flex tw-items-center tw-justify-center tw-flex-shrink-0">
-              <v-icon color="blue">{{ getCurrentStageIcon() }}</v-icon>
-            </div>
-            <div class="tw-flex-1">
-              <h4 class="tw-text-lg tw-font-semibold tw-text-gray-900 tw-mb-2">{{ getCurrentStageName() }}</h4>
-              <p class="tw-text-gray-600 tw-mb-4">{{ getCurrentStageDescription() }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Blockers Alert -->
-    <v-alert
-      v-if="blockers.length > 0"
-      type="warning"
-      border="left"
-      colored-border
-      elevation="1"
-      class="tw-mb-6"
-    >
-      <div class="tw-flex tw-items-center tw-gap-2 tw-mb-2">
-        <v-icon color="orange">mdi-alert-circle</v-icon>
-        <span class="tw-font-semibold">Action Required Before Proceeding</span>
-      </div>
-      <p v-for="(blocker, index) in blockers" :key="index" class="tw-text-sm tw-ml-8">
-        • {{ blocker }}
-      </p>
-    </v-alert>
-
-    <!-- Risk Assessment Display (only shown after risk assessment stage) -->
-    <div
-      v-if="showRiskDisplay"
-      class="tw-bg-white tw-rounded-xl tw-border tw-border-gray-200 tw-p-5 tw-mb-6 tw-flex tw-items-center tw-justify-between"
-    >
-      <div>
-        <h4 class="tw-font-semibold tw-text-gray-900">Risk Assessment</h4>
-        <p class="tw-text-sm tw-text-gray-600">Based on country of origin and supply chain complexity</p>
-      </div>
-      <v-chip
-        :color="getRiskColor(riskClassification)"
-        text-color="white"
-        class="tw-font-semibold"
-      >
-        <v-icon left small>{{ getRiskIcon(riskClassification) }}</v-icon>
-        {{ riskClassification }}
-      </v-chip>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="tw-flex tw-items-center tw-justify-between tw-bg-gray-50 tw-rounded-xl tw-p-4">
-      <v-btn
-        text
-        :disabled="!canRevert"
-        @click="revertStage"
-        :loading="reverting"
-      >
-        <v-icon left>mdi-arrow-left</v-icon>
-        PREVIOUS STAGE
-      </v-btn>
-
-      <div class="tw-flex tw-items-center tw-gap-3">
-        <v-btn
-          v-if="showRiskAssessmentButton"
-          color="amber"
-          depressed
-          @click="triggerRiskAssessment"
-          :loading="assessingRisk"
-        >
-          <v-icon left>mdi-shield-search</v-icon>
-          Assess Risk
-        </v-btn>
-
-        <v-btn
-          v-if="showDDSButton"
-          color="primary"
-          depressed
-          @click="generateDDS"
-          :loading="generatingDDS"
-        >
-          <v-icon left>mdi-file-document</v-icon>
-          Generate DDS
-        </v-btn>
-
-        <v-btn
-          color="success"
-          depressed
-          :disabled="!canAdvance || blockers.length > 0"
-          @click="advanceStage"
-          :loading="advancing"
-        >
-          ADVANCE TO NEXT STAGE
-          <v-icon right>mdi-arrow-right</v-icon>
-        </v-btn>
       </div>
     </div>
   </div>
@@ -449,7 +454,7 @@ export default {
         const stageToEmit = this.currentStageInfo.stage;
         this.$emit('current-stage-changed', stageToEmit);
       } catch (error) {
-        console.error('Failed to load workflow progress:', error);
+        this.$toast.error('Failed to load workflow progress:', error.message);
         // Set default stage on error so UI doesn't get stuck
         this.currentStageInfo = { stage: 'PRODUCTION_REGISTRATION', displayName: 'Farm Registration' };
         this.stages = [];
@@ -495,6 +500,26 @@ export default {
       return 'tw-bg-gray-100 tw-text-gray-400 tw-border-2 tw-border-gray-200';
     },
 
+    getModernGroupClass(group) {
+      if (this.isGroupCompleted(group)) {
+        return 'stage-circle-completed';
+      }
+      if (this.isGroupActive(group)) {
+        return 'stage-circle-active';
+      }
+      return 'stage-circle-pending';
+    },
+
+    getCurrentStageNumber() {
+      const allStages = [
+        'PRODUCTION_REGISTRATION', 'GEOLOCATION_VERIFICATION', 'DEFORESTATION_CHECK',
+        'COLLECTION_AGGREGATION', 'PROCESSING', 'RISK_ASSESSMENT',
+        'DUE_DILIGENCE_STATEMENT', 'EXPORT_SHIPMENT', 'CUSTOMS_CLEARANCE', 'DELIVERY_COMPLETE',
+      ];
+      const index = allStages.indexOf(this.currentStageInfo.stage);
+      return index >= 0 ? index + 1 : 1;
+    },
+
     isGroupActive(group) {
       return group.stages.includes(this.currentStageInfo.stage);
     },
@@ -509,7 +534,37 @@ export default {
 
     selectGroup(group) {
       // Optional: could show group details or allow navigation
-      console.log('Selected group:', group.key);
+      this.$toast.info('Selected group:', group.key);
+    },
+
+    getNavItemClass(group) {
+      if (this.isGroupActive(group)) {
+        return 'stage-nav-active';
+      }
+      if (this.isGroupCompleted(group)) {
+        return 'stage-nav-completed';
+      }
+      return 'stage-nav-pending';
+    },
+
+    getStepBadgeClass(group) {
+      if (this.isGroupCompleted(group)) {
+        return 'tw-bg-green-600 tw-text-white';
+      }
+      if (this.isGroupActive(group)) {
+        return 'tw-bg-blue-600 tw-text-white';
+      }
+      return 'tw-bg-gray-200 tw-text-gray-500';
+    },
+
+    getGroupStatus(group) {
+      if (this.isGroupCompleted(group)) {
+        return 'Completed';
+      }
+      if (this.isGroupActive(group)) {
+        return 'In Progress';
+      }
+      return 'Pending';
     },
 
     async advanceStage() {
@@ -526,7 +581,7 @@ export default {
           this.$emit('error', response.data.message);
         }
       } catch (error) {
-        console.error('Failed to advance stage:', error);
+        this.$toast.error('Failed to advance stage:', error.message);
         this.$emit('error', 'Failed to advance to next stage');
       } finally {
         this.advancing = false;
@@ -549,7 +604,7 @@ export default {
           // loadWorkflowProgress already emits stage-changed
         }
       } catch (error) {
-        console.error('Failed to revert stage:', error);
+        this.$toast.error('Failed to revert stage:', error.message);
         this.$emit('error', 'Failed to revert to previous stage');
       } finally {
         this.reverting = false;
@@ -565,7 +620,6 @@ export default {
         this.$emit('risk-assessed', response.data);
         await this.loadWorkflowProgress();
       } catch (error) {
-        console.error('Failed to run risk assessment:', error);
         this.$emit('error', 'Failed to run risk assessment');
       } finally {
         this.assessingRisk = false;
@@ -580,7 +634,6 @@ export default {
         this.$emit('dds-generated', response.data);
         await this.loadWorkflowProgress();
       } catch (error) {
-        console.error('Failed to generate DDS:', error);
         this.$emit('error', 'Failed to generate Due Diligence Statement');
       } finally {
         this.generatingDDS = false;
@@ -663,5 +716,184 @@ export default {
 <style scoped>
 .eudr-stage-progress {
   width: 100%;
+}
+
+/* Main Progress Container */
+.stage-progress-container {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Stage Circle Styles */
+.stage-circle {
+  transition: all 0.3s ease;
+}
+
+.stage-circle-completed {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);
+}
+
+.stage-circle-active {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.5);
+}
+
+.stage-circle-pending {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border: 2px solid #d1d5db;
+}
+
+/* Connector Line */
+.connector-completed {
+  background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+}
+
+.connector-progress {
+  animation: progress-pulse 2s ease-in-out infinite;
+}
+
+@keyframes progress-pulse {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Current Stage Card */
+.current-stage-card {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #3b82f6 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.current-stage-card::before {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%);
+  animation: shimmer-rotate 20s linear infinite;
+}
+
+@keyframes shimmer-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Ping animation for active stage glow */
+@keyframes ping {
+  75%, 100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.tw-animate-ping {
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Action Buttons Bar */
+.action-buttons-bar {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.advance-btn {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  transition: all 0.3s ease;
+}
+
+.advance-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(5, 150, 105, 0.4) !important;
+}
+
+/* Two-Column Layout - Full Width */
+.eudr-workflow-layout {
+  width: 100%;
+  max-width: none !important;
+  height: calc(100vh - 180px);
+  display: flex;
+  flex-direction: column;
+}
+
+.eudr-workflow-layout > div:first-child {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Sidebar - Fixed Position within container */
+.stage-sidebar {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+  height: fit-content;
+  position: sticky;
+  top: 16px;
+  align-self: flex-start;
+}
+
+/* Progress Summary Card - Modern Teal/Green Gradient */
+.progress-summary-card {
+  background: linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #2dd4bf 100%);
+  box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3);
+}
+
+/* Stage Navigation Items */
+.stage-nav-item {
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.stage-nav-active {
+  background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
+  border-color: #14b8a6;
+}
+
+.stage-nav-completed {
+  background: #f0fdf4;
+}
+
+.stage-nav-completed:hover {
+  background: #dcfce7;
+}
+
+.stage-nav-pending {
+  background: #fafafa;
+}
+
+.stage-nav-pending:hover {
+  background: #f5f5f5;
+}
+
+/* Content Header */
+.content-header {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+/* Panel Content Area - Scrollable */
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 300px;
+}
+
+/* Responsive: Hide sidebar on small screens */
+@media (max-width: 1024px) {
+  .stage-sidebar {
+    display: none;
+  }
 }
 </style>

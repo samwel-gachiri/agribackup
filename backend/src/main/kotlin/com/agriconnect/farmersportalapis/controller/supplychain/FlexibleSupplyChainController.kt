@@ -182,6 +182,30 @@ class FlexibleSupplyChainController(
     }
 
     /**
+     * Get sub-suppliers for a supplier (children in hierarchy)
+     */
+    @GetMapping("/suppliers/{supplierId}/sub-suppliers")
+    fun getSubSuppliers(@PathVariable supplierId: String): ResponseEntity<Any> {
+        val subSuppliers = flexibleSupplyChainService.getSubSuppliersForSupplier(supplierId)
+        return ResponseEntity.ok(mapOf(
+            "success" to true,
+            "data" to subSuppliers
+        ))
+    }
+
+    /**
+     * Get pending invites sent by a supplier (for sub-supplier invitations)
+     */
+    @GetMapping("/suppliers/{supplierId}/invites")
+    fun getSupplierInvites(@PathVariable supplierId: String): ResponseEntity<Any> {
+        val invites = flexibleSupplyChainService.getPendingInvites(supplierId)
+        return ResponseEntity.ok(mapOf(
+            "success" to true,
+            "data" to invites
+        ))
+    }
+
+    /**
      * Create a direct connection between supplier and exporter
      */
     @PostMapping("/connections")
@@ -235,12 +259,17 @@ class FlexibleSupplyChainController(
     @PostMapping("/invites")
     fun sendSupplierInvite(@RequestBody request: SupplierInviteRequestDto): ResponseEntity<Any> {
         return try {
+            // Support both legacy exporterId and new inviterId
+            val effectiveInviterId = request.inviterId ?: request.exporterId
+            val effectiveInviterType = request.inviterType ?: "EXPORTER"
+
             // Store the invite
             val invite = flexibleSupplyChainService.createSupplierInvite(
                 email = request.email,
                 supplierName = request.supplierName,
                 supplierType = request.supplierType?.let { SupplierType.valueOf(it.uppercase()) },
-                exporterId = request.exporterId,
+                inviterId = effectiveInviterId,
+                inviterType = effectiveInviterType,
                 message = request.message
             )
 
@@ -532,6 +561,9 @@ data class SupplierInviteRequestDto(
     val email: String,
     val supplierName: String? = null,
     val supplierType: String? = null,
-    val exporterId: String? = null,
-    val message: String? = null
+    val inviterId: String? = null,  // ID of exporter or supplier sending invite
+    val inviterType: String? = null, // "EXPORTER" or "SUPPLIER"
+    val message: String? = null,
+    // Legacy field for backwards compatibility
+    val exporterId: String? = null
 )

@@ -1,5 +1,5 @@
 <template>
-  <Default>
+  <!-- <Default> -->
     <div class="tw-min-h-screen tw-bg-gray-50 tw-p-6">
       <!-- Header -->
       <div class="tw-flex tw-items-center tw-justify-between tw-mb-8">
@@ -264,16 +264,16 @@
         </div>
       </div>
     </div>
-  </Default>
+  <!-- </Default> -->
 </template>
 
 <script>
 import axios from 'axios';
-import Default from '@/components/layout/Default.vue';
+// import Default from '@/components/layout/Default.vue';
 
 export default {
   name: 'EudrDashboard',
-  components: { Default },
+  // components: { Default },
   data() {
     return {
       loading: false,
@@ -315,7 +315,7 @@ export default {
           this.loadAlerts(),
         ]);
       } catch (error) {
-        console.error('Failed to load dashboard:', error);
+        this.$toast.error('Failed to load dashboard:', error.message);
       } finally {
         this.loading = false;
       }
@@ -331,7 +331,7 @@ export default {
         this.pendingFarms = farms.filter((f) => !f.lastVerifiedAt).length;
         this.farmsNeedingAttention = farms.filter((f) => !f.lastVerifiedAt || (f.deforestationAlerts && f.deforestationAlerts.length > 0)).length;
       } catch (error) {
-        console.error('Failed to load farm stats:', error);
+        this.$toast.error('Failed to load farm stats:', error.message);
       }
     },
 
@@ -347,7 +347,7 @@ export default {
           return acc;
         }, {});
       } catch (error) {
-        console.error('Failed to load supplier stats:', error);
+        this.$toast.error('Failed to load supplier stats:', error.message);
       }
     },
 
@@ -370,7 +370,7 @@ export default {
         this.traceableKg = this.totalSourcedKg; // All sourced is traceable in this system
         this.shippedKg = workflows.reduce((sum, w) => sum + (w.totalShipped || 0), 0);
       } catch (error) {
-        console.error('Failed to load shipments:', error);
+        this.$toast.error('Failed to load shipments:', error.message);
       }
     },
 
@@ -528,7 +528,6 @@ export default {
           this.$emit('snackbar', { message: response.data?.message || 'Failed to generate DDS', color: 'error' });
         }
       } catch (error) {
-        console.error('Failed to generate DDS:', error);
         this.$emit('snackbar', { message: 'Failed to generate DDS', color: 'error' });
       }
     },

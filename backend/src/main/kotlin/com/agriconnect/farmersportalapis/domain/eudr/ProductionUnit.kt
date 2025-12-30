@@ -38,6 +38,9 @@ class ProductionUnit(
     @Column(name = "administrative_region")
     var administrativeRegion: String?,
 
+    @Column(name = "country_code", length = 3)
+    var countryCode: String? = null,
+
     @Column(name = "last_verified_at")
     var lastVerifiedAt: LocalDateTime?,
 

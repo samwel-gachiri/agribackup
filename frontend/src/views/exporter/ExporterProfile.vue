@@ -282,7 +282,7 @@ export default {
           }))
           .sort((a, b) => a.name.localeCompare(b.name));
       } catch (error) {
-        console.error('Failed to load countries:', error);
+        this.$toast.error('Failed to load countries:', error.message);
         // Fallback to common commodity-exporting countries
         this.countries = [
           { name: 'Kenya', code: 'KEN', flag: '🇰🇪' },
@@ -321,7 +321,6 @@ export default {
           phoneNumber: data.phoneNumber || '',
         };
       } catch (error) {
-        console.error('Failed to load profile:', error);
         this.showSnackbar('Failed to load profile', 'error');
       } finally {
         this.loading = false;
@@ -352,7 +351,7 @@ export default {
 
         this.showSnackbar('Profile updated successfully', 'success');
       } catch (error) {
-        console.error('Failed to save profile:', error);
+        this.$toast.error('Failed to save profile:', error.message);
         this.showSnackbar(error.response?.data?.message || 'Failed to save profile', 'error');
       } finally {
         this.saving = false;

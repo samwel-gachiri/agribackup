@@ -37,6 +37,14 @@ data class SupplierInvite(
     @Column(name = "message", length = 1000)
     var message: String? = null,
 
+    // For sub-supplier invitations - tracks which supplier invited this person
+    @Column(name = "parent_supplier_id")
+    var parentSupplierId: String? = null,
+
+    // Type of inviter: EXPORTER or SUPPLIER
+    @Column(name = "inviter_type", length = 20)
+    var inviterType: String? = null,
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     var status: InviteStatus = InviteStatus.PENDING,
