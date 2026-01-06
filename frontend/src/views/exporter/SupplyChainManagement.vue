@@ -517,6 +517,13 @@
                     </div>
                   </v-card-text>
                   <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <!-- QR Code Button -->
+                    <BatchQRCode
+                      v-if="batch.id && batch.batchNumber"
+                      :batch-code="batch.batchNumber"
+                      button-text="Generate QR Code"
+                    />
                     <v-btn color="primary" @click="resetWorkflow">
                       Create New Supply Chain
                     </v-btn>
@@ -543,11 +550,13 @@
 <script>
 import axios from 'axios';
 import Default from '@/components/layout/Default.vue';
+import BatchQRCode from '@/components/shared/BatchQRCode.vue';
 
 export default {
   name: 'SupplyChainManagement',
   components: {
     Default,
+    BatchQRCode,
   },
   data() {
     return {

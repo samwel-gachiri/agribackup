@@ -103,7 +103,7 @@ export default {
     LogoTitle, Avatar, RoleIndicator, getCurrentUserId,
   },
   data: () => ({
-    expandedSections: ['EUDR Compliance'],
+    // expandedSections: ['EUDR Compliance'],
     navigationItems: [
       // Common: Dashboard for all roles
       {
@@ -149,6 +149,13 @@ export default {
       },
 
       // === AGGREGATOR EUDR SECTION ===
+      {
+        icon: 'mdi-basket-plus',
+        text: 'Record Collection',
+        link: { name: 'AggregatorCollection' },
+        roles: ['AGGREGATOR'],
+        iconColor: '#16a34a',
+      },
       {
         icon: 'mdi-vector-polygon',
         text: 'Spatial Intersections',
@@ -199,6 +206,50 @@ export default {
       },
 
       // === EXPORTER PORTAL (EUDR Management) ===
+      // {
+      //   icon: 'mdi-shield-check',
+      //   text: 'EUDR Compliance',
+      //   isSection: true,
+      //   roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
+      //   iconColor: '#dc2626',
+      //   children: [
+      {
+        icon: 'mdi-transit-connection-variant',
+        text: 'Traceability Workflow',
+        link: { name: 'SupplyChainWorkflow' },
+        roles: ['EXPORTER', 'SYSTEM_ADMIN'],
+        iconColor: '#10b981',
+      },
+      {
+        icon: 'mdi-alert-octagon',
+        text: 'Risk Management',
+        link: { name: 'RiskManagement' },
+        roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
+        iconColor: '#ea580c',
+      },
+      {
+        icon: 'mdi-clipboard-check-outline',
+        text: 'Mitigation Tracking',
+        link: { name: 'MitigationTracking' },
+        roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
+        iconColor: '#f59e0b',
+      },
+      {
+        icon: 'mdi-certificate',
+        text: 'Certificate Viewer',
+        link: { name: 'CertificateViewer' },
+        roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR', 'IMPORTER'],
+        iconColor: '#3b82f6',
+      },
+      {
+        icon: 'mdi-file-document-outline',
+        text: 'Compliance Reporting',
+        link: { name: 'ComplianceReporting' },
+        roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
+        iconColor: '#10b981',
+      },
+      //   ],
+      // },
       {
         icon: 'mdi-map-marker-radius',
         text: 'Zones',
@@ -213,51 +264,6 @@ export default {
         roles: ['EXPORTER', 'SYSTEM_ADMIN'],
         iconColor: '#f97316',
       },
-      {
-        icon: 'mdi-shield-check',
-        text: 'EUDR Compliance',
-        isSection: true,
-        roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
-        iconColor: '#dc2626',
-        children: [
-          {
-            icon: 'mdi-transit-connection-variant',
-            text: 'Traceability Workflow',
-            link: { name: 'SupplyChainWorkflow' },
-            roles: ['EXPORTER', 'SYSTEM_ADMIN'],
-            iconColor: '#10b981',
-          },
-          {
-            icon: 'mdi-alert-octagon',
-            text: 'Risk Management',
-            link: { name: 'RiskManagement' },
-            roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
-            iconColor: '#ea580c',
-          },
-          {
-            icon: 'mdi-clipboard-check-outline',
-            text: 'Mitigation Tracking',
-            link: { name: 'MitigationTracking' },
-            roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
-            iconColor: '#f59e0b',
-          },
-          {
-            icon: 'mdi-certificate',
-            text: 'Certificate Viewer',
-            link: { name: 'CertificateViewer' },
-            roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR', 'IMPORTER'],
-            iconColor: '#3b82f6',
-          },
-          {
-            icon: 'mdi-file-document-outline',
-            text: 'Compliance Reporting',
-            link: { name: 'ComplianceReporting' },
-            roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
-            iconColor: '#10b981',
-          },
-        ],
-      },
-
       {
         icon: 'mdi-truck-delivery',
         text: 'Suppliers',

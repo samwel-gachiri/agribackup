@@ -64,7 +64,7 @@ class EmailService(
                 <hr/>
                 <p style="font-size: 12px; color: #666;">
                     This is an automated message. Please do not reply to this email.
-                    If you have any questions, contact us at support@agribackup.com
+                    If you have any questions, contact us at contact@agribackup.com
                 </p>
             """.trimIndent()
             helper.setText(emailContent, true)
@@ -119,7 +119,7 @@ class EmailService(
                         </ul>
                     </div>
 
-                    <p>If you have any questions or need help getting started, don't hesitate to contact our support team at <a href="mailto:support@agribackup.com">support@agribackup.com</a>.</p>
+                    <p>If you have any questions or need help getting started, don't hesitate to contact our support team at <a href="mailto:contact@agribackup.com">contact@agribackup.com</a>.</p>
 
                     <p>We're excited to have you as part of the AgriBackup community!</p>
 

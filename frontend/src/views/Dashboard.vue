@@ -1,6 +1,7 @@
 <template>
   <Default ref="default">
     <FarmerDashboard v-if="user && getCurrentUserRole() === 'farmer'"/>
+    <AggregatorDashboard v-if="user && getCurrentUserRole() === 'aggregator'"/>
     <BuyerDashboard v-if="user && getCurrentUserRole() === 'buyer'"/>
     <AdminDashboard v-if="user && getCurrentUserRole() === 'admin'"/>
     <ExporterDashboardLayout v-if="user && getCurrentUserRole() === 'exporter'"/>
@@ -13,6 +14,7 @@
 import { mapState } from 'vuex';
 import Default from '@/components/layout/Default.vue';
 import FarmerDashboard from '@/components/layout/dashboard/FarmerDashboard.vue';
+import AggregatorDashboard from '@/views/aggregator/AggregatorDashboard.vue';
 import AdminDashboard from '@/components/layout/dashboard/AdminDashboard.vue';
 import BuyerDashboard from '@/views/buyers/BuyerDashboard.vue';
 import ExporterDashboardLayout from '@/views/exporter/EudrDashboard.vue';
@@ -20,6 +22,7 @@ import ExporterDashboardLayout from '@/views/exporter/EudrDashboard.vue';
 import SystemAdminDashboard from '@/components/layout/dashboard/SystemAdminDashboard.vue';
 import ZoneSupervisorDashboard from '@/components/layout/dashboard/ZoneSupervisorDashboard.vue';
 import { getCurrentUserRole } from '@/utils/roles.js';
+// eslint-disable-next-line import/no-unresolved
 
 export default {
   methods: { getCurrentUserRole },
@@ -27,6 +30,7 @@ export default {
     BuyerDashboard,
     AdminDashboard,
     FarmerDashboard,
+    AggregatorDashboard,
     ExporterDashboardLayout,
     SystemAdminDashboard,
     ZoneSupervisorDashboard,

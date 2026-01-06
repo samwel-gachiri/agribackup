@@ -439,7 +439,7 @@ class FlexibleSupplyChainController(
                     </ul>
                     
                     <p style="color: #9ca3af; font-size: 13px; margin-top: 24px;">
-                        Questions? Contact us at <a href="mailto:support@agribackup.com" style="color: #2e7d32;">support@agribackup.com</a>
+                        Questions? Contact us at <a href="mailto:contact@agribackup.com" style="color: #2e7d32;">contact@agribackup.com</a>
                     </p>
                 </div>
                 

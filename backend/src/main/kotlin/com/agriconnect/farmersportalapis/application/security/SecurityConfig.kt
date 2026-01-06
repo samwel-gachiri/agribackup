@@ -44,8 +44,12 @@ class SecurityConfig(
             "http://localhost:3030",
             "http://localhost:8080",
             "https://www.agribackup.com",
+            "https://agribackup.com",
             "https://dev.eudr.agribackup.com/",
-            "https://cron-job.org"
+            "https://cron-job.org",
+            // Vercel deployments
+            "https://farmers-portal-frontend-git-master-samwel-gachiris-projects.vercel.app",
+            "https://farmers-portal-frontend-samwel-gachiris-projects.vercel.app"
         )
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
         configuration.allowedHeaders = listOf("*")
@@ -66,6 +70,8 @@ class SecurityConfig(
                     // Public endpoints
                     .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/api/admin/**").permitAll()
+                    .requestMatchers("/api/public/**").permitAll() // Consumer verification
+                    .requestMatchers("/api/contact/**").permitAll() // Contact form
                     .requestMatchers("/ping").permitAll()
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                     // Allow public access to produce endpoints for registration

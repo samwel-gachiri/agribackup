@@ -149,6 +149,18 @@ gfw:
     base-url: ${GFW_API_BASE_URL:https://data-api.globalforestwatch.org}
     key: 792ac27e-920f-4b6b-bfda-d40df10438f0
 
+# Resend Email Service Configuration
+resend:
+  api:
+    key: ${RESEND_API_KEY}
+    url: https://api.resend.com/emails
+
+# Contact Form Configuration
+# NOTE: Free Resend accounts can only send to the account owner's email (samgachiri2002@gmail.com)
+# To send to other addresses, verify a domain at resend.com/domains
+contact:
+  email: ${CONTACT_EMAIL:samgachiri2002@gmail.com}
+
 # Deforestation Monitoring Configuration
 deforestation:
   monitoring:

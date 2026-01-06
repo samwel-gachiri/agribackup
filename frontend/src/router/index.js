@@ -31,6 +31,18 @@ const ifNotAuthenticated = (_to, _from, next) => {
 // };
 
 const routes = [
+  // === PUBLIC VERIFICATION ROUTE (No Auth Required) ===
+  {
+    path: "/verify/:batchCode",
+    name: "ConsumerVerification",
+    component: () => import("../views/public/ConsumerVerification.vue"),
+    meta: {
+      title: "Product Verification | AgriBackup",
+      requiresAuth: false,
+      public: true,
+      description: "Verify product authenticity and view supply chain journey",
+    },
+  },
   {
     path: "/documentation",
     name: "Documentation",
@@ -74,6 +86,31 @@ const routes = [
       roles: ["FARMER"],
       description: "View analytics and insights for harvests and yields",
       icon: "mdi-chart-areaspline",
+    },
+  },
+  // === AGGREGATOR ROUTES ===
+  {
+    path: "/aggregator/dashboard",
+    name: "AggregatorDashboard",
+    component: () => import("../views/aggregator/AggregatorDashboard.vue"),
+    meta: {
+      title: "Aggregator Dashboard | AgriBackup",
+      requiresAuth: true,
+      roles: ["AGGREGATOR", "SYSTEM_ADMIN"],
+      description: "Manage farmer collections and consolidated batches",
+      icon: "mdi-warehouse",
+    },
+  },
+  {
+    path: "/aggregator/collection",
+    name: "AggregatorCollection",
+    component: () => import("../views/aggregator/AggregatorCollection.vue"),
+    meta: {
+      title: "Record Collection | AgriBackup",
+      requiresAuth: true,
+      roles: ["AGGREGATOR", "SYSTEM_ADMIN"],
+      description: "Collect produce from farmers with QR scanning",
+      icon: "mdi-basket",
     },
   },
   // === FARMER EUDR ROUTES ===

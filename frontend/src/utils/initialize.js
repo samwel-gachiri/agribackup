@@ -73,7 +73,6 @@ export default {
             return axios(config);
           } catch (e) {
             // catch any error while refreshing the token
-            console.warn('Token refresh failed, signing out:', e.message);
             await store.dispatch('auth/signOut')
               .then(() => {
                 router.push({ name: 'SignIn', query: { r: btoa(window.location.href) } });

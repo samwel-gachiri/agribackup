@@ -49,8 +49,8 @@
                     <!-- Step 1 -->
                     <div class="doc-card">
                        <div class="tw-h-48 tw-bg-slate-50 tw-flex tw-items-center tw-justify-center tw-p-4 tw-border-b tw-border-slate-100">
-                          <div class="image-wrapper" @click="openFullscreen('/images/documentation/onboarding/001_create_your_account.png')">
-                            <img src="/images/documentation/onboarding/001_create_your_account.png" class="tw-max-h-full tw-w-auto tw-shadow-sm tw-rounded" />
+                          <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/onboarding/001_create_your_account.png')">
+                            <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/onboarding/001_create_your_account.png" class="tw-max-h-full tw-w-auto tw-shadow-sm tw-rounded" />
                             <div class="image-overlay">
                               <v-icon large color="white">mdi-eye</v-icon>
                             </div>
@@ -65,8 +65,8 @@
                      <!-- Step 2 -->
                     <div class="doc-card">
                        <div class="tw-h-48 tw-bg-slate-50 tw-flex tw-items-center tw-justify-center tw-p-4 tw-border-b tw-border-slate-100">
-                          <div class="image-wrapper" @click="openFullscreen('/images/documentation/onboarding/002_select_role.png')">
-                            <img src="/images/documentation/onboarding/002_select_role.png" class="tw-max-h-full tw-w-auto tw-shadow-sm tw-rounded" />
+                          <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/onboarding/002_select_role.png')">
+                            <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/onboarding/002_select_role.png" class="tw-max-h-full tw-w-auto tw-shadow-sm tw-rounded" />
                             <div class="image-overlay">
                               <v-icon large color="white">mdi-eye</v-icon>
                             </div>
@@ -81,8 +81,8 @@
                      <!-- Step 3 -->
                     <div class="doc-card">
                        <div class="tw-h-48 tw-bg-slate-50 tw-flex tw-items-center tw-justify-center tw-p-4 tw-border-b tw-border-slate-100">
-                          <div class="image-wrapper" @click="openFullscreen('/images/documentation/onboarding/003_sign_in.png')">
-                            <img src="/images/documentation/onboarding/003_sign_in.png" class="tw-max-h-full tw-w-auto tw-shadow-sm tw-rounded" />
+                          <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/onboarding/003_sign_in.png')">
+                            <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/onboarding/003_sign_in.png" class="tw-max-h-full tw-w-auto tw-shadow-sm tw-rounded" />
                             <div class="image-overlay">
                               <v-icon large color="white">mdi-eye</v-icon>
                             </div>
@@ -134,8 +134,8 @@
                          </div>
                       </div>
                       <div class="md:tw-w-1/2">
-                         <div class="image-wrapper" @click="openFullscreen('/images/documentation/exporter/zone_mgmt_zone_create.png')">
-                           <img src="/images/documentation/exporter/zone_mgmt_zone_create.png" class="tw-w-full tw-rounded-lg tw-shadow-lg tw-border tw-border-slate-200" />
+                         <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/zone_mgmt_zone_create.png')">
+                           <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/zone_mgmt_zone_create.png" class="tw-w-full tw-rounded-lg tw-shadow-lg tw-border tw-border-slate-200" />
                            <div class="image-overlay">
                              <v-icon large color="white">mdi-eye</v-icon>
                            </div>
@@ -155,8 +155,8 @@
                        <div class="tw-bg-blue-50 tw-p-4 tw-rounded-lg tw-mb-4 tw-border tw-border-blue-100">
                            <p class="tw-text-xs tw-text-blue-900 tw-font-medium"><strong>Why this matters:</strong> The polygon data is cross-referenced with satellite imagery to verify the land was not deforested after <strong>December 31, 2020</strong>—the EUDR cut-off date.</p>
                        </div>
-                       <div class="image-wrapper" @click="openFullscreen('/images/documentation/exporter/farmers_mgmt_add_farmer_plot_polygon.png')">
-                         <img src="/images/documentation/exporter/farmers_mgmt_add_farmer_plot_polygon.png" class="tw-w-full tw-rounded-lg tw-shadow-md tw-border tw-border-slate-100" />
+                       <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/farmers_mgmt_add_farmer_plot_polygon.png')">
+                         <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/farmers_mgmt_add_farmer_plot_polygon.png" class="tw-w-full tw-rounded-lg tw-shadow-md tw-border tw-border-slate-100" />
                          <div class="image-overlay">
                            <v-icon large color="white">mdi-eye</v-icon>
                          </div>
@@ -171,8 +171,8 @@
                        <div class="tw-bg-green-50 tw-p-4 tw-rounded-lg tw-mb-4 tw-border tw-border-green-100">
                            <p class="tw-text-xs tw-text-green-900 tw-font-medium"><strong>Decentralized Storage:</strong> Images are stored on Hedera, ensuring they cannot be tampered with and providing transparent proof to authorities.</p>
                        </div>
-                       <div class="image-wrapper" @click="openFullscreen('/images/documentation/exporter/farmers_mgmt_upload_farmer_doc.png')">
-                         <img src="/images/documentation/exporter/farmers_mgmt_upload_farmer_doc.png" class="tw-w-full tw-rounded-lg tw-shadow-md tw-border tw-border-slate-100" />
+                       <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/farmers_mgmt_upload_farmer_doc.png')">
+                         <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/farmers_mgmt_upload_farmer_doc.png" class="tw-w-full tw-rounded-lg tw-shadow-md tw-border tw-border-slate-100" />
                          <div class="image-overlay">
                            <v-icon large color="white">mdi-eye</v-icon>
                          </div>
@@ -194,8 +194,8 @@
                             <h4 class="tw-font-bold tw-text-orange-900">Aggregators</h4>
                         </div>
                         <p class="tw-text-sm tw-text-orange-800 tw-mb-4">Aggregators collect produce from multiple farm points and consolidate them into larger batches for processing.</p>
-                        <div class="image-wrapper" @click="openFullscreen('/images/documentation/exporter/aggregator_mgmt_add_aggregator_you_work_with.png')">
-                          <img src="/images/documentation/exporter/aggregator_mgmt_add_aggregator_you_work_with.png" class="tw-w-full tw-rounded-lg tw-shadow-sm" />
+                        <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/aggregator_mgmt_add_aggregator_you_work_with.png')">
+                          <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/aggregator_mgmt_add_aggregator_you_work_with.png" class="tw-w-full tw-rounded-lg tw-shadow-sm" />
                           <div class="image-overlay">
                             <v-icon large color="white">mdi-eye</v-icon>
                           </div>
@@ -209,8 +209,8 @@
                             <h4 class="tw-font-bold tw-text-purple-900">Processors</h4>
                         </div>
                         <p class="tw-text-sm tw-text-purple-800 tw-mb-4">Processors perform value-addition activities (e.g., roasting coffee, processing cocoa) before the produce is exported.</p>
-                        <div class="image-wrapper" @click="openFullscreen('/images/documentation/exporter/processor_mgmt_add_processor_you_work_with.png')">
-                          <img src="/images/documentation/exporter/processor_mgmt_add_processor_you_work_with.png" class="tw-w-full tw-rounded-lg tw-shadow-sm" />
+                        <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/processor_mgmt_add_processor_you_work_with.png')">
+                          <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/processor_mgmt_add_processor_you_work_with.png" class="tw-w-full tw-rounded-lg tw-shadow-sm" />
                           <div class="image-overlay">
                             <v-icon large color="white">mdi-eye</v-icon>
                           </div>
@@ -236,8 +236,8 @@
                     <div>
                         <h3 class="tw-text-xl tw-font-bold tw-text-slate-900 tw-mb-4">Create a Workflow</h3>
                         <p class="tw-text-slate-600 tw-mb-6">Define the produce type (e.g., Coffee, Cocoa, Palm Oil) and map the flow from farm to importer.</p>
-                        <div class="image-wrapper" @click="openFullscreen('/images/documentation/exporter/supply_chain_workflow_003canvas_inside_workflow.png')">
-                          <img src="/images/documentation/exporter/supply_chain_workflow_003canvas_inside_workflow.png" class="tw-w-full tw-rounded-xl tw-shadow-xl tw-border tw-border-slate-200" />
+                        <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_003canvas_inside_workflow.png')">
+                          <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_003canvas_inside_workflow.png" class="tw-w-full tw-rounded-xl tw-shadow-xl tw-border tw-border-slate-200" />
                           <div class="image-overlay">
                             <v-icon large color="white">mdi-eye</v-icon>
                           </div>
@@ -250,8 +250,8 @@
                         <div class="tw-grid md:tw-grid-cols-3 tw-gap-6">
                             <div class="tw-border tw-border-slate-200 tw-rounded-xl tw-p-4 tw-bg-white">
                                 <div class="tw-aspect-video tw-bg-slate-50 tw-rounded-lg tw-mb-4 tw-overflow-hidden tw-flex tw-items-center tw-justify-center">
-                                    <div class="image-wrapper" @click="openFullscreen('/images/documentation/exporter/supply_chain_workflow_005create_farm_collection_event.png')">
-                                      <img src="/images/documentation/exporter/supply_chain_workflow_005create_farm_collection_event.png" class="tw-w-full tw-h-auto" />
+                                    <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_005create_farm_collection_event.png')">
+                                      <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_005create_farm_collection_event.png" class="tw-w-full tw-h-auto" />
                                       <div class="image-overlay">
                                         <v-icon large color="white">mdi-eye</v-icon>
                                       </div>
@@ -262,8 +262,8 @@
                             </div>
                             <div class="tw-border tw-border-slate-200 tw-rounded-xl tw-p-4 tw-bg-white">
                                 <div class="tw-aspect-video tw-bg-slate-50 tw-rounded-lg tw-mb-4 tw-overflow-hidden tw-flex tw-items-center tw-justify-center">
-                                    <div class="image-wrapper" @click="openFullscreen('/images/documentation/exporter/supply_chain_workflow_006create_collection_event.png')">
-                                      <img src="/images/documentation/exporter/supply_chain_workflow_006create_collection_event.png" class="tw-w-full tw-h-auto" />
+                                    <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_006create_collection_event.png')">
+                                      <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_006create_collection_event.png" class="tw-w-full tw-h-auto" />
                                       <div class="image-overlay">
                                         <v-icon large color="white">mdi-eye</v-icon>
                                       </div>
@@ -274,8 +274,8 @@
                             </div>
                             <div class="tw-border tw-border-slate-200 tw-rounded-xl tw-p-4 tw-bg-white">
                                 <div class="tw-aspect-video tw-bg-slate-50 tw-rounded-lg tw-mb-4 tw-overflow-hidden tw-flex tw-items-center tw-justify-center">
-                                    <div class="image-wrapper" @click="openFullscreen('/images/documentation/exporter/supply_chain_workflow_007_assess_batch.png')">
-                                      <img src="/images/documentation/exporter/supply_chain_workflow_007_assess_batch.png" class="tw-w-full tw-h-auto" />
+                                    <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_007_assess_batch.png')">
+                                      <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_007_assess_batch.png" class="tw-w-full tw-h-auto" />
                                       <div class="image-overlay">
                                         <v-icon large color="white">mdi-eye</v-icon>
                                       </div>
@@ -336,8 +336,8 @@
                         <p class="tw-text-sm tw-text-slate-600 tw-mb-4">
                             Run the assessment tool on your consolidation. It will return a compliance score and identify problematic farms.
                         </p>
-                        <div class="image-wrapper" @click="openFullscreen('/images/documentation/exporter/supply_chain_workflow_007_assess_batch.png')">
-                          <img src="/images/documentation/exporter/supply_chain_workflow_007_assess_batch.png" class="tw-w-full tw-rounded-lg tw-shadow-md" />
+                        <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_007_assess_batch.png')">
+                          <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_007_assess_batch.png" class="tw-w-full tw-rounded-lg tw-shadow-md" />
                           <div class="image-overlay">
                             <v-icon large color="white">mdi-eye</v-icon>
                           </div>
@@ -348,8 +348,8 @@
                         <p class="tw-text-sm tw-text-slate-600 tw-mb-4">
                             If rejected, create a mitigation workflow. This could involve re-sourcing from compliant farms, obtaining additional certifications, or re-mapping land boundaries.
                         </p>
-                        <div class="image-wrapper" @click="openFullscreen('/images/documentation/exporter/supply_chain_workflow_008mitigation_tracking.png')">
-                          <img src="/images/documentation/exporter/supply_chain_workflow_008mitigation_tracking.png" class="tw-w-full tw-rounded-lg tw-shadow-md" />
+                        <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_008mitigation_tracking.png')">
+                          <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_008mitigation_tracking.png" class="tw-w-full tw-rounded-lg tw-shadow-md" />
                           <div class="image-overlay">
                             <v-icon large color="white">mdi-eye</v-icon>
                           </div>
@@ -483,8 +483,8 @@
                            </div>
                        </div>
                        <div class="md:tw-w-1/2">
-                           <div class="image-wrapper" @click="openFullscreen('/images/documentation/exporter/supply_chain_workflow_009Verify_minted_certificate.png')">
-                             <img src="/images/documentation/exporter/supply_chain_workflow_009Verify_minted_certificate.png" class="tw-w-full tw-rounded-xl tw-shadow-2xl tw-border-4 tw-border-white/10" />
+                           <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_009Verify_minted_certificate.png')">
+                             <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_009Verify_minted_certificate.png" class="tw-w-full tw-rounded-xl tw-shadow-2xl tw-border-4 tw-border-white/10" />
                              <div class="image-overlay">
                                <v-icon large color="white">mdi-eye</v-icon>
                              </div>
@@ -555,8 +555,8 @@
                         <span>NFT certificate reference on Hedera</span>
                     </li>
                 </ul>
-                <div class="image-wrapper" @click="openFullscreen('/images/documentation/exporter/supply_chain_workflow_010_authority_reporting.png')">
-                  <img src="/images/documentation/exporter/supply_chain_workflow_010_authority_reporting.png" class="tw-w-full tw-max-w-3xl tw-mx-auto tw-rounded-xl tw-shadow-lg tw-border tw-border-slate-200" />
+                <div class="image-wrapper" @click="openFullscreen('https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_010_authority_reporting.png')">
+                  <img src="https://agri-image.s3.us-east-1.amazonaws.com/doc/exporter/supply_chain_workflow_010_authority_reporting.png" class="tw-w-full tw-max-w-3xl tw-mx-auto tw-rounded-xl tw-shadow-lg tw-border tw-border-slate-200" />
                   <div class="image-overlay">
                     <v-icon large color="white">mdi-eye</v-icon>
                   </div>

@@ -219,6 +219,14 @@
                 >
                   <v-icon>mdi-export</v-icon>
                 </v-btn>
+                <!-- QR Code Button -->
+                <BatchQRCode
+                  v-if="item.status === 'Exported'"
+                  :batch-code="item.batchId"
+                  button-text=""
+                  small
+                  outlined
+                />
               </template>
             </v-data-table>
           </v-card>
@@ -328,6 +336,12 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn text @click="showDetailsDialog = false">Close</v-btn>
+          <!-- QR Code Button -->
+          <BatchQRCode
+            v-if="selectedBatch && selectedBatch.status === 'Exported'"
+            :batch-code="selectedBatch.batchId"
+            button-text="Generate QR Code"
+          />
           <v-btn
             color="primary"
             @click="viewTraceability(selectedBatch)"
@@ -342,8 +356,13 @@
 
 <script>
 /* eslint-disable */
+import BatchQRCode from '@/components/shared/BatchQRCode.vue';
+
 export default {
   name: 'ExporterBatches',
+  components: {
+    BatchQRCode,
+  },
   data() {
     return {
       loading: false,

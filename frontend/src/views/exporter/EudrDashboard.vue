@@ -337,8 +337,8 @@ export default {
 
     async loadSupplierStats() {
       try {
-        const response = await axios.get(`/api/v1/supply-chain/suppliers/exporter/${this.exporterId}`);
-        const suppliers = response.data?.content || response.data || [];
+        const response = await axios.get(`/api/v1/supply-chain/exporter/${this.exporterId}/connected-suppliers`);
+        const suppliers = response.data?.data || response.data?.content || response.data || [];
 
         this.totalSuppliers = suppliers.length;
         this.suppliersByType = suppliers.reduce((acc, s) => {

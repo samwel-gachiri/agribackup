@@ -14,7 +14,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
  */
 function loadGtagScript() {
   if (!GA_MEASUREMENT_ID) {
-    console.warn('Google Analytics: Measurement ID not configured');
+    // console.warn('Google Analytics: Measurement ID not configured');
     return;
   }
 
@@ -35,7 +35,7 @@ function loadGtagScript() {
     send_page_view: false, // We'll handle page views manually via router
   });
 
-  console.log('Google Analytics initialized:', GA_MEASUREMENT_ID);
+  // console.log('Google Analytics initialized:', GA_MEASUREMENT_ID);
 }
 
 /**
@@ -179,7 +179,7 @@ export default {
     const shouldInitialize = IS_PRODUCTION || options.enableInDev;
     
     if (!shouldInitialize) {
-      console.log('Google Analytics: Disabled in development mode');
+      // console.log('Google Analytics: Disabled in development mode');
       return;
     }
 
