@@ -3,19 +3,32 @@ import store from '@/store';
 
 const getUser = () => store.getters['auth/authenticatedUser'];
 const getRole = () => store.getters['auth/role'];
-const viewPermissions = (roles = []) => (roles.length === 0
-  ? false
-  : [...roles].includes(getRole()));
-// const user = getUser();
-// if (user == null) {
-//   return roles.length === 0
-//     ? false
-//     : [...roles].includes('anybody');
-// }
-// return roles.length === 0
-//   ? false
-//   : [...roles].includes(getUser()['custom:role']);
-// // : [...roles, ...['admin']].includes(getUser()['custom:role']);
+
+/**
+ * Check if user has permission to view based on allowed roles
+ * @param {string[]} roles - Array of allowed roles (UPPERCASE)
+ * @returns {boolean} - true if user has permission
+ */
+const viewPermissions = (roles = []) => {
+  // Empty roles array = no one can view (use ['*'] for everyone)
+  if (roles.length === 0) {
+    return false;
+  }
+
+  // Wildcard = everyone can view
+  if (roles.includes('*') || roles.includes('anybody') || roles.includes('ANYBODY')) {
+    return true;
+  }
+
+  const userRole = getRole();
+  if (!userRole) {
+    return false; // Not logged in
+  }
+
+  // Check if user's role is in allowed roles (case-insensitive comparison)
+  return roles.some((role) => role.toUpperCase() === userRole.toUpperCase());
+};
+
 const getCurrentUserRole = () => getRole();
 
 const getCurrentUserId = () => {

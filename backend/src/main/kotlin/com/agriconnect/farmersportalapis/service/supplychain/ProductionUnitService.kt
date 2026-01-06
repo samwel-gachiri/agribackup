@@ -32,27 +32,61 @@ class ProductionUnitService(
     private val geoJsonWriter = GeoJSONWriter()
     private val geometryFactory = GeometryFactory(PrecisionModel(), 4326)
 
+    companion object {
+        /**
+         * EUDR Article 9(1)(d): Plots exceeding 4 hectares require polygon geometry.
+         * Plots ≤4 hectares may use a single geolocation point instead.
+         */
+        val EUDR_POLYGON_THRESHOLD_HECTARES: BigDecimal = BigDecimal("4.0")
+    }
+
+    /**
+     * Creates a new production unit with EUDR compliance validation.
+     * 
+     * @param farmer The farmer who owns/manages this plot
+     * @param unitName Display name for the production unit
+     * @param geoJsonPolygon Polygon geometry (required if area >4ha, optional for ≤4ha)
+     * @param geolocationPoint Single lat,lon point for plots ≤4ha (format: "lat,lon")
+     * @param radiusMeters Radius in meters around the geolocation point (required when using point)
+     * @param administrativeRegion Optional administrative region name
+     * @param countryCode Optional ISO country code
+     * @throws IllegalArgumentException if EUDR validation fails
+     */
     fun createProductionUnit(
         farmer: Farmer,
         unitName: String,
-        geoJsonPolygon: String,
+        geoJsonPolygon: String? = null,
+        geolocationPoint: String? = null,
+        radiusMeters: Double? = null,
         administrativeRegion: String? = null,
         countryCode: String? = null
     ): ProductionUnit {
 
-        // Validate and parse GeoJSON
-        val geometry = validateAndParseGeoJson(geoJsonPolygon)
+        // Determine geolocation type
+        val geolocationType = if (!geoJsonPolygon.isNullOrBlank()) "POLYGON" else "POINT"
 
-        // Calculate area in hectares
-        val areaHectares = calculateAreaInHectares(geometry)
+        // EUDR Article 9(1)(d) compliance validation
+        validateEudrGeolocationRequirements(geoJsonPolygon, geolocationPoint, radiusMeters)
 
-        // Extract WGS84 coordinates
-        val wgs84Coordinates = extractWgs84Coordinates(geometry)
+        // Parse geometry if polygon provided
+        val geometry = geoJsonPolygon?.let { validateAndParseGeoJson(it) }
+
+        // Calculate area: from polygon if available, otherwise from radius
+        val areaHectares = when {
+            geometry != null -> calculateAreaInHectares(geometry)
+            radiusMeters != null -> calculateAreaFromRadius(radiusMeters)
+            else -> throw IllegalArgumentException("Either polygon geometry or radius is required to calculate area")
+        }
+
+        // Extract WGS84 coordinates (from polygon centroid or from geolocation point)
+        val wgs84Coordinates = geometry?.let { extractWgs84Coordinates(it) } ?: geolocationPoint
 
         // Auto-detect country code from coordinates if not provided
-        val resolvedCountryCode = countryCode ?: detectCountryFromGeometry(geometry)
+        val resolvedCountryCode = countryCode 
+            ?: geometry?.let { detectCountryFromGeometry(it) }
+            ?: geolocationPoint?.let { detectCountryFromPoint(it) }
 
-        // Create production unit
+        // Create production unit with EUDR fields
         val productionUnit = ProductionUnit(
             farmer = farmer,
             unitName = unitName,
@@ -63,7 +97,11 @@ class ProductionUnitService(
             countryCode = resolvedCountryCode,
             lastVerifiedAt = LocalDateTime.now(),
             hederaHash = null,
-            hederaTransactionId = null
+            hederaTransactionId = null,
+            geolocationPoint = geolocationPoint,
+            radiusMeters = radiusMeters,
+            geolocationType = geolocationType,
+            isLocked = false
         )
 
         // Save to database
@@ -73,7 +111,9 @@ class ProductionUnitService(
         try {
             val hederaTransactionId = hederaMainService.recordProductionUnitVerification(savedUnit)
             savedUnit.hederaTransactionId = hederaTransactionId
-            savedUnit.hederaHash = calculatePolygonHash(geoJsonPolygon)
+            if (geoJsonPolygon != null) {
+                savedUnit.hederaHash = calculatePolygonHash(geoJsonPolygon)
+            }
             productionUnitRepository.save(savedUnit)
         } catch (e: Exception) {
             logger.warn("Failed to record production unit on Hedera DLT", e)
@@ -83,16 +123,29 @@ class ProductionUnitService(
         return savedUnit
     }
 
+    /**
+     * Updates an existing production unit.
+     * Geometry updates are blocked if the unit is locked (after batch assignment).
+     */
     fun updateProductionUnit(
         unitId: String,
         unitName: String? = null,
         geoJsonPolygon: String? = null,
+        geolocationPoint: String? = null,
         administrativeRegion: String? = null,
         countryCode: String? = null
     ): ProductionUnit {
 
         val existingUnit = productionUnitRepository.findById(unitId)
             .orElseThrow { IllegalArgumentException("Production unit not found: $unitId") }
+
+        // EUDR Compliance: Prevent geometry modification on locked units
+        if (existingUnit.isLocked && (geoJsonPolygon != null || geolocationPoint != null)) {
+            throw IllegalStateException(
+                "EUDR Compliance Error: Cannot modify geometry of locked production unit. " +
+                "Unit was locked after batch assignment or deforestation verification to maintain audit trail."
+            )
+        }
 
         var geometryChanged = false
 
@@ -534,5 +587,170 @@ class ProductionUnitService(
             "SZ" to "SWZ", "ZA" to "ZAF"
         )
         return mapping[alpha2.uppercase()]
+    }
+
+    // ========================================
+    // EUDR COMPLIANCE VALIDATION METHODS
+    // ========================================
+
+    /**
+     * Validates EUDR Article 9(1)(d) geolocation requirements.
+     * 
+     * Rules:
+     * - Plots >4 hectares: Polygon geometry is MANDATORY
+     * - Plots ≤4 hectares: Either polygon OR single geolocation point with radius is acceptable
+     * - At least one geolocation method must be provided
+     * 
+     * @throws IllegalArgumentException if validation fails
+     */
+    private fun validateEudrGeolocationRequirements(
+        geoJsonPolygon: String?,
+        geolocationPoint: String?,
+        radiusMeters: Double?
+    ) {
+        val hasPolygon = !geoJsonPolygon.isNullOrBlank()
+        val hasPoint = !geolocationPoint.isNullOrBlank()
+
+        // Must have at least one geolocation method
+        if (!hasPolygon && !hasPoint) {
+            throw IllegalArgumentException(
+                "EUDR Compliance Error: At least one geolocation method is required. " +
+                "Provide either polygon geometry or a single geolocation point (lat,lon) with radius."
+            )
+        }
+
+        // If only point provided, must have radius
+        if (!hasPolygon && hasPoint && radiusMeters == null) {
+            throw IllegalArgumentException(
+                "EUDR Compliance Error: When using geolocation point instead of polygon, " +
+                "radius in meters is required to define the area scope."
+            )
+        }
+
+        // Validate radius is positive
+        if (radiusMeters != null && radiusMeters <= 0) {
+            throw IllegalArgumentException(
+                "EUDR Compliance Error: Radius must be a positive number (got: $radiusMeters meters)"
+            )
+        }
+
+        // Calculate area from radius and check 4-hectare threshold
+        if (radiusMeters != null && !hasPolygon) {
+            val areaFromRadius = calculateAreaFromRadius(radiusMeters)
+            if (areaFromRadius > EUDR_POLYGON_THRESHOLD_HECTARES) {
+                throw IllegalArgumentException(
+                    "EUDR Compliance Error: Plots exceeding 4 hectares require polygon geometry coordinates. " +
+                    "A single geolocation point is only acceptable for plots of 4 hectares or less. " +
+                    "(Calculated area from radius: ${areaFromRadius.setScale(2, java.math.RoundingMode.HALF_UP)} ha, " +
+                    "Threshold: $EUDR_POLYGON_THRESHOLD_HECTARES ha, Radius: $radiusMeters m)"
+                )
+            }
+        }
+
+        // Validate geolocation point format if provided
+        if (hasPoint) {
+            validateGeolocationPointFormat(geolocationPoint!!)
+        }
+
+        logger.debug("EUDR geolocation validation passed: polygon=$hasPolygon, point=$hasPoint, radius=$radiusMeters")
+    }
+
+    /**
+     * Calculates area in hectares from a circular radius.
+     * Formula: Area = π * r² (in square meters), then convert to hectares.
+     * 1 hectare = 10,000 square meters
+     */
+    private fun calculateAreaFromRadius(radiusMeters: Double): BigDecimal {
+        val areaSquareMeters = Math.PI * radiusMeters * radiusMeters
+        return BigDecimal(areaSquareMeters / 10000).setScale(4, java.math.RoundingMode.HALF_UP)
+    }
+
+    /**
+     * Detects country from a geolocation point string using reverse geocoding.
+     */
+    private fun detectCountryFromPoint(point: String): String? {
+        return try {
+            val parts = point.split(",")
+            if (parts.size != 2) return null
+            
+            val lat = parts[0].trim().toDouble()
+            val lon = parts[1].trim().toDouble()
+            
+            // Create a temporary point geometry for reverse geocoding
+            val pointGeom = geometryFactory.createPoint(Coordinate(lon, lat))
+            detectCountryFromGeometry(pointGeom)
+        } catch (e: Exception) {
+            logger.warn("Failed to detect country from point: $point", e)
+            null
+        }
+    }
+
+    /**
+     * Validates geolocation point format (expected: "lat,lon")
+     */
+    private fun validateGeolocationPointFormat(point: String) {
+        val parts = point.split(",")
+        if (parts.size != 2) {
+            throw IllegalArgumentException(
+                "Invalid geolocation point format. Expected 'latitude,longitude' (e.g., '-1.2921,36.8219')"
+            )
+        }
+
+        try {
+            val lat = parts[0].trim().toDouble()
+            val lon = parts[1].trim().toDouble()
+
+            if (lat < -90 || lat > 90) {
+                throw IllegalArgumentException("Latitude must be between -90 and 90 degrees (got: $lat)")
+            }
+            if (lon < -180 || lon > 180) {
+                throw IllegalArgumentException("Longitude must be between -180 and 180 degrees (got: $lon)")
+            }
+        } catch (e: NumberFormatException) {
+            throw IllegalArgumentException(
+                "Invalid geolocation coordinates. Latitude and longitude must be valid numbers."
+            )
+        }
+    }
+
+    /**
+     * Locks a production unit to prevent geometry modifications.
+     * Should be called after batch assignment or successful deforestation verification.
+     * 
+     * @param unitId The production unit ID to lock
+     * @param reason The reason for locking (for audit trail)
+     * @return The locked production unit
+     */
+    fun lockProductionUnit(unitId: String, reason: String): ProductionUnit {
+        val unit = productionUnitRepository.findById(unitId)
+            .orElseThrow { IllegalArgumentException("Production unit not found: $unitId") }
+
+        if (unit.isLocked) {
+            logger.info("Production unit $unitId is already locked")
+            return unit
+        }
+
+        unit.isLocked = true
+        val lockedUnit = productionUnitRepository.save(unit)
+        
+        logger.info("Locked production unit $unitId. Reason: $reason")
+        
+        // Record lock event on Hedera for immutable audit trail
+        try {
+            hederaConsensusService.recordProductionUnitLock(lockedUnit, reason)
+        } catch (e: Exception) {
+            logger.warn("Failed to record production unit lock on Hedera DLT", e)
+        }
+
+        return lockedUnit
+    }
+
+    /**
+     * Checks if a production unit is locked.
+     */
+    fun isProductionUnitLocked(unitId: String): Boolean {
+        return productionUnitRepository.findById(unitId)
+            .map { it.isLocked }
+            .orElse(false)
     }
 }

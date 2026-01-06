@@ -203,6 +203,27 @@ class HederaConsensusServices(
         return submitConsensusMessage(message)
     }
 
+    /**
+     * Records a production unit lock event on the Hedera Consensus Service.
+     * This creates an immutable audit trail for EUDR compliance.
+     */
+    fun recordProductionUnitLock(productionUnit: ProductionUnit, reason: String): String {
+        val message = createConsensusMessage(
+            eventType = "PRODUCTION_UNIT_LOCKED",
+            entityId = productionUnit.id,
+            entityType = "ProductionUnit",
+            data = mapOf(
+                "unitName" to productionUnit.unitName,
+                "farmerId" to productionUnit.farmer.id!!,
+                "areaHectares" to productionUnit.areaHectares.toString(),
+                "lockReason" to reason,
+                "lockedAt" to Instant.now().toString()
+            )
+        )
+
+        return submitConsensusMessage(message)
+    }
+
     fun recordDeforestationAlert(alert: DeforestationAlert): String {
         val message = createConsensusMessage(
             eventType = "DEFORESTATION_ALERT",

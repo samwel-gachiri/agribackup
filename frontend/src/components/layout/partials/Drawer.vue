@@ -103,194 +103,246 @@ export default {
     LogoTitle, Avatar, RoleIndicator, getCurrentUserId,
   },
   data: () => ({
-    // expandedSections: ['EUDR Compliance'],
+    expandedSections: ['EUDR Compliance', 'Supply Chain'],
     navigationItems: [
-      // Common: Dashboard for all roles
+      // ==========================================
+      // COMMON: Dashboard for all roles
+      // ==========================================
       {
         icon: 'mdi-view-dashboard',
         text: 'Dashboard',
         link: { name: 'Dashboard' },
-        roles: ['FARMER', 'BUYER', 'EXPORTER', 'SYSTEM_ADMIN', 'ZONE_SUPERVISOR', 'AGGREGATOR'],
+        roles: ['FARMER', 'BUYER', 'EXPORTER', 'SYSTEM_ADMIN', 'ZONE_SUPERVISOR', 'AGGREGATOR', 'PROCESSOR', 'IMPORTER'],
         iconColor: '#2e7d32',
       },
-      // === FARMER EUDR SECTION ===
+
+      // ==========================================
+      // FARMER SECTION (Collapsible)
+      // ==========================================
       {
-        icon: 'mdi-map-marker-radius',
-        text: 'My Production Units',
-        link: { name: 'FarmerProductionUnits' },
+        icon: 'mdi-tractor',
+        text: 'Farmer Portal',
+        isSection: true,
         roles: ['FARMER'],
         iconColor: '#16a34a',
+        children: [
+          {
+            icon: 'mdi-map-marker-radius',
+            text: 'My Production Units',
+            link: { name: 'FarmerProductionUnits' },
+            roles: ['FARMER'],
+            iconColor: '#16a34a',
+            isEudr: true,
+          },
+          {
+            icon: 'mdi-barn',
+            text: 'My Produces',
+            get link() {
+              const id = getCurrentUserId();
+              return id ? { name: 'MyFarm', params: { farmerId: id } } : { name: 'MyFarm' };
+            },
+            roles: ['FARMER'],
+            iconColor: '#16a34a',
+          },
+          {
+            icon: 'mdi-format-list-bulleted-square',
+            text: 'Listings',
+            link: { name: 'Listings' },
+            roles: ['FARMER'],
+            iconColor: '#6366f1',
+          },
+          {
+            icon: 'mdi-chart-line',
+            text: 'Reports',
+            link: { name: 'FarmerReports' },
+            roles: ['FARMER'],
+            iconColor: '#8b5cf6',
+          },
+        ],
       },
 
-      // === FARMER PORTAL (NON-EUDR - COMMENTED OUT) ===
+      // ==========================================
+      // AGGREGATOR SECTION (Collapsible)
+      // ==========================================
       {
-        icon: 'mdi-barn',
-        text: 'My Produces',
-        get link() {
-          const id = getCurrentUserId();
-          return id ? { name: 'MyFarm', params: { farmerId: id } } : { name: 'MyFarm' };
-        },
-        roles: ['FARMER'],
-        iconColor: '#16a34a',
-      },
-      {
-        icon: 'mdi-format-list-bulleted-square',
-        text: 'Listings',
-        link: { name: 'Listings' },
-        roles: ['FARMER'],
-        iconColor: '#6366f1',
-      },
-      {
-        icon: 'mdi-chart-line',
-        text: 'Reports',
-        link: { name: 'FarmerReports' },
-        roles: ['FARMER'],
-        iconColor: '#8b5cf6',
-      },
-
-      // === AGGREGATOR EUDR SECTION ===
-      {
-        icon: 'mdi-basket-plus',
-        text: 'Record Collection',
-        link: { name: 'AggregatorCollection' },
-        roles: ['AGGREGATOR'],
-        iconColor: '#16a34a',
-      },
-      {
-        icon: 'mdi-vector-polygon',
-        text: 'Spatial Intersections',
-        link: { name: 'AggregatorSpatialIntersections' },
+        icon: 'mdi-truck-cargo-container',
+        text: 'Aggregator Portal',
+        isSection: true,
         roles: ['AGGREGATOR'],
         iconColor: '#2563eb',
+        isEudr: true,
+        children: [
+          {
+            icon: 'mdi-basket-plus',
+            text: 'Record Collection',
+            link: { name: 'AggregatorCollection' },
+            roles: ['AGGREGATOR'],
+            iconColor: '#16a34a',
+            isEudr: true,
+          },
+          {
+            icon: 'mdi-vector-polygon',
+            text: 'Spatial Intersections',
+            link: { name: 'AggregatorSpatialIntersections' },
+            roles: ['AGGREGATOR'],
+            iconColor: '#2563eb',
+            isEudr: true,
+          },
+        ],
       },
 
-      // === PROCESSOR EUDR SECTION ===
+      // ==========================================
+      // PROCESSOR SECTION
+      // ==========================================
       {
         icon: 'mdi-factory',
         text: 'Processor Dashboard',
         link: { name: 'ProcessorDashboard' },
         roles: ['PROCESSOR'],
         iconColor: '#7c3aed',
+        isEudr: true,
       },
 
-      // === IMPORTER EUDR SECTION ===
+      // ==========================================
+      // IMPORTER SECTION
+      // ==========================================
       {
         icon: 'mdi-ship-wheel',
         text: 'Importer Dashboard',
         link: { name: 'ImporterDashboard' },
         roles: ['IMPORTER'],
         iconColor: '#0891b2',
+        isEudr: true,
       },
 
-      // === SYSTEM ADMIN EUDR SECTION ===
+      // ==========================================
+      // EXPORTER: EUDR Compliance Section (Collapsible)
+      // ==========================================
       {
-        icon: 'mdi-shield-crown',
-        text: 'EUDR Administration',
-        link: { name: 'EudrAdministration' },
-        roles: ['SYSTEM_ADMIN'],
+        icon: 'mdi-shield-check',
+        text: 'EUDR Compliance',
+        isSection: true,
+        roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
         iconColor: '#dc2626',
-      },
-      {
-        icon: 'mdi-database-check',
-        text: 'Data Verification',
-        link: { name: 'DataVerification' },
-        roles: ['SYSTEM_ADMIN'],
-        iconColor: '#16a34a',
-      },
-      {
-        icon: 'mdi-chart-timeline-variant',
-        text: 'System Analytics',
-        link: { name: 'SystemAnalytics' },
-        roles: ['SYSTEM_ADMIN'],
-        iconColor: '#8b5cf6',
+        isEudr: true,
+        children: [
+          {
+            icon: 'mdi-transit-connection-variant',
+            text: 'Traceability Workflow',
+            link: { name: 'SupplyChainWorkflow' },
+            roles: ['EXPORTER', 'SYSTEM_ADMIN'],
+            iconColor: '#10b981',
+            isEudr: true,
+          },
+          {
+            icon: 'mdi-alert-octagon',
+            text: 'Risk Management',
+            link: { name: 'RiskManagement' },
+            roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
+            iconColor: '#ea580c',
+            isEudr: true,
+          },
+          {
+            icon: 'mdi-clipboard-check-outline',
+            text: 'Mitigation Tracking',
+            link: { name: 'MitigationTracking' },
+            roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
+            iconColor: '#f59e0b',
+            isEudr: true,
+          },
+          {
+            icon: 'mdi-certificate',
+            text: 'Certificate Viewer',
+            link: { name: 'CertificateViewer' },
+            roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR', 'IMPORTER'],
+            iconColor: '#3b82f6',
+            isEudr: true,
+          },
+          {
+            icon: 'mdi-file-document-outline',
+            text: 'Compliance Reporting',
+            link: { name: 'ComplianceReporting' },
+            roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
+            iconColor: '#10b981',
+            isEudr: true,
+          },
+        ],
       },
 
-      // === EXPORTER PORTAL (EUDR Management) ===
-      // {
-      //   icon: 'mdi-shield-check',
-      //   text: 'EUDR Compliance',
-      //   isSection: true,
-      //   roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
-      //   iconColor: '#dc2626',
-      //   children: [
+      // ==========================================
+      // EXPORTER: Supply Chain Management (Collapsible)
+      // ==========================================
       {
-        icon: 'mdi-transit-connection-variant',
-        text: 'Traceability Workflow',
-        link: { name: 'SupplyChainWorkflow' },
-        roles: ['EXPORTER', 'SYSTEM_ADMIN'],
-        iconColor: '#10b981',
-      },
-      {
-        icon: 'mdi-alert-octagon',
-        text: 'Risk Management',
-        link: { name: 'RiskManagement' },
-        roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
-        iconColor: '#ea580c',
-      },
-      {
-        icon: 'mdi-clipboard-check-outline',
-        text: 'Mitigation Tracking',
-        link: { name: 'MitigationTracking' },
-        roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
-        iconColor: '#f59e0b',
-      },
-      {
-        icon: 'mdi-certificate',
-        text: 'Certificate Viewer',
-        link: { name: 'CertificateViewer' },
-        roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR', 'IMPORTER'],
-        iconColor: '#3b82f6',
-      },
-      {
-        icon: 'mdi-file-document-outline',
-        text: 'Compliance Reporting',
-        link: { name: 'ComplianceReporting' },
-        roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
-        iconColor: '#10b981',
-      },
-      //   ],
-      // },
-      {
-        icon: 'mdi-map-marker-radius',
-        text: 'Zones',
-        link: { name: 'ZoneManagement' },
-        roles: ['EXPORTER', 'SYSTEM_ADMIN'],
-        iconColor: '#f59e42',
-      },
-      {
-        icon: 'mdi-account-multiple',
-        text: 'Farmers',
-        link: { name: 'FarmersManagement' },
+        icon: 'mdi-sitemap',
+        text: 'Supply Chain',
+        isSection: true,
         roles: ['EXPORTER', 'SYSTEM_ADMIN'],
         iconColor: '#f97316',
+        children: [
+          {
+            icon: 'mdi-map-marker-radius',
+            text: 'Zones',
+            link: { name: 'ZoneManagement' },
+            roles: ['EXPORTER', 'SYSTEM_ADMIN'],
+            iconColor: '#f59e42',
+          },
+          {
+            icon: 'mdi-account-multiple',
+            text: 'Farmers',
+            link: { name: 'FarmersManagement' },
+            roles: ['EXPORTER', 'SYSTEM_ADMIN'],
+            iconColor: '#f97316',
+          },
+          {
+            icon: 'mdi-truck-delivery',
+            text: 'Suppliers',
+            link: { name: 'SupplierManagement' },
+            roles: ['EXPORTER', 'SYSTEM_ADMIN'],
+            iconColor: '#2563eb',
+          },
+          {
+            icon: 'mdi-ship-wheel',
+            text: 'Importers',
+            link: { name: 'ImportersManagement' },
+            roles: ['EXPORTER', 'SYSTEM_ADMIN'],
+            iconColor: '#0891b2',
+          },
+        ],
       },
+
+      // ==========================================
+      // SYSTEM ADMIN Section (Collapsible)
+      // ==========================================
       {
-        icon: 'mdi-truck-delivery',
-        text: 'Suppliers',
-        link: { name: 'SupplierManagement' },
-        roles: ['EXPORTER', 'SYSTEM_ADMIN'],
-        iconColor: '#2563eb',
-      },
-      // {
-      //   icon: 'mdi-truck-delivery',
-      //   text: 'Aggregators',
-      //   link: { name: 'AggregatorsManagement' },
-      //   roles: ['EXPORTER', 'SYSTEM_ADMIN'],
-      //   iconColor: '#2563eb',
-      // },
-      // {
-      //   icon: 'mdi-factory',
-      //   text: 'Processors',
-      //   link: { name: 'ProcessorsManagement' },
-      //   roles: ['EXPORTER', 'SYSTEM_ADMIN'],
-      //   iconColor: '#7c3aed',
-      // },
-      {
-        icon: 'mdi-ship-wheel',
-        text: 'Importers',
-        link: { name: 'ImportersManagement' },
-        roles: ['EXPORTER', 'SYSTEM_ADMIN'],
-        iconColor: '#0891b2',
+        icon: 'mdi-cog',
+        text: 'Administration',
+        isSection: true,
+        roles: ['SYSTEM_ADMIN'],
+        iconColor: '#dc2626',
+        children: [
+          {
+            icon: 'mdi-shield-crown',
+            text: 'EUDR Administration',
+            link: { name: 'EudrAdministration' },
+            roles: ['SYSTEM_ADMIN'],
+            iconColor: '#dc2626',
+            isEudr: true,
+          },
+          {
+            icon: 'mdi-database-check',
+            text: 'Data Verification',
+            link: { name: 'DataVerification' },
+            roles: ['SYSTEM_ADMIN'],
+            iconColor: '#16a34a',
+          },
+          {
+            icon: 'mdi-chart-timeline-variant',
+            text: 'System Analytics',
+            link: { name: 'SystemAnalytics' },
+            roles: ['SYSTEM_ADMIN'],
+            iconColor: '#8b5cf6',
+          },
+        ],
       },
     ],
   }),
@@ -305,24 +357,30 @@ export default {
       } catch (e) { return ''; }
     },
     userRole() {
-      const token = this.$store.state.auth.token;
-      if (!token) return null;
-      try {
-        const decoded = jwtDecode(token);
-        return decoded.role || decoded.user?.role || null;
-      } catch (error) { return null; }
+      // Use the store getter for consistency with BottomNav and roles.js
+      return this.$store.getters['auth/role'] || null;
     },
   },
   methods: {
     canView(item) {
-      // Check EUDR navigation setting
-      if (item.text && item.text.includes('EUDR') && !this.isEudrEnabled()) {
+      // Check EUDR navigation setting using isEudr flag (not string matching)
+      if (item.isEudr && !this.isEudrEnabled()) {
         return false;
       }
 
-      return !item.roles || item.roles.length === 0
-        ? true
-        : (this.userRole && item.roles.includes(this.userRole));
+      // No roles specified = visible to all authenticated users
+      if (!item.roles || item.roles.length === 0) {
+        return true;
+      }
+
+      // Must have a user role to view role-restricted items
+      if (!this.userRole) {
+        return false;
+      }
+
+      // Case-insensitive role comparison
+      const userRoleUpper = this.userRole.toUpperCase();
+      return item.roles.some((role) => role.toUpperCase() === userRoleUpper);
     },
     isEudrEnabled() {
       return localStorage.getItem('eudrEnabled') !== 'false';

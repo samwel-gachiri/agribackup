@@ -2,10 +2,22 @@
   <div class="production-unit-drawer">
     <!-- Top Bar with Drawing Tools -->
     <div class="top-bar">
-      <!-- Left: Instructions Toggle -->
+      <!-- Left: Mode Selection & Instructions -->
       <div class="top-bar-left">
+        <!-- Geolocation Mode Toggle -->
+        <v-btn-toggle v-model="geolocationMode" mandatory dense class="tw-mr-2">
+          <v-btn small value="polygon" :disabled="isDrawing || loading">
+            <v-icon small left>mdi-vector-polygon</v-icon>
+            Polygon
+          </v-btn>
+          <v-btn small value="point" :disabled="isDrawing || loading">
+            <v-icon small left>mdi-map-marker</v-icon>
+            Point
+          </v-btn>
+        </v-btn-toggle>
+
         <v-btn
-          v-if="!isDrawing"
+          v-if="!isDrawing && geolocationMode === 'polygon'"
           small
           text
           :color="showInstructions ? 'primary' : 'grey'"
@@ -22,33 +34,62 @@
 
       <!-- Center: Main Drawing Controls -->
       <div class="top-bar-center">
-        <v-btn
-          small
-          :color="isDrawing ? 'primary' : 'success'"
-          :disabled="isDrawing || loading"
-          @click="startDrawing"
-          class="tw-mx-1"
-        >
-          <v-icon small left>mdi-pencil</v-icon>
-          {{ isDrawing ? 'Drawing...' : 'Draw' }}
-        </v-btn>
+        <!-- Polygon Mode Controls -->
+        <template v-if="geolocationMode === 'polygon'">
+          <v-btn
+            small
+            :color="isDrawing ? 'primary' : 'success'"
+            :disabled="isDrawing || loading"
+            @click="startDrawing"
+            class="tw-mx-1"
+          >
+            <v-icon small left>mdi-pencil</v-icon>
+            {{ isDrawing ? 'Drawing...' : 'Draw' }}
+          </v-btn>
 
-        <v-btn
-          small
-          outlined
-          color="error"
-          :disabled="!unitPolygon && !isDrawing || loading"
-          @click="clearDrawing"
-          class="tw-mx-1"
-        >
-          <v-icon small left>mdi-eraser</v-icon>
-          Clear
-        </v-btn>
+          <v-btn
+            small
+            outlined
+            color="error"
+            :disabled="!unitPolygon && !isDrawing || loading"
+            @click="clearDrawing"
+            class="tw-mx-1"
+          >
+            <v-icon small left>mdi-eraser</v-icon>
+            Clear
+          </v-btn>
+        </template>
+
+        <!-- Point Mode Controls -->
+        <template v-if="geolocationMode === 'point'">
+          <v-btn
+            small
+            :color="isPlacingPoint ? 'primary' : 'success'"
+            :disabled="loading"
+            @click="togglePointPlacement"
+            class="tw-mx-1"
+          >
+            <v-icon small left>mdi-map-marker-plus</v-icon>
+            {{ isPlacingPoint ? 'Click Map...' : 'Place Point' }}
+          </v-btn>
+
+          <v-btn
+            small
+            outlined
+            color="error"
+            :disabled="!pointLocation || loading"
+            @click="clearPoint"
+            class="tw-mx-1"
+          >
+            <v-icon small left>mdi-eraser</v-icon>
+            Clear
+          </v-btn>
+        </template>
 
         <v-btn
           small
           color="success"
-          :disabled="!unitPolygon || loading"
+          :disabled="!canSave || loading"
           @click="saveUnit"
           class="tw-mx-1"
         >
@@ -112,9 +153,81 @@
     <!-- Main Content Area -->
     <div class="main-content">
       <!-- Left Sidebar: Instructions or Drawing Status -->
-      <div v-if="showInstructions || isDrawing" class="left-sidebar">
-        <!-- Instructions Panel -->
-        <v-card v-if="showInstructions && !isDrawing && !unitPolygon" class="tw-mb-2" outlined>
+      <div v-if="showInstructions || isDrawing || geolocationMode === 'point'" class="left-sidebar">
+
+        <!-- EUDR Mode Info -->
+        <v-card class="tw-mb-2" outlined>
+          <v-card-text class="tw-py-2 tw-px-3">
+            <div class="tw-font-semibold tw-text-sm tw-text-gray-800 tw-mb-2">
+              <v-icon small color="blue" class="tw-mr-1">mdi-information</v-icon>
+              EUDR Geolocation Rules
+            </div>
+            <div class="tw-text-xs tw-text-gray-600">
+              <div class="tw-mb-1">
+                <v-icon x-small color="green">mdi-check</v-icon>
+                <strong>≤4 hectares:</strong> Point or Polygon
+              </div>
+              <div>
+                <v-icon x-small color="orange">mdi-alert</v-icon>
+                <strong>&gt;4 hectares:</strong> Polygon required
+              </div>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <!-- Point Mode: Radius Input -->
+        <v-card v-if="geolocationMode === 'point'" class="tw-mb-2 tw-border-l-4 tw-border-blue-500" outlined>
+          <v-card-text class="tw-py-2 tw-px-3">
+            <div class="tw-font-semibold tw-text-sm tw-text-blue-800 tw-mb-2">
+              <v-icon small color="blue" class="tw-mr-1">mdi-radius-outline</v-icon>
+              Point Mode Settings
+            </div>
+
+            <v-text-field
+              v-model.number="pointRadius"
+              label="Radius (meters)"
+              type="number"
+              min="10"
+              max="356"
+              step="10"
+              dense
+              outlined
+              hide-details="auto"
+              :rules="[radiusRule]"
+              class="tw-mb-2"
+            >
+              <template #append>
+                <span class="tw-text-xs tw-text-gray-500">m</span>
+              </template>
+            </v-text-field>
+
+            <div class="tw-text-xs tw-text-gray-600 tw-mt-1">
+              <div>Area: <strong class="tw-text-green-600">{{ calculatedPointArea.toFixed(2) }} ha</strong></div>
+              <div v-if="calculatedPointArea > 4" class="tw-text-red-600 tw-mt-1">
+                <v-icon x-small color="red">mdi-alert</v-icon>
+                Exceeds 4ha limit! Use polygon mode.
+              </div>
+              <div class="tw-text-gray-400 tw-mt-1">Max radius for 4ha: ~356m</div>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <!-- Point Location Info -->
+        <v-card v-if="geolocationMode === 'point' && pointLocation" class="tw-mb-2 tw-border-l-4 tw-border-green-500" outlined>
+          <v-card-text class="tw-py-2 tw-px-3">
+            <div class="tw-font-semibold tw-text-sm tw-text-green-800 tw-mb-2">
+              <v-icon small color="green" class="tw-mr-1">mdi-map-marker-check</v-icon>
+              Point Placed
+            </div>
+            <div class="tw-text-xs tw-font-mono tw-text-gray-600">
+              <div>Lat: {{ pointLocation.lat.toFixed(6) }}</div>
+              <div>Lng: {{ pointLocation.lng.toFixed(6) }}</div>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <!-- Polygon Mode: Instructions Panel -->
+        <v-card v-if="showInstructions && !isDrawing && !unitPolygon && geolocationMode === 'polygon'" class="tw-mb-2" outlined>
           <v-card-text class="tw-py-2 tw-px-3">
             <div class="tw-font-semibold tw-text-sm tw-text-gray-800 tw-mb-2">
               <v-icon small color="green" class="tw-mr-1">mdi-help-circle</v-icon>
@@ -150,8 +263,8 @@
           </v-card-text>
         </v-card>
 
-        <!-- Boundary Info Panel -->
-        <v-card v-if="unitPolygon" class="tw-border-l-4 tw-border-green-500" outlined>
+        <!-- Boundary Info Panel (Polygon) -->
+        <v-card v-if="unitPolygon && geolocationMode === 'polygon'" class="tw-border-l-4 tw-border-green-500" outlined>
           <v-card-text class="tw-py-2 tw-px-3">
             <div class="tw-font-semibold tw-text-sm tw-text-green-800 tw-mb-2">
               <v-icon small color="green" class="tw-mr-1">mdi-check-circle</v-icon>
@@ -309,7 +422,82 @@ export default {
           style: 'dash',
         },
       },
+
+      // EUDR Point mode properties
+      geolocationMode: 'polygon', // 'polygon' or 'point'
+      isPlacingPoint: false,
+      pointLocation: null, // { lat, lng }
+      pointRadius: 100, // meters (default 100m, max ~356m for 4ha)
+      pointGraphic: null, // Reference to point marker graphic
+      radiusGraphic: null, // Reference to radius circle graphic
+
+      // Point mode symbol configurations
+      POINT_SYMBOL: {
+        // eslint-disable-next-line sonarjs/no-duplicate-string
+        type: 'simple-marker',
+        color: [66, 133, 244, 0.9],
+        size: 12,
+        outline: {
+          color: [255, 255, 255],
+          width: 2,
+        },
+      },
+      RADIUS_SYMBOL: {
+        type: 'simple-fill',
+        color: [66, 133, 244, 0.15],
+        outline: {
+          color: [66, 133, 244, 0.8],
+          width: 2,
+          style: 'dash',
+        },
+      },
     };
+  },
+
+  computed: {
+    // Computed area from point radius (πr² in hectares)
+    calculatedPointArea() {
+      const radiusMeters = this.pointRadius || 0;
+      const areaM2 = Math.PI * radiusMeters * radiusMeters;
+      return areaM2 / 10000; // Convert to hectares
+    },
+
+    // Validation rule for radius
+    radiusRule() {
+      return (v) => {
+        if (!v || v < 10) return 'Minimum radius is 10m';
+        if (v > 356) return 'Maximum radius for 4ha is ~356m';
+        return true;
+      };
+    },
+
+    // Whether the user can save (has valid polygon or point+radius)
+    canSave() {
+      if (this.geolocationMode === 'polygon') {
+        return !!this.unitPolygon && this.unitArea > 0;
+      }
+      return !!this.pointLocation && this.pointRadius >= 10 && this.calculatedPointArea <= 4;
+    },
+  },
+
+  watch: {
+    // Watch for radius changes to update the circle graphic
+    pointRadius: {
+      handler(newRadius) {
+        if (this.pointLocation && newRadius >= 10) {
+          this.updateRadiusCircle();
+        }
+      },
+    },
+
+    // Watch for mode changes to clear the other mode's data
+    geolocationMode: {
+      handler(newMode, oldMode) {
+        if (newMode !== oldMode) {
+          this.clearModeData(oldMode);
+        }
+      },
+    },
   },
 
   async mounted() {
@@ -779,23 +967,198 @@ export default {
     },
 
     saveUnit() {
-      if (!this.unitPolygon) {
-        this.showError('No unit boundary to save.');
+      if (this.geolocationMode === 'polygon') {
+        // Polygon mode - existing behavior
+        if (!this.unitPolygon) {
+          this.showError('No unit boundary to save.');
+          return;
+        }
+
+        try {
+          this.$emit('save-unit', {
+            geolocationType: 'POLYGON',
+            geometry: this.unitPolygon,
+            area: this.unitArea,
+            perimeter: this.unitPerimeter,
+            pointCount: this.unitPointCount,
+          });
+
+          this.showSuccess(`Unit saved! Area: ${this.unitArea.toFixed(4)} hectares`);
+        } catch (error) {
+          this.showError('Failed to save unit. Please try again.');
+        }
+      } else {
+        // Point mode - new EUDR compliant behavior
+        if (!this.pointLocation) {
+          this.showError('No point location set. Click "Place Point" to set location.');
+          return;
+        }
+
+        if (this.pointRadius < 10 || this.pointRadius > 356) {
+          this.showError('Radius must be between 10m and 356m (max for 4ha).');
+          return;
+        }
+
+        if (this.calculatedPointArea > 4) {
+          this.showError('Area exceeds 4 hectares. Use polygon mode for larger plots.');
+          return;
+        }
+
+        try {
+          this.$emit('save-unit', {
+            geolocationType: 'POINT',
+            geolocationPoint: `${this.pointLocation.lat},${this.pointLocation.lng}`,
+            radiusMeters: this.pointRadius,
+            area: this.calculatedPointArea,
+            // Generate a circular polygon for display/storage purposes
+            geometry: this.generateCirclePolygon(this.pointLocation, this.pointRadius),
+          });
+
+          this.showSuccess(`Unit saved! Area: ${this.calculatedPointArea.toFixed(4)} hectares (from point + ${this.pointRadius}m radius)`);
+        } catch (error) {
+          this.showError('Failed to save unit. Please try again.');
+        }
+      }
+    },
+
+    // EUDR Point Mode Methods
+    togglePointPlacement() {
+      if (this.isPlacingPoint) {
+        this.cancelPointPlacement();
+      } else {
+        this.startPointPlacement();
+      }
+    },
+
+    startPointPlacement() {
+      if (!this.view) {
+        this.showError('Map not initialized');
         return;
       }
 
-      try {
-        // Emit event with unit data
-        this.$emit('save-unit', {
-          geometry: this.unitPolygon,
-          area: this.unitArea,
-          perimeter: this.unitPerimeter,
-          pointCount: this.unitPointCount,
-        });
+      this.isPlacingPoint = true;
 
-        this.showSuccess(`Unit saved! Area: ${this.unitArea.toFixed(5)} hectares`);
-      } catch (error) {
-        this.showError('Failed to save unit. Please try again.');
+      // Set up click handler for point placement
+      this.pointClickHandler = this.view.on('click', (event) => {
+        if (!this.isPlacingPoint) return;
+
+        const mapPoint = this.view.toMap(event);
+        if (!mapPoint) return;
+
+        this.placePoint(mapPoint.latitude, mapPoint.longitude);
+        this.isPlacingPoint = false;
+      });
+
+      this.showSuccess('Click on the map to place your production unit point.');
+    },
+
+    cancelPointPlacement() {
+      this.isPlacingPoint = false;
+      if (this.pointClickHandler) {
+        this.pointClickHandler.remove();
+        this.pointClickHandler = null;
+      }
+    },
+
+    placePoint(lat, lng) {
+      // Store the point location
+      this.pointLocation = { lat, lng };
+
+      // Clear any existing point and radius graphics
+      this.clearPointGraphics();
+
+      // Add point marker graphic
+      const pointGraphic = new this.Graphic({
+        geometry: new this.Point({
+          longitude: lng,
+          latitude: lat,
+        }),
+        symbol: this.POINT_SYMBOL,
+        attributes: { isProductionPoint: true },
+      });
+      this.graphicsLayer.add(pointGraphic);
+      this.pointGraphic = pointGraphic;
+
+      // Add radius circle
+      this.updateRadiusCircle();
+
+      this.showSuccess(`Point placed at ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+      this.cancelPointPlacement();
+    },
+
+    updateRadiusCircle() {
+      if (!this.pointLocation || !this.graphicsLayer) return;
+
+      // Remove existing radius graphic
+      if (this.radiusGraphic) {
+        this.graphicsLayer.remove(this.radiusGraphic);
+      }
+
+      // Generate circle polygon
+      const circlePolygon = this.generateCirclePolygon(this.pointLocation, this.pointRadius);
+
+      const radiusGraphic = new this.Graphic({
+        geometry: circlePolygon,
+        symbol: this.RADIUS_SYMBOL,
+        attributes: { isRadiusCircle: true },
+      });
+
+      this.graphicsLayer.add(radiusGraphic);
+      this.radiusGraphic = radiusGraphic;
+    },
+
+    generateCirclePolygon(center, radiusMeters, numPoints = 64) {
+      // Generate a circle polygon from center point and radius
+      // Using geodesic calculation for accuracy
+      const points = [];
+      const earthRadius = 6371000; // meters
+
+      // eslint-disable-next-line no-plusplus
+      for (let i = 0; i < numPoints; i++) {
+        const angle = (i / numPoints) * 2 * Math.PI;
+
+        // Calculate offset in meters
+        const dx = radiusMeters * Math.cos(angle);
+        const dy = radiusMeters * Math.sin(angle);
+
+        // Convert to lat/lng offset (simplified for small distances)
+        const dLat = (dy / earthRadius) * (180 / Math.PI);
+        const dLng = (dx / (earthRadius * Math.cos((center.lat * Math.PI) / 180))) * (180 / Math.PI);
+
+        points.push([center.lng + dLng, center.lat + dLat]);
+      }
+
+      // Close the polygon
+      points.push(points[0]);
+
+      return new this.Polygon({
+        rings: [points],
+        spatialReference: { wkid: 4326 },
+      });
+    },
+
+    clearPoint() {
+      this.clearPointGraphics();
+      this.pointLocation = null;
+      this.showSuccess('Point cleared');
+    },
+
+    clearPointGraphics() {
+      if (this.pointGraphic) {
+        this.graphicsLayer.remove(this.pointGraphic);
+        this.pointGraphic = null;
+      }
+      if (this.radiusGraphic) {
+        this.graphicsLayer.remove(this.radiusGraphic);
+        this.radiusGraphic = null;
+      }
+    },
+
+    clearModeData(oldMode) {
+      if (oldMode === 'polygon') {
+        this.clearDrawing();
+      } else if (oldMode === 'point') {
+        this.clearPoint();
       }
     },
 

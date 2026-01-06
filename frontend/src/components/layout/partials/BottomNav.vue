@@ -20,6 +20,7 @@
 </template>
 
 <script>
+// eslint-disable-next-line no-unused-vars
 import { getCurrentUserId, viewPermissions, getCurrentUserRole } from '@/utils/roles.js';
 
 export default {
@@ -33,47 +34,128 @@ export default {
   },
   computed: {
     navItems() {
-      // Only show a subset of main navigation items for mobile
-      const items = [
+      // Mobile navigation items for all EUDR roles
+      // NOTE: Roles must be UPPERCASE to match store.getters['auth/role']
+      return [
+        // === COMMON ===
         {
           icon: 'mdi-view-dashboard',
           text: 'Dashboard',
           short: 'Home',
           link: { name: 'Dashboard' },
-          roles: ['buyer', 'admin'],
+          roles: ['FARMER', 'BUYER', 'EXPORTER', 'SYSTEM_ADMIN', 'ZONE_SUPERVISOR', 'AGGREGATOR', 'PROCESSOR', 'IMPORTER'],
         },
+
+        // === FARMER ===
         {
-          icon: 'mdi-account-group',
-          text: 'Community',
-          short: 'Comm',
-          link: { name: 'Community' },
-          roles: ['farmer', 'buyer', 'anybody'],
-        },
-        {
-          icon: 'mdi-cash-multiple',
-          text: 'My Sales',
-          short: 'Sales',
-          link: { name: 'Listings' },
-          roles: ['farmer'],
+          icon: 'mdi-map-marker-radius',
+          text: 'My Units',
+          short: 'Units',
+          link: { name: 'FarmerProductionUnits' },
+          roles: ['FARMER'],
         },
         {
           icon: 'mdi-sprout',
-          text: 'My Farm',
+          text: 'My Produces',
           short: 'Farm',
-          link: { name: 'Produces', params: { farmerId: getCurrentUserId() } },
-          roles: ['farmer'],
+          link: { name: 'MyFarm', params: { farmerId: getCurrentUserId() } },
+          roles: ['FARMER'],
+        },
+        {
+          icon: 'mdi-cash-multiple',
+          text: 'Listings',
+          short: 'Sales',
+          link: { name: 'Listings' },
+          roles: ['FARMER'],
+        },
+
+        // === AGGREGATOR ===
+        {
+          icon: 'mdi-basket-plus',
+          text: 'Collection',
+          short: 'Collect',
+          link: { name: 'AggregatorCollection' },
+          roles: ['AGGREGATOR'],
+        },
+        {
+          icon: 'mdi-vector-polygon',
+          text: 'Intersections',
+          short: 'Spatial',
+          link: { name: 'AggregatorSpatialIntersections' },
+          roles: ['AGGREGATOR'],
+        },
+
+        // === EXPORTER ===
+        {
+          icon: 'mdi-transit-connection-variant',
+          text: 'Traceability',
+          short: 'Trace',
+          link: { name: 'SupplyChainWorkflow' },
+          roles: ['EXPORTER', 'SYSTEM_ADMIN'],
+        },
+        {
+          icon: 'mdi-certificate',
+          text: 'Certificates',
+          short: 'Certs',
+          link: { name: 'CertificateViewer' },
+          roles: ['EXPORTER', 'IMPORTER', 'SYSTEM_ADMIN'],
+        },
+        {
+          icon: 'mdi-account-multiple',
+          text: 'Farmers',
+          short: 'Farmers',
+          link: { name: 'FarmersManagement' },
+          roles: ['EXPORTER', 'SYSTEM_ADMIN'],
+        },
+
+        // === PROCESSOR ===
+        {
+          icon: 'mdi-factory',
+          text: 'Processing',
+          short: 'Process',
+          link: { name: 'ProcessorDashboard' },
+          roles: ['PROCESSOR'],
+        },
+
+        // === IMPORTER ===
+        {
+          icon: 'mdi-ship-wheel',
+          text: 'Imports',
+          short: 'Import',
+          link: { name: 'ImporterDashboard' },
+          roles: ['IMPORTER'],
+        },
+
+        // === ADMIN ===
+        {
+          icon: 'mdi-shield-crown',
+          text: 'EUDR Admin',
+          short: 'Admin',
+          link: { name: 'EudrAdministration' },
+          roles: ['SYSTEM_ADMIN'],
         },
       ];
-      // If farmer, ensure Orders/Browse Requests aren't present
-      const role = getCurrentUserRole && getCurrentUserRole();
-      if (role === 'FARMER') {
-        return items.filter((i) => !['My Orders', 'Browse Requests'].includes(i.text));
-      }
-      return items;
+    },
+    currentRole() {
+      // Get current user role for debugging
+      return this.$store.getters['auth/role'] || 'none';
     },
     filteredNavItems() {
-      // Filter nav items based on permissions
-      return this.navItems.filter((item) => this.viewPermissions(item.roles));
+      // Filter nav items based on permissions and limit to 5 for mobile
+      const filtered = this.navItems.filter((item) => this.viewPermissions(item.roles));
+
+      // If no items match (user not logged in or role mismatch), show Dashboard as fallback
+      if (filtered.length === 0) {
+        return [{
+          icon: 'mdi-view-dashboard',
+          text: 'Dashboard',
+          short: 'Home',
+          link: { name: 'Dashboard' },
+          roles: ['*'],
+        }];
+      }
+
+      return filtered.slice(0, 5); // Max 5 items for mobile bottom nav
     },
   },
 };
@@ -84,7 +166,7 @@ export default {
   position: fixed;
   left: 0; right: 0; bottom: 0;
   height: 68px;
-  z-index: 100;
+  z-index: 1000;
   display: flex;
   justify-content: space-around;
   align-items: center;

@@ -1,0 +1,49 @@
+databaseChangeLog:
+  - changeSet:
+      id: 056_add_eudr_geolocation_fields
+      author: agribackup
+      comment: >
+        EUDR Article 9(1)(d) Compliance: Add geolocation point for small plots (≤4ha)
+        and is_locked field to prevent geometry modifications after batch assignment.
+      changes:
+        - addColumn:
+            tableName: production_units
+            columns:
+              - column:
+                  name: geolocation_point
+                  type: VARCHAR(100)
+                  remarks: "Single lat,lon point for plots ≤4 hectares per EUDR Article 9(1)(d). Format: 'lat,lon'"
+              - column:
+                  name: radius_meters
+                  type: DOUBLE
+                  remarks: "Radius in meters around the geolocation point for deforestation checks and area calculation"
+              - column:
+                  name: geolocation_type
+                  type: VARCHAR(20)
+                  defaultValue: "POLYGON"
+                  remarks: "Type of geolocation: POLYGON or POINT"
+              - column:
+                  name: is_locked
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+                  remarks: "When true, geometry cannot be modified (set after batch assignment)"
+
+  - changeSet:
+      id: 056_add_eudr_geolocation_fields_index
+      author: agribackup
+      comment: Add index for querying locked production units and by geolocation type
+      changes:
+        - createIndex:
+            indexName: idx_production_units_is_locked
+            tableName: production_units
+            columns:
+              - column:
+                  name: is_locked
+        - createIndex:
+            indexName: idx_production_units_geolocation_type
+            tableName: production_units
+            columns:
+              - column:
+                  name: geolocation_type
