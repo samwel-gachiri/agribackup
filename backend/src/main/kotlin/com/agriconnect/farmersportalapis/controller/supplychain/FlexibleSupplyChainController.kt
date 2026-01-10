@@ -182,6 +182,17 @@ class FlexibleSupplyChainController(
     }
 
     /**
+     * Get connected suppliers for a farmer (aggregators, cooperatives they can send to)
+     */
+    @GetMapping("/farmer/{farmerId}/connected-suppliers")
+    fun getFarmerConnectedSuppliers(@PathVariable farmerId: String): ResponseEntity<Any> {
+        // For farmers, return suppliers that accept from farmers (aggregators, cooperatives)
+        val supplierTypes = listOf("AGGREGATOR", "COOPERATIVE", "FARMER_GROUP")
+        val suppliers = flexibleSupplyChainService.getSuppliersAcceptingFromFarmers(farmerId, supplierTypes)
+        return ResponseEntity.ok(suppliers)
+    }
+
+    /**
      * Get sub-suppliers for a supplier (children in hierarchy)
      */
     @GetMapping("/suppliers/{supplierId}/sub-suppliers")
@@ -191,6 +202,17 @@ class FlexibleSupplyChainController(
             "success" to true,
             "data" to subSuppliers
         ))
+    }
+
+    /**
+     * Get connections for a supplier (other suppliers they can send to)
+     */
+    @GetMapping("/supplier/{supplierId}/connections")
+    fun getSupplierConnections(@PathVariable supplierId: String): ResponseEntity<Any> {
+        // Get all active suppliers except the current one
+        val allSuppliers = flexibleSupplyChainService.getAllActiveSuppliers()
+        val connections = allSuppliers.filter { it.id != supplierId }
+        return ResponseEntity.ok(connections)
     }
 
     /**

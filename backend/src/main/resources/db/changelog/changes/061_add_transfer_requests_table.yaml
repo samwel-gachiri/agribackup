@@ -1,0 +1,139 @@
+databaseChangeLog:
+  # Create transfer_requests table for Two-Party Handshake workflow
+  - changeSet:
+      id: 008_create_transfer_requests_table
+      author: samwel gachiri
+      changes:
+        - createTable:
+            tableName: transfer_requests
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: from_farmer_id
+                  type: VARCHAR(36)
+                  remarks: "ID of farmer initiating transfer (null if from supplier)"
+              - column:
+                  name: from_production_unit_id
+                  type: VARCHAR(36)
+                  remarks: "Production unit the produce came from"
+              - column:
+                  name: from_supplier_id
+                  type: VARCHAR(36)
+                  remarks: "ID of supplier initiating transfer (null if from farmer)"
+              - column:
+                  name: to_supplier_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                  remarks: "ID of receiving supplier"
+              - column:
+                  name: sender_name
+                  type: VARCHAR(255)
+              - column:
+                  name: sender_type
+                  type: VARCHAR(50)
+                  remarks: "FARMER, AGGREGATOR, PROCESSOR, COOPERATIVE, etc."
+              - column:
+                  name: recipient_name
+                  type: VARCHAR(255)
+              - column:
+                  name: recipient_type
+                  type: VARCHAR(50)
+              - column:
+                  name: produce_type
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quality_grade
+                  type: VARCHAR(10)
+              - column:
+                  name: sender_quantity_kg
+                  type: DECIMAL(12,2)
+                  constraints:
+                    nullable: false
+                  remarks: "Quantity claimed by sender"
+              - column:
+                  name: receiver_quantity_kg
+                  type: DECIMAL(12,2)
+                  remarks: "Quantity confirmed by receiver (may differ from sender)"
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: "PENDING"
+                  constraints:
+                    nullable: false
+                  remarks: "PENDING, CONFIRMED, REJECTED, DISPUTED, CANCELLED"
+              - column:
+                  name: transfer_date
+                  type: TIMESTAMP
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sender_confirmed_at
+                  type: TIMESTAMP
+              - column:
+                  name: receiver_confirmed_at
+                  type: TIMESTAMP
+              - column:
+                  name: sender_notes
+                  type: TEXT
+              - column:
+                  name: receiver_notes
+                  type: TEXT
+              - column:
+                  name: dispute_reason
+                  type: TEXT
+              - column:
+                  name: hedera_transaction_id
+                  type: VARCHAR(100)
+                  remarks: "Hedera Consensus Service transaction ID after confirmation"
+              - column:
+                  name: hedera_topic_id
+                  type: VARCHAR(50)
+
+  # Create indexes for efficient queries
+  - changeSet:
+      id: 008_create_transfer_requests_indexes
+      author: samwel gachiri
+      changes:
+        - createIndex:
+            tableName: transfer_requests
+            indexName: idx_transfer_requests_to_supplier
+            columns:
+              - column:
+                  name: to_supplier_id
+        - createIndex:
+            tableName: transfer_requests
+            indexName: idx_transfer_requests_from_supplier
+            columns:
+              - column:
+                  name: from_supplier_id
+        - createIndex:
+            tableName: transfer_requests
+            indexName: idx_transfer_requests_from_farmer
+            columns:
+              - column:
+                  name: from_farmer_id
+        - createIndex:
+            tableName: transfer_requests
+            indexName: idx_transfer_requests_status
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            tableName: transfer_requests
+            indexName: idx_transfer_requests_created_at
+            columns:
+              - column:
+                  name: created_at
+                  descending: true

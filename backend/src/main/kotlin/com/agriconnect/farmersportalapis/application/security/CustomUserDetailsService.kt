@@ -3,6 +3,8 @@ package com.agriconnect.farmersportalapis.application.security
 import com.agriconnect.farmersportalapis.buyers.infrastructure.repositories.BuyerRepository
 import com.agriconnect.farmersportalapis.domain.auth.RoleType
 import com.agriconnect.farmersportalapis.infrastructure.repositories.*
+import com.agriconnect.farmersportalapis.repository.AuthorisedRepresentativeRepository
+import com.agriconnect.farmersportalapis.repository.SupplyChainSupplierRepository
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.User
@@ -23,6 +25,8 @@ class CustomUserDetailsService(
     private val aggregatorRepository: AggregatorRepository,
     private val processorRepository: ProcessorRepository,
     private val importerRepository: ImporterRepository,
+    private val supplyChainSupplierRepository: SupplyChainSupplierRepository,
+    private val authorizedRepresentativeRepository: AuthorisedRepresentativeRepository,
 ) : UserDetailsService {
 
     private val logger = LoggerFactory.getLogger(CustomUserDetailsService::class.java)
@@ -86,7 +90,9 @@ class CustomUserDetailsService(
             RoleType.EXPORTER.name -> {
                 val exporter = exporterRepository.findByUserProfile(user.id).orElse(null)
                     ?: throw IllegalArgumentException("Exporter not found for user: $username")
-                exporter.id.toString()
+                val exporterId = exporter.id.takeIf { it.isNotBlank() } 
+                    ?: throw IllegalArgumentException("Exporter has invalid ID for user: $username. Please contact support.")
+                exporterId
             }
             RoleType.ADMIN.name -> {
                 val admin = adminRepository.findByUserProfileId(user.id)
@@ -118,6 +124,19 @@ class CustomUserDetailsService(
                     ?: throw IllegalArgumentException("Importer not found for user: $username")
                 zs.id.toString()
             }
+            RoleType.SUPPLIER.name-> {
+                val supplyChainSupplier = supplyChainSupplierRepository.findByUserProfile(user)
+                    ?: throw IllegalArgumentException("Importer not found for user: $username")
+                supplyChainSupplier.id.toString()
+            }
+            RoleType.AUTHORISED_REPRESENTATIVE.name -> {
+                val authorizedRepresentative = authorizedRepresentativeRepository.findByUserProfile(user)
+                    ?: throw IllegalArgumentException("Authorised Representative not found for user: $username")
+                val arId = authorizedRepresentative.id.takeIf { it.isNotBlank() }
+                    ?: throw IllegalArgumentException("Authorised Representative has invalid ID for user: $username. Please contact support.")
+                arId
+            }
+
             else -> throw IllegalArgumentException("Invalid role: $selectedRole")
         }
 

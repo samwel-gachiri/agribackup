@@ -238,6 +238,13 @@
                             </v-list-item-icon>
                             <v-list-item-title>Mark Shipped</v-list-item-title>
                           </v-list-item>
+                          <v-divider v-if="item.status === 'PENDING' || item.status === 'READY'"></v-divider>
+                          <v-list-item v-if="item.status === 'PENDING' || item.status === 'READY'" :to="{ name: 'SendToSupplier', query: { batchId: item.id, produceType: item.produceType, quantity: item.totalQuantityKg } }" class="tw-bg-blue-50">
+                            <v-list-item-icon>
+                              <v-icon small color="blue">mdi-factory</v-icon>
+                            </v-list-item-icon>
+                            <v-list-item-title class="tw-text-blue-700 tw-font-medium">Send to Processor</v-list-item-title>
+                          </v-list-item>
                         </v-list>
                       </v-menu>
                     </template>
@@ -902,7 +909,7 @@ export default {
           displayName: `${farmer.fullName || farmer.name || 'Unknown'} (${farmer.phoneNumber || 'No phone'})`,
         }));
       } catch (error) {
-        // console.error('Farmer search error:', error);
+        this.$toast.error('Farmer search error:', error.message);
         this.farmerSearchResults = [];
       } finally {
         this.searchingFarmer = false;
@@ -929,7 +936,7 @@ export default {
           displayName: `${unit.unitName} (${unit.areaHectares || 0} ha)`,
         }));
       } catch (error) {
-        // console.error('Error loading production units:', error);
+        this.$toast.error('Error loading production units:', error.message);
         this.farmerProductionUnits = [];
       } finally {
         this.loadingProductionUnits = false;

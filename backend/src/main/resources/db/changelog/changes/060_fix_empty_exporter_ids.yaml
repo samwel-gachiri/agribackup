@@ -1,0 +1,15 @@
+databaseChangeLog:
+  # Fix exporters with empty or null IDs
+  - changeSet:
+      id: 060_01_fix_empty_exporter_ids
+      author: agribackup
+      comment: >
+        Fix exporters that have empty or null IDs by generating new UUIDs.
+        This addresses a login issue where Spring Security User constructor
+        requires non-empty username (which uses exporter ID).
+      changes:
+        - sql:
+            sql: >
+              UPDATE exporters 
+              SET exporter_id = UUID() 
+              WHERE exporter_id IS NULL OR exporter_id = '';

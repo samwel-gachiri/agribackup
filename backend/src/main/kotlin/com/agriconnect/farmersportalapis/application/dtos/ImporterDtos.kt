@@ -1,5 +1,6 @@
 package com.agriconnect.farmersportalapis.application.dtos
 
+import com.agriconnect.farmersportalapis.domain.common.enums.SmeCategory
 import com.agriconnect.farmersportalapis.domain.eudr.EudrComplianceStatus
 import com.agriconnect.farmersportalapis.domain.eudr.ImporterVerificationStatus
 import com.agriconnect.farmersportalapis.domain.eudr.InspectionResult
@@ -176,7 +177,14 @@ data class ImporterResponseDto(
     val hederaAccountId: String?,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
-    val userProfile: UserProfileSummaryDto
+    val userProfile: UserProfileSummaryDto,
+    // EUDR SME Fields
+    val smeCategory: SmeCategory? = null,
+    val employeeCount: Int? = null,
+    val annualTurnover: BigDecimal? = null,
+    val balanceSheetTotal: BigDecimal? = null,
+    val smeDeclarationDate: LocalDate? = null,
+    val isEligibleForSimplifiedDD: Boolean = false
 )
 
 data class ImportShipmentResponseDto(

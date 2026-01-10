@@ -15,6 +15,7 @@
         loop
         playsinline
         preload="auto"
+        poster="/images/landing-poster.png"
         @error="onVideoError"
       >
         <source src="https://res.cloudinary.com/dvk7kw8ev/video/upload/v1767432435/forest-farm-border_hm6baj.mp4" type="video/mp4">

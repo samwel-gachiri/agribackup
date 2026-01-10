@@ -438,7 +438,116 @@
                 </div>
              </section>
 
-             <!-- SIX: CERTIFICATES & SHARING -->
+             <!-- SIX: AUTHORISED REPRESENTATIVE -->
+             <section id="authorised-representative" class="tw-mb-24 tw-scroll-mt-32">
+                <div class="tw-flex tw-items-center tw-gap-4 tw-mb-8">
+                   <div class="tw-w-12 tw-h-12 tw-bg-purple-100 tw-text-purple-600 tw-rounded-xl tw-flex tw-items-center tw-justify-center">
+                      <v-icon color="purple">mdi-account-tie</v-icon>
+                   </div>
+                   <h2 class="tw-text-3xl tw-font-bold tw-text-slate-900 tw-m-0">Authorised Representative (EUDR Article 6)</h2>
+                </div>
+
+                <div class="tw-bg-purple-50 tw-p-8 tw-rounded-2xl tw-border tw-border-purple-200 tw-mb-8">
+                    <h3 class="tw-text-xl tw-font-bold tw-text-purple-900 tw-mb-4">Who needs an Authorised Representative?</h3>
+                    <p class="tw-text-purple-800 tw-leading-relaxed tw-mb-4">
+                        Under <strong>EUDR Article 6</strong>, operators established <strong>outside the European Union</strong> who wish to place commodities on the EU market must designate an <strong>Authorised Representative (AR)</strong> established within an EU Member State.
+                    </p>
+                    <div class="tw-bg-white tw-p-4 tw-rounded-lg tw-border tw-border-purple-100">
+                        <p class="tw-text-sm tw-text-purple-900 tw-font-medium tw-mb-2">
+                            <v-icon small color="purple">mdi-information</v-icon>
+                            <strong>Example:</strong> A coffee exporter in Kenya needs an AR in Germany, Netherlands, or any EU country to submit Due Diligence Statements on their behalf.
+                        </p>
+                    </div>
+                </div>
+
+                <h4 class="tw-text-lg tw-font-bold tw-text-slate-900 tw-mb-4">Key AR Requirements</h4>
+                <div class="tw-grid md:tw-grid-cols-2 tw-gap-6 tw-mb-8">
+                    <div class="tw-bg-white tw-p-6 tw-rounded-xl tw-border tw-border-slate-200">
+                        <div class="tw-flex tw-items-center tw-gap-3 tw-mb-3">
+                            <v-icon color="blue">mdi-card-account-details</v-icon>
+                            <h5 class="tw-font-bold tw-text-slate-900">EORI Number</h5>
+                        </div>
+                        <p class="tw-text-sm tw-text-slate-600">
+                            Your AR must have a valid <strong>Economic Operators Registration and Identification (EORI)</strong> number. This is required for EU customs and TRACES system access.
+                        </p>
+                    </div>
+                    <div class="tw-bg-white tw-p-6 tw-rounded-xl tw-border tw-border-slate-200">
+                        <div class="tw-flex tw-items-center tw-gap-3 tw-mb-3">
+                            <v-icon color="green">mdi-map-marker-check</v-icon>
+                            <h5 class="tw-font-bold tw-text-slate-900">EU Establishment</h5>
+                        </div>
+                        <p class="tw-text-sm tw-text-slate-600">
+                            The AR must be legally established in one of the <strong>27 EU Member States</strong>. They take on legal responsibility for DDS submissions.
+                        </p>
+                    </div>
+                    <div class="tw-bg-white tw-p-6 tw-rounded-xl tw-border tw-border-slate-200">
+                        <div class="tw-flex tw-items-center tw-gap-3 tw-mb-3">
+                            <v-icon color="orange">mdi-file-sign</v-icon>
+                            <h5 class="tw-font-bold tw-text-slate-900">Mandate Agreement</h5>
+                        </div>
+                        <p class="tw-text-sm tw-text-slate-600">
+                            You must formally appoint your AR through a <strong>mandate</strong> specifying the scope of authority (Full, DDS-only, or View-only access).
+                        </p>
+                    </div>
+                    <div class="tw-bg-white tw-p-6 tw-rounded-xl tw-border tw-border-slate-200">
+                        <div class="tw-flex tw-items-center tw-gap-3 tw-mb-3">
+                            <v-icon color="red">mdi-gavel</v-icon>
+                            <h5 class="tw-font-bold tw-text-slate-900">Legal Responsibility</h5>
+                        </div>
+                        <p class="tw-text-sm tw-text-slate-600">
+                            The AR shares responsibility for EUDR compliance. They can be held liable if due diligence obligations are not met.
+                        </p>
+                    </div>
+                </div>
+
+                <h3 class="tw-text-2xl tw-font-bold tw-text-slate-900 tw-mb-6">How to Designate an AR in AgriBackup</h3>
+                <div class="tw-bg-slate-50 tw-p-8 tw-rounded-2xl tw-border tw-border-slate-200">
+                    <div class="tw-space-y-6">
+                        <div class="tw-flex tw-items-start tw-gap-4">
+                            <div class="tw-w-10 tw-h-10 tw-bg-purple-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-text-white tw-font-bold tw-flex-shrink-0">1</div>
+                            <div>
+                                <h4 class="tw-font-bold tw-text-slate-900 tw-mb-1">Access AR Management</h4>
+                                <p class="tw-text-slate-600 tw-text-sm">From your EUDR Dashboard, click "Manage AR" in the alert banner, or navigate to EUDR → Authorised Representative.</p>
+                            </div>
+                        </div>
+                        <div class="tw-flex tw-items-start tw-gap-4">
+                            <div class="tw-w-10 tw-h-10 tw-bg-purple-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-text-white tw-font-bold tw-flex-shrink-0">2</div>
+                            <div>
+                                <h4 class="tw-font-bold tw-text-slate-900 tw-mb-1">Search for Available ARs</h4>
+                                <p class="tw-text-slate-600 tw-text-sm">Browse verified ARs by country, name, or EORI number. All listed ARs are verified and accepting new mandates.</p>
+                            </div>
+                        </div>
+                        <div class="tw-flex tw-items-start tw-gap-4">
+                            <div class="tw-w-10 tw-h-10 tw-bg-purple-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-text-white tw-font-bold tw-flex-shrink-0">3</div>
+                            <div>
+                                <h4 class="tw-font-bold tw-text-slate-900 tw-mb-1">Send Invitation</h4>
+                                <p class="tw-text-slate-600 tw-text-sm">Select an AR and send an invitation. Choose the mandate scope and optional expiry date.</p>
+                            </div>
+                        </div>
+                        <div class="tw-flex tw-items-start tw-gap-4">
+                            <div class="tw-w-10 tw-h-10 tw-bg-green-500 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-text-white tw-font-bold tw-flex-shrink-0">4</div>
+                            <div>
+                                <h4 class="tw-font-bold tw-text-slate-900 tw-mb-1">AR Accepts Mandate</h4>
+                                <p class="tw-text-slate-600 tw-text-sm">Once the AR accepts, they can submit DDS through EU TRACES using their EORI credentials on your behalf.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tw-mt-8 tw-bg-blue-50 tw-p-6 tw-rounded-xl tw-border tw-border-blue-200">
+                    <div class="tw-flex tw-items-start tw-gap-3">
+                        <v-icon color="blue">mdi-lightbulb</v-icon>
+                        <div>
+                            <p class="tw-font-bold tw-text-blue-900 tw-mb-2">Tip: Becoming an Authorised Representative</p>
+                            <p class="tw-text-sm tw-text-blue-800">
+                                If you're based in the EU and want to offer AR services, you can register as an Authorised Representative from the Sign Up page. You'll need a valid EORI number and EU business registration.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+             </section>
+
+             <!-- SEVEN: CERTIFICATES & SHARING -->
              <section id="certificates" class="tw-mb-16 tw-scroll-mt-32">
                 <div class="tw-flex tw-items-center tw-gap-4 tw-mb-8">
                    <div class="tw-w-12 tw-h-12 tw-bg-green-100 tw-text-green-600 tw-rounded-xl tw-flex tw-items-center tw-justify-center">
@@ -606,7 +715,8 @@ export default {
         { id: 'supply-chain', label: '3. Supply Chain' },
         { id: 'risk-mitigation', label: '4. Risk & Mitigation' },
         { id: 'eudr-compliance', label: '5. EUDR Compliance' },
-        { id: 'certificates', label: '6. Certificates' },
+        { id: 'authorised-representative', label: '6. Authorised Rep (EU)' },
+        { id: 'certificates', label: '7. Certificates' },
       ],
       isFullscreenOpen: false,
       fullscreenImageSrc: '',

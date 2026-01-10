@@ -1,0 +1,335 @@
+databaseChangeLog:
+  # ==========================================
+  # EUDR SPRINT 3 PART 2 - EORI AND MANDATE LINKAGE
+  # Corrects AuthorisedRepresentative to add EORI and creates RepresentativeMandate table
+  # ==========================================
+
+  # ==========================================
+  # UPDATE AUTHORISED REPRESENTATIVES TABLE
+  # Add EORI number (required for EU TRACES) and restructure
+  # ==========================================
+  - changeSet:
+      id: 058_01_add_eori_to_authorised_representatives
+      author: agribackup
+      comment: >
+        CRITICAL: Add EORI number to Authorised Representatives.
+        EORI (Economic Operators Registration and Identification) is required
+        for EU TRACES system access and DDS submission.
+      changes:
+        - addColumn:
+            tableName: authorised_representatives
+            columns:
+              - column:
+                  name: eori_number
+                  type: VARCHAR(17)
+                  remarks: "EORI: 2-letter EU country code + up to 15 alphanumeric chars"
+        - addColumn:
+            tableName: authorised_representatives
+            columns:
+              - column:
+                  name: user_profile_id
+                  type: VARCHAR(36)
+                  remarks: "Link to user profile for AR login capability"
+        - addColumn:
+            tableName: authorised_representatives
+            columns:
+              - column:
+                  name: company_name
+                  type: VARCHAR(255)
+                  remarks: "Legal company name of the AR"
+        - addColumn:
+            tableName: authorised_representatives
+            columns:
+              - column:
+                  name: vat_number
+                  type: VARCHAR(20)
+                  remarks: "VAT identification number"
+        - addColumn:
+            tableName: authorised_representatives
+            columns:
+              - column:
+                  name: contact_person_name
+                  type: VARCHAR(255)
+                  remarks: "Primary contact person"
+        - addColumn:
+            tableName: authorised_representatives
+            columns:
+              - column:
+                  name: business_address
+                  type: TEXT
+                  remarks: "Full EU business address"
+        - addColumn:
+            tableName: authorised_representatives
+            columns:
+              - column:
+                  name: is_verified
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+                  remarks: "Whether AR has been verified by admin"
+        - addColumn:
+            tableName: authorised_representatives
+            columns:
+              - column:
+                  name: is_accepting_mandates
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+                  remarks: "Whether AR is accepting new mandate requests"
+
+  - changeSet:
+      id: 058_02_add_eori_unique_constraint
+      author: agribackup
+      comment: EORI must be unique
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: eori_number
+      changes:
+        - addUniqueConstraint:
+            tableName: authorised_representatives
+            columnNames: eori_number
+            constraintName: uk_ar_eori_number
+
+  - changeSet:
+      id: 058_03_add_eori_index
+      author: agribackup
+      comment: Index for EORI lookups
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: eori_number
+      changes:
+        - createIndex:
+            indexName: idx_ar_eori_number
+            tableName: authorised_representatives
+            columns:
+              - column:
+                  name: eori_number
+
+  - changeSet:
+      id: 058_04_add_user_profile_fk
+      author: agribackup
+      comment: FK to user profiles for AR login
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: user_profile_id
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: authorised_representatives
+            baseColumnNames: user_profile_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_ar_user_profile
+            onDelete: SET NULL
+
+  # ==========================================
+  # CREATE REPRESENTATIVE MANDATES TABLE
+  # Links non-EU Exporters to their EU-based ARs
+  # ==========================================
+  - changeSet:
+      id: 058_05_create_representative_mandates_table
+      author: agribackup
+      comment: >
+        EUDR Article 6 Compliance: Mandate linkage between non-EU operators and ARs.
+        The mandate represents the formal agreement for an AR to act on behalf
+        of a non-EU exporter for EUDR compliance (DDS submission, etc.)
+      changes:
+        - createTable:
+            tableName: representative_mandates
+            columns:
+              - column:
+                  name: mandate_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                  remarks: "UUID primary key"
+              - column:
+                  name: exporter_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                  remarks: "Non-EU exporter delegating DDS authority"
+              - column:
+                  name: representative_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                  remarks: "EU-based AR acting on behalf of exporter"
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+                  remarks: "PENDING, ACTIVE, REJECTED, EXPIRED, REVOKED"
+              - column:
+                  name: initiated_by
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+                  remarks: "EXPORTER or REPRESENTATIVE"
+              - column:
+                  name: valid_from
+                  type: DATE
+                  constraints:
+                    nullable: false
+                  remarks: "Mandate effective start date"
+              - column:
+                  name: valid_to
+                  type: DATE
+                  remarks: "Mandate expiration date (null = indefinite)"
+              - column:
+                  name: signed_document_url
+                  type: VARCHAR(500)
+                  remarks: "URL to signed mandate document"
+              - column:
+                  name: document_id
+                  type: VARCHAR(36)
+                  remarks: "Reference to documents table"
+              - column:
+                  name: scope
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+                  defaultValue: "FULL"
+                  remarks: "FULL, DDS_ONLY, or VIEW_ONLY"
+              - column:
+                  name: commodity_restrictions
+                  type: VARCHAR(500)
+                  remarks: "Comma-separated commodity types if restricted"
+              - column:
+                  name: invitation_message
+                  type: TEXT
+                  remarks: "Optional message from initiator"
+              - column:
+                  name: rejection_reason
+                  type: TEXT
+                  remarks: "Reason for rejection or revocation"
+              - column:
+                  name: accepted_at
+                  type: TIMESTAMP
+                  remarks: "When mandate was accepted"
+              - column:
+                  name: rejected_at
+                  type: TIMESTAMP
+                  remarks: "When mandate was rejected"
+              - column:
+                  name: revoked_at
+                  type: TIMESTAMP
+                  remarks: "When mandate was revoked"
+              - column:
+                  name: revoked_by
+                  type: VARCHAR(20)
+                  remarks: "EXPORTER or REPRESENTATIVE who revoked"
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+  - changeSet:
+      id: 058_06_add_mandate_foreign_keys
+      author: agribackup
+      comment: Foreign keys for mandate table
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: representative_mandates
+            baseColumnNames: exporter_id
+            referencedTableName: exporters
+            referencedColumnNames: exporter_id
+            constraintName: fk_mandate_exporter
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: representative_mandates
+            baseColumnNames: representative_id
+            referencedTableName: authorised_representatives
+            referencedColumnNames: representative_id
+            constraintName: fk_mandate_representative
+            onDelete: CASCADE
+
+  - changeSet:
+      id: 058_07_create_mandate_indexes
+      author: agribackup
+      comment: Indexes for mandate queries
+      changes:
+        - createIndex:
+            indexName: idx_mandate_exporter_id
+            tableName: representative_mandates
+            columns:
+              - column:
+                  name: exporter_id
+        - createIndex:
+            indexName: idx_mandate_representative_id
+            tableName: representative_mandates
+            columns:
+              - column:
+                  name: representative_id
+        - createIndex:
+            indexName: idx_mandate_status
+            tableName: representative_mandates
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            indexName: idx_mandate_valid_dates
+            tableName: representative_mandates
+            columns:
+              - column:
+                  name: valid_from
+              - column:
+                  name: valid_to
+
+  # ==========================================
+  # DATA MIGRATION (if needed)
+  # Move existing mandate data from AR table to mandate table
+  # ==========================================
+  - changeSet:
+      id: 058_08_migrate_mandate_data
+      author: agribackup
+      comment: >
+        Migrate existing mandate data from authorised_representatives to
+        representative_mandates table. This preserves existing relationships.
+      preConditions:
+        - onFail: MARK_RAN
+        - and:
+            - columnExists:
+                tableName: authorised_representatives
+                columnName: operator_id
+            - columnExists:
+                tableName: authorised_representatives
+                columnName: mandate_start_date
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO representative_mandates (
+                mandate_id, exporter_id, representative_id, status, initiated_by,
+                valid_from, valid_to, signed_document_url, scope, created_at, updated_at
+              )
+              SELECT 
+                UUID() as mandate_id,
+                ar.operator_id as exporter_id,
+                ar.representative_id as representative_id,
+                CASE WHEN ar.is_active = true THEN 'ACTIVE' ELSE 'REVOKED' END as status,
+                'EXPORTER' as initiated_by,
+                ar.mandate_start_date as valid_from,
+                ar.mandate_end_date as valid_to,
+                ar.mandate_document_url as signed_document_url,
+                'FULL' as scope,
+                ar.created_at,
+                ar.updated_at
+              FROM authorised_representatives ar
+              WHERE ar.operator_id IS NOT NULL 
+              AND ar.mandate_start_date IS NOT NULL
+              AND ar.operator_type = 'EXPORTER';

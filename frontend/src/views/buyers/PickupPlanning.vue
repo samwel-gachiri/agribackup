@@ -707,7 +707,7 @@ export default {
 
         return this.generateMockRouteData(stops);
       } catch (error) {
-        // Immediately return mock data instead of throwing
+        this.$toast.error('Failed to calculate route:', error.message);
         return this.generateMockRouteData(stops);
       }
     },
@@ -715,7 +715,7 @@ export default {
     generateMockRouteData(stops) {
 
       if (!stops || stops.length === 0) {
-        // console.warn('No stops provided for mock route');
+        this.$toast.error('No stops provided for mock route');
         return null;
       }
 

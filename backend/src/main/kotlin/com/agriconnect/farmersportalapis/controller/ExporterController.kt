@@ -72,6 +72,47 @@ class ExporterController(
         return exporterService.verifyExporter(exporterId)
     }
 
+    // ==================== EUDR SME Classification Endpoints ====================
+
+    @Operation(
+        summary = "Get SME classification",
+        description = "Retrieves the current SME (Small and Medium Enterprise) classification for EUDR Article 13 compliance"
+    )
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "SME classification retrieved successfully"),
+        ApiResponse(responseCode = "404", description = "Exporter not found")
+    ])
+    @GetMapping("/{exporterId}/sme-classification")
+    fun getSmeClassification(
+        @Parameter(description = "ID of the exporter", required = true)
+        @PathVariable exporterId: String
+    ): Result<SmeClassificationResponseDto> {
+        return exporterService.getSmeClassification(exporterId)
+    }
+
+    @Operation(
+        summary = "Update SME declaration",
+        description = "Updates the SME declaration for EUDR Article 13 simplified due diligence eligibility. " +
+                "SME thresholds: Micro (<10 employees, ≤€2M), Small (<50 employees, ≤€10M), " +
+                "Medium (<250 employees, ≤€50M), Large (≥250 employees or >€50M)"
+    )
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "SME declaration updated successfully"),
+        ApiResponse(responseCode = "400", description = "Invalid input"),
+        ApiResponse(responseCode = "404", description = "Exporter not found"),
+        ApiResponse(responseCode = "403", description = "Unauthorized to update this exporter")
+    ])
+    @PutMapping("/{exporterId}/sme-declaration")
+    fun updateSmeDeclaration(
+        @Parameter(description = "ID of the exporter", required = true)
+        @PathVariable exporterId: String,
+        @RequestBody @Valid request: UpdateSmeDeclarationDto
+    ): Result<SmeClassificationResponseDto> {
+        return exporterService.updateSmeDeclaration(exporterId, request)
+    }
+
+    // ==================== End EUDR SME Endpoints ====================
+
     // --- Alias endpoints for role management (mirrors AdminController) to keep backward compatibility with older frontend paths ---
     @Operation(summary = "(Alias) Create System Admin under exporter namespace")
     @PostMapping("/system-admins")

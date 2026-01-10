@@ -250,8 +250,296 @@
                   </v-btn>
                 </v-window-item>
 
-                <!-- Step 3: Welcome -->
-                <v-window-item :value="3">
+                <!-- Dynamic Role Detail Steps (Step 3, 4, 5...) -->
+                <v-window-item
+                  v-for="(role, index) in rolesNeedingDetails"
+                  :key="'role-detail-' + role"
+                  :value="3 + index"
+                >
+                  <!-- Progress indicator -->
+                  <div class="mb-6">
+                    <div class="d-flex align-center justify-space-between mb-2">
+                      <span class="caption grey--text">Step {{ 3 + index }} of {{ totalSteps }}</span>
+                      <span class="caption grey--text">{{ role }} Details</span>
+                    </div>
+                    <v-progress-linear
+                      :value="((3 + index) / totalSteps) * 100"
+                      color="green darken-2"
+                      height="6"
+                      rounded
+                    ></v-progress-linear>
+                  </div>
+
+                  <!-- Farmer Details Form -->
+                  <div v-if="role === 'FARMER'" class="role-detail-form">
+                    <v-row>
+                      <v-col cols="12">
+                        <label class="input-label">Farm Name</label>
+                        <v-text-field
+                          v-model="roleDetails.FARMER.farmName"
+                          placeholder="e.g. Green Acres Farm"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12">
+                        <label class="input-label">Farm Size (acres)</label>
+                        <v-text-field
+                          v-model="roleDetails.FARMER.farmSize"
+                          placeholder="e.g. 50"
+                          type="number"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12">
+                        <label class="input-label">Farm Location</label>
+                        <v-text-field
+                          v-model="roleDetails.FARMER.location.customName"
+                          placeholder="e.g. Kiambu County, Kenya"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                    </v-row>
+                  </div>
+
+                  <!-- Exporter Details Form -->
+                  <div v-else-if="role === 'EXPORTER'" class="role-detail-form">
+                    <v-row>
+                      <v-col cols="12">
+                        <label class="input-label">Company Name</label>
+                        <v-text-field
+                          v-model="roleDetails.EXPORTER.companyName"
+                          placeholder="e.g. AgriExport Ltd"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12">
+                        <label class="input-label">Origin Country</label>
+                        <v-text-field
+                          v-model="roleDetails.EXPORTER.originCountry"
+                          placeholder="e.g. Kenya"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                    </v-row>
+                  </div>
+
+                  <!-- Buyer Details Form -->
+                  <div v-else-if="role === 'BUYER'" class="role-detail-form">
+                    <v-row>
+                      <v-col cols="12">
+                        <label class="input-label">Business Name</label>
+                        <v-text-field
+                          v-model="roleDetails.BUYER.businessName"
+                          placeholder="e.g. Fresh Produce Buyers Ltd"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12">
+                        <label class="input-label">Business Location</label>
+                        <v-text-field
+                          v-model="roleDetails.BUYER.location.customName"
+                          placeholder="e.g. Nairobi, Kenya"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                    </v-row>
+                  </div>
+
+                  <!-- Importer Details Form -->
+                  <div v-else-if="role === 'IMPORTER'" class="role-detail-form">
+                    <v-row>
+                      <v-col cols="12">
+                        <label class="input-label">Business Name</label>
+                        <v-text-field
+                          v-model="roleDetails.IMPORTER.businessName"
+                          placeholder="e.g. EU Fresh Imports GmbH"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12">
+                        <label class="input-label">Business Location</label>
+                        <v-text-field
+                          v-model="roleDetails.IMPORTER.location.customName"
+                          placeholder="e.g. Hamburg, Germany"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                    </v-row>
+                  </div>
+
+                  <!-- Supplier Details Form -->
+                  <div v-else-if="role === 'SUPPLIER'" class="role-detail-form">
+                    <v-row>
+                      <v-col cols="12">
+                        <label class="input-label">Business Name</label>
+                        <v-text-field
+                          v-model="roleDetails.SUPPLIER.businessName"
+                          placeholder="e.g. AgriSupply Co."
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12">
+                        <label class="input-label">Business Location</label>
+                        <v-text-field
+                          v-model="roleDetails.SUPPLIER.location.customName"
+                          placeholder="e.g. Mombasa, Kenya"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                    </v-row>
+                  </div>
+
+                  <!-- Authorised Representative Details Form -->
+                  <div v-else-if="role === 'AUTHORISED_REPRESENTATIVE'" class="role-detail-form">
+                    <v-alert type="info" dense text class="mb-4">
+                      <strong>EUDR Article 6:</strong> As an Authorised Representative, you will represent non-EU exporters for compliance purposes.
+                    </v-alert>
+                    <v-row>
+                      <v-col cols="12" md="6">
+                        <label class="input-label">EORI Number *</label>
+                        <v-text-field
+                          v-model="roleDetails.AUTHORISED_REPRESENTATIVE.eoriNumber"
+                          placeholder="e.g. DE123456789012345"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                          hint="Economic Operators Registration and Identification"
+                          persistent-hint
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <label class="input-label">Company Name *</label>
+                        <v-text-field
+                          v-model="roleDetails.AUTHORISED_REPRESENTATIVE.companyName"
+                          placeholder="e.g. AgriConnect GmbH"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <label class="input-label">EU Member State *</label>
+                        <v-autocomplete
+                          v-model="roleDetails.AUTHORISED_REPRESENTATIVE.euMemberState"
+                          :items="euMemberStates"
+                          item-text="name"
+                          item-value="code"
+                          placeholder="Select your EU country"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        >
+                          <template #item="{ item }">
+                            <div class="d-flex align-center">
+                              <span class="mr-2">{{ item.flag }}</span>
+                              <span>{{ item.name }}</span>
+                            </div>
+                          </template>
+                          <template #selection="{ item }">
+                            <div class="d-flex align-center">
+                              <span class="mr-2">{{ item.flag }}</span>
+                              <span>{{ item.name }}</span>
+                            </div>
+                          </template>
+                        </v-autocomplete>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <label class="input-label">Business Registration Number *</label>
+                        <v-text-field
+                          v-model="roleDetails.AUTHORISED_REPRESENTATIVE.registrationNumber"
+                          placeholder="e.g. HRB 123456"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <label class="input-label">VAT Number (Optional)</label>
+                        <v-text-field
+                          v-model="roleDetails.AUTHORISED_REPRESENTATIVE.vatNumber"
+                          placeholder="e.g. DE123456789"
+                          outlined
+                          dense
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <label class="input-label">Business Address *</label>
+                        <v-textarea
+                          v-model="roleDetails.AUTHORISED_REPRESENTATIVE.businessAddress"
+                          placeholder="Full business address in the EU"
+                          outlined
+                          dense
+                          rows="2"
+                          class="professional-input"
+                          hide-details="auto"
+                        ></v-textarea>
+                      </v-col>
+                    </v-row>
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div class="d-flex mt-6">
+                    <v-btn
+                      text
+                      color="grey darken-1"
+                      class="mr-2"
+                      @click="skipRoleDetails"
+                    >
+                      Skip for Now
+                    </v-btn>
+                    <v-spacer></v-spacer>
+                    <v-btn
+                      color="green darken-2"
+                      class="white--text"
+                      :loading="loading"
+                      @click="submitRoleDetails"
+                    >
+                      {{ index === rolesNeedingDetails.length - 1 ? 'Complete Setup' : 'Next' }}
+                    </v-btn>
+                  </div>
+                </v-window-item>
+
+                <!-- Welcome Step (Dynamic based on roles) -->
+                <v-window-item :value="welcomeStep">
                   <div class="text-center py-12">
                     <v-icon size="80" color="green darken-2" class="mb-6">mdi-check-circle-outline</v-icon>
                     <h3 class="text-h5 font-weight-bold mb-2">You're all set!</h3>
@@ -302,6 +590,85 @@ export default {
       registeredUserId: null,
       selectedRoles: [],
       selectedSupplierType: null,
+      currentRoleDetailIndex: 0,
+      // Role-specific form data
+      roleDetails: {
+        FARMER: {
+          farmName: '',
+          farmSize: '',
+          location: {
+            customName: '',
+            lat: null,
+            lng: null,
+          },
+        },
+        EXPORTER: {
+          companyName: '',
+          originCountry: '',
+        },
+        BUYER: {
+          businessName: '',
+          location: {
+            customName: '',
+            lat: null,
+            lng: null,
+          },
+        },
+        IMPORTER: {
+          businessName: '',
+          location: {
+            customName: '',
+            lat: null,
+            lng: null,
+          },
+        },
+        AUTHORISED_REPRESENTATIVE: {
+          eoriNumber: '',
+          companyName: '',
+          euMemberState: '',
+          registrationNumber: '',
+          vatNumber: '',
+          businessAddress: '',
+        },
+        SUPPLIER: {
+          businessName: '',
+          location: {
+            customName: '',
+            lat: null,
+            lng: null,
+          },
+        },
+      },
+      // EU Member States for AR
+      euMemberStates: [
+        { code: 'AT', name: 'Austria', flag: '🇦🇹' },
+        { code: 'BE', name: 'Belgium', flag: '🇧🇪' },
+        { code: 'BG', name: 'Bulgaria', flag: '🇧🇬' },
+        { code: 'HR', name: 'Croatia', flag: '🇭🇷' },
+        { code: 'CY', name: 'Cyprus', flag: '🇨🇾' },
+        { code: 'CZ', name: 'Czech Republic', flag: '🇨🇿' },
+        { code: 'DK', name: 'Denmark', flag: '🇩🇰' },
+        { code: 'EE', name: 'Estonia', flag: '🇪🇪' },
+        { code: 'FI', name: 'Finland', flag: '🇫🇮' },
+        { code: 'FR', name: 'France', flag: '🇫🇷' },
+        { code: 'DE', name: 'Germany', flag: '🇩🇪' },
+        { code: 'GR', name: 'Greece', flag: '🇬🇷' },
+        { code: 'HU', name: 'Hungary', flag: '🇭🇺' },
+        { code: 'IE', name: 'Ireland', flag: '🇮🇪' },
+        { code: 'IT', name: 'Italy', flag: '🇮🇹' },
+        { code: 'LV', name: 'Latvia', flag: '🇱🇻' },
+        { code: 'LT', name: 'Lithuania', flag: '🇱🇹' },
+        { code: 'LU', name: 'Luxembourg', flag: '🇱🇺' },
+        { code: 'MT', name: 'Malta', flag: '🇲🇹' },
+        { code: 'NL', name: 'Netherlands', flag: '🇳🇱' },
+        { code: 'PL', name: 'Poland', flag: '🇵🇱' },
+        { code: 'PT', name: 'Portugal', flag: '🇵🇹' },
+        { code: 'RO', name: 'Romania', flag: '🇷🇴' },
+        { code: 'SK', name: 'Slovakia', flag: '🇸🇰' },
+        { code: 'SI', name: 'Slovenia', flag: '🇸🇮' },
+        { code: 'ES', name: 'Spain', flag: '🇪🇸' },
+        { code: 'SE', name: 'Sweden', flag: '🇸🇪' },
+      ],
       supplierTypes: [
         {
           value: 'AGGREGATOR',
@@ -368,6 +735,15 @@ export default {
         {
           roleType: 'EXPORTER', displayName: 'Exporter', description: 'I export produce to international markets and need EUDR compliance', icon: 'mdi-airplane', color: 'purple darken-2',
         },
+        {
+          roleType: 'BUYER', displayName: 'Buyer', description: 'I purchase agricultural products from farmers or suppliers', icon: 'mdi-shopping', color: 'orange darken-2',
+        },
+        {
+          roleType: 'IMPORTER', displayName: 'Importer', description: 'I import produce from international markets into my country', icon: 'mdi-import', color: 'teal darken-2',
+        },
+        {
+          roleType: 'AUTHORISED_REPRESENTATIVE', displayName: 'Authorised Representative', description: 'I represent non-EU exporters for EUDR compliance (Article 6)', icon: 'mdi-account-tie', color: 'indigo darken-2',
+        },
       ],
       rules: {
         required: (v) => !!v || 'Required',
@@ -380,12 +756,44 @@ export default {
     stepTitle() {
       if (this.step === 1) return 'Create your account';
       if (this.step === 2) return 'Getting Started';
+      if (this.isRoleDetailStep) {
+        const role = this.currentRoleForDetails;
+        if (role) {
+          const roleInfo = this.availableRoles.find((r) => r.roleType === role);
+          return roleInfo ? `${roleInfo.displayName} Details` : 'Role Details';
+        }
+      }
       return 'Welcome to AgriBackup';
     },
     stepSubtitle() {
       if (this.step === 1) return 'Start your journey with AgriBackup today.';
       if (this.step === 2) return 'Select the roles you want to be involved in.';
+      if (this.isRoleDetailStep) {
+        return 'Fill in the details for this role. You can skip and complete later.';
+      }
       return 'Your account is ready.';
+    },
+    // Check if current step is a role detail step
+    isRoleDetailStep() {
+      return this.step > 2 && this.step <= 2 + this.rolesNeedingDetails.length;
+    },
+    // Roles that need detail collection (excluding SUPPLIER which uses supplierType sub-selection)
+    rolesNeedingDetails() {
+      return this.selectedRoles.filter((role) => role !== 'SUPPLIER' || this.selectedSupplierType);
+    },
+    // Get the current role for the detail step
+    currentRoleForDetails() {
+      if (!this.isRoleDetailStep) return null;
+      const roleIndex = this.step - 3; // step 3 is first role detail (index 0)
+      return this.rolesNeedingDetails[roleIndex] || null;
+    },
+    // Total number of steps (1=registration, 2=role selection, N=role details, last=welcome)
+    totalSteps() {
+      return 3 + this.rolesNeedingDetails.length;
+    },
+    // Welcome step number
+    welcomeStep() {
+      return 3 + this.rolesNeedingDetails.length;
     },
     canSubmitRoles() {
       if (this.selectedRoles.length === 0) return false;
@@ -453,11 +861,48 @@ export default {
     async submitRoles() {
       if (!this.canSubmitRoles) return;
 
+      // If there are roles that need details, go to role detail steps
+      if (this.rolesNeedingDetails.length > 0) {
+        this.step = 3; // First role detail step
+        window.scrollTo(0, 0);
+        return;
+      }
+
+      // No role details needed, proceed to final submission
+      await this.finalizeRegistration();
+    },
+    async submitRoleDetails() {
+      // Check if there are more roles to collect details for
+      const currentRoleIndex = this.step - 3;
+      if (currentRoleIndex < this.rolesNeedingDetails.length - 1) {
+        // Move to next role detail step
+        this.step += 1;
+        window.scrollTo(0, 0);
+        return;
+      }
+
+      // All role details collected, finalize registration
+      await this.finalizeRegistration();
+    },
+    skipRoleDetails() {
+      // Skip current role details and move to next
+      const currentRoleIndex = this.step - 3;
+      if (currentRoleIndex < this.rolesNeedingDetails.length - 1) {
+        this.step += 1;
+        window.scrollTo(0, 0);
+        return;
+      }
+
+      // All roles skipped/completed, finalize registration
+      this.finalizeRegistration();
+    },
+    async finalizeRegistration() {
       this.loading = true;
       try {
         const payload = {
           userId: this.registeredUserId,
           roles: this.selectedRoles,
+          roleDetails: this.roleDetails,
         };
 
         // Include supplier type if SUPPLIER role is selected
@@ -471,7 +916,7 @@ export default {
           // Auto-login
           await this.autoLogin();
 
-          this.step = 3;
+          this.step = this.welcomeStep;
           setTimeout(() => {
             this.$router.push({ name: 'Dashboard' });
           }, 2000);

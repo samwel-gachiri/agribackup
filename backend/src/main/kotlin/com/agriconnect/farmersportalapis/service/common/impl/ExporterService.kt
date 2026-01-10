@@ -98,6 +98,78 @@ class ExporterService(
         }
     }
 
+    /**
+     * Update SME (Small and Medium Enterprise) declaration for EUDR Article 13 compliance.
+     * SMEs qualify for simplified due diligence requirements.
+     */
+    @Transactional(rollbackFor = [Exception::class])
+    @PreAuthorize("hasAuthority('UPDATE_EXPORTER') or #exporterId == principal.username")
+    fun updateSmeDeclaration(exporterId: String, request: UpdateSmeDeclarationDto): Result<SmeClassificationResponseDto> {
+        return try {
+            val exporter = exporterRepository.findByIdOrNull(exporterId)
+                ?: return ResultFactory.getFailResult(EXPORTER_NOT_FOUND)
+
+            // Update SME fields
+            exporter.employeeCount = request.employeeCount
+            exporter.annualTurnover = request.annualTurnover
+            exporter.balanceSheetTotal = request.balanceSheetTotal
+            exporter.smeDeclarationDate = request.declarationDate
+
+            // Auto-calculate SME category based on EU thresholds
+            exporter.smeCategory = exporter.calculateSmeCategory()
+
+            val updatedExporter = exporterRepository.save(exporter)
+            logger.info("SME declaration updated for exporter {}: category={}", exporterId, exporter.smeCategory)
+
+            val response = SmeClassificationResponseDto(
+                entityId = updatedExporter.id,
+                entityType = "EXPORTER",
+                smeCategory = updatedExporter.smeCategory,
+                employeeCount = updatedExporter.employeeCount,
+                annualTurnover = updatedExporter.annualTurnover,
+                balanceSheetTotal = updatedExporter.balanceSheetTotal,
+                declarationDate = updatedExporter.smeDeclarationDate,
+                isDeclarationExpired = updatedExporter.isSmeDeclarationExpired(),
+                isEligibleForSimplifiedDD = updatedExporter.isEligibleForSimplifiedDueDiligence(),
+                calculatedCategory = updatedExporter.calculateSmeCategory()
+            )
+
+            ResultFactory.getSuccessResult(response, "SME declaration updated successfully")
+        } catch (e: Exception) {
+            logger.error("Error updating SME declaration for exporter {}: {}", exporterId, e.message, e)
+            ResultFactory.getFailResult("Failed to update SME declaration: ${e.message}")
+        }
+    }
+
+    /**
+     * Get current SME classification status for an exporter.
+     */
+    @Transactional(readOnly = true)
+    fun getSmeClassification(exporterId: String): Result<SmeClassificationResponseDto> {
+        return try {
+            val exporter = exporterRepository.findByIdOrNull(exporterId)
+                ?: return ResultFactory.getFailResult(EXPORTER_NOT_FOUND)
+
+            val response = SmeClassificationResponseDto(
+                entityId = exporter.id,
+                entityType = "EXPORTER",
+                smeCategory = exporter.smeCategory,
+                employeeCount = exporter.employeeCount,
+                annualTurnover = exporter.annualTurnover,
+                balanceSheetTotal = exporter.balanceSheetTotal,
+                declarationDate = exporter.smeDeclarationDate,
+                isDeclarationExpired = exporter.isSmeDeclarationExpired(),
+                isEligibleForSimplifiedDD = exporter.isEligibleForSimplifiedDueDiligence(),
+                calculatedCategory = exporter.calculateSmeCategory()
+            )
+
+            ResultFactory.getSuccessResult(response, "SME classification retrieved successfully")
+        } catch (e: Exception) {
+            logger.error("Error getting SME classification for exporter {}: {}", exporterId, e.message, e)
+            ResultFactory.getFailResult("Failed to get SME classification: ${e.message}")
+        }
+    }
+
     // Superadmin capabilities for Exporters
     
     @Transactional(rollbackFor = [Exception::class])
@@ -486,7 +558,13 @@ class ExporterService(
         verificationStatus = verificationStatus,
         exportLicenseFormUrl = exportLicenseFormUrl,
         originCountry = originCountry,
-        originCountryCode = originCountryCode
+        originCountryCode = originCountryCode,
+        smeCategory = smeCategory,
+        employeeCount = employeeCount,
+        annualTurnover = annualTurnover,
+        balanceSheetTotal = balanceSheetTotal,
+        smeDeclarationDate = smeDeclarationDate,
+        isEligibleForSimplifiedDD = isEligibleForSimplifiedDueDiligence()
     )
 
     private fun SystemAdmin.toResponseDto(tempPassword: String? = null) = SystemAdminResponseDto(

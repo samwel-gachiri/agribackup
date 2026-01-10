@@ -270,7 +270,7 @@ export default {
           this.error = response.data.message || 'Verification failed';
         }
       } catch (err) {
-        // console.error('Verification error:', err);
+        this.$toast.error('Verification error:', err.message);
         this.error = 'Unable to verify product. Please check your connection and try again.';
       } finally {
         this.loading = false;

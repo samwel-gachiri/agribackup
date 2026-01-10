@@ -301,6 +301,43 @@ class HederaConsensusServices(
         return submitConsensusMessage(message)
     }
 
+    /**
+     * Record two-party handshake transfer event (Farmer→Supplier, Supplier→Supplier)
+     */
+    fun recordTransferEvent(
+        transferId: String,
+        senderName: String,
+        senderType: String,
+        recipientName: String,
+        recipientType: String,
+        produceType: String,
+        senderQuantityKg: BigDecimal,
+        receiverQuantityKg: BigDecimal?,
+        status: String,
+        hasDiscrepancy: Boolean,
+        discrepancyKg: BigDecimal?
+    ): String {
+        val message = createConsensusMessage(
+            eventType = "TRANSFER_$status",
+            entityId = transferId,
+            entityType = "TransferRequest",
+            data = mapOf(
+                "senderName" to senderName,
+                "senderType" to senderType,
+                "recipientName" to recipientName,
+                "recipientType" to recipientType,
+                "produceType" to produceType,
+                "senderQuantityKg" to senderQuantityKg.toString(),
+                "receiverQuantityKg" to (receiverQuantityKg?.toString() ?: ""),
+                "status" to status,
+                "hasDiscrepancy" to hasDiscrepancy.toString(),
+                "discrepancyKg" to (discrepancyKg?.toString() ?: "0"),
+                "recordedAt" to Instant.now().toString()
+            )
+        )
+        return submitConsensusMessage(message)
+    }
+
     // ============================================
     // NEW METHODS FOR AGGREGATOR & IMPORTER
     // ============================================

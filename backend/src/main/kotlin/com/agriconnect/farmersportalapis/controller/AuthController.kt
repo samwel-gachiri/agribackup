@@ -44,6 +44,10 @@ class AuthController(private val authService: AuthService, private val smsServic
         fun registerImporter(@RequestBody request: ImporterRegistrationDto) =
                 authService.registerImporter(request)
 
+        @PostMapping("/register/authorised-representative")
+        fun registerAuthorisedRepresentative(@RequestBody request: AuthorisedRepresentativeRegistrationDto) =
+                authService.registerAuthorisedRepresentative(request)
+
         @PostMapping("/login")
         fun login(
                 @RequestBody request: LoginDto

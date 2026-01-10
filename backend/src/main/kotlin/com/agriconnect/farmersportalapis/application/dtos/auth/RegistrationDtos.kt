@@ -68,13 +68,80 @@ data class ImporterRegistrationDto(
         val certificationDetails: String?
 )
 
+/**
+ * EUDR Article 6 - Authorised Representative Registration
+ * ARs must have EORI number and be established in an EU member state
+ */
+data class AuthorisedRepresentativeRegistrationDto(
+        val user: UserRegistrationDto,
+        val eoriNumber: String,
+        val companyName: String,
+        val euMemberState: String,
+        val registrationNumber: String,
+        val vatNumber: String,
+        val contactPhone: String,
+        val businessAddress: String
+)
+
 data class AddBuyerProduceDto(val name: String)
+
+// Role-specific detail DTOs for signup
+data class FarmerDetailsDto(
+    val farmName: String? = null,
+    val farmSize: String? = null,
+    val location: LocationDto? = null
+)
+
+data class ExporterDetailsDto(
+    val companyName: String? = null,
+    val originCountry: String? = null
+)
+
+data class BuyerDetailsDto(
+    val businessName: String? = null,
+    val location: LocationDto? = null
+)
+
+data class ImporterDetailsDto(
+    val businessName: String? = null,
+    val location: LocationDto? = null
+)
+
+data class SupplierDetailsDto(
+    val businessName: String? = null,
+    val location: LocationDto? = null
+)
+
+data class ARDetailsDto(
+    val eoriNumber: String? = null,
+    val companyName: String? = null,
+    val euMemberState: String? = null,
+    val registrationNumber: String? = null,
+    val vatNumber: String? = null,
+    val businessAddress: String? = null
+)
+
+data class LocationDto(
+    val customName: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null
+)
+
+data class RoleDetailsDto(
+    val FARMER: FarmerDetailsDto? = null,
+    val EXPORTER: ExporterDetailsDto? = null,
+    val BUYER: BuyerDetailsDto? = null,
+    val IMPORTER: ImporterDetailsDto? = null,
+    val SUPPLIER: SupplierDetailsDto? = null,
+    val AUTHORISED_REPRESENTATIVE: ARDetailsDto? = null
+)
 
 // Assign Roles DTO
 data class AssignRolesDto(
     val userId: String, 
     val roles: List<RoleType>,
-    val supplierType: String? = null // Optional: AGGREGATOR, PROCESSOR, DISTRIBUTOR, etc.
+    val supplierType: String? = null, // Optional: AGGREGATOR, PROCESSOR, DISTRIBUTOR, etc.
+    val roleDetails: RoleDetailsDto? = null // Role-specific details from signup
 )
 
 // Login DTO
@@ -177,6 +244,19 @@ data class AdminLoginDto(
         val phoneNumber: String?,
         val role: String?,
         val department: String?
+)
+
+data class AuthorisedRepresentativeLoginDto(
+        val id: String,
+        val userId: String,
+        val fullName: String,
+        val email: String?,
+        val phoneNumber: String?,
+        val eoriNumber: String?,
+        val companyName: String?,
+        val euMemberState: String?,
+        val isVerified: Boolean,
+        val isAcceptingMandates: Boolean
 )
 
 data class GoogleLoginDto(

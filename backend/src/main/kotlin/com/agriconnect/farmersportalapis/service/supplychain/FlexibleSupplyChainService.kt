@@ -30,7 +30,9 @@ class FlexibleSupplyChainService(
     private val workflowRepository: SupplyChainWorkflowRepository,
     private val inviteRepository: SupplierInviteRepository,
     private val exporterRepository: ExporterRepository,
-    private val asyncHederaService: AsyncHederaService?
+    private val asyncHederaService: AsyncHederaService?,
+    private val transferRequestRepository: com.agriconnect.farmersportalapis.repository.TransferRequestRepository,
+    private val farmerCollectionRepository: com.agriconnect.farmersportalapis.infrastructure.repositories.FarmerCollectionRepository
 ) {
     private val log = LoggerFactory.getLogger(FlexibleSupplyChainService::class.java)
 
@@ -71,6 +73,13 @@ class FlexibleSupplyChainService(
             pageable,
             dtos.size.toLong()
         )
+    }
+
+    /**
+     * Get all active suppliers as a simple list
+     */
+    fun getAllActiveSuppliers(): List<SupplierDto> {
+        return supplierRepository.findByIsActiveTrue().map { it.toDto() }
     }
 
     /**
@@ -317,6 +326,46 @@ class FlexibleSupplyChainService(
         val subSuppliers = supplierRepository.findByParentSupplier_Id(supplierId)
         log.info("Found ${subSuppliers.size} sub-suppliers for supplier $supplierId")
         return subSuppliers.map { it.toDto() }
+    }
+
+    /**
+     * Get suppliers a farmer can send to
+     * Returns ALL suppliers that accept from farmers, with recently connected ones at the top
+     */
+    fun getSuppliersAcceptingFromFarmers(farmerId: String, supplierTypes: List<String>): List<SupplierDto> {
+        val types = supplierTypes.mapNotNull { 
+            try { SupplierType.valueOf(it.uppercase()) } 
+            catch (e: Exception) { null }
+        }
+        
+        // Get IDs of recently connected suppliers (from transfers and collections)
+        val recentSupplierIds = mutableSetOf<String>()
+        
+        // 1. Get suppliers the farmer has sent transfers to
+        val transferSupplierIds = transferRequestRepository.findDistinctSupplierIdsByFarmerId(farmerId)
+        recentSupplierIds.addAll(transferSupplierIds)
+        
+        // 2. Get aggregators that have collected from this farmer
+        val aggregators = farmerCollectionRepository.findDistinctAggregatorsByFarmerId(farmerId)
+        for (agg in aggregators) {
+            agg.userProfile?.id?.let { userId ->
+                supplierRepository.findByUserProfileId(userId)?.let { supplier ->
+                    recentSupplierIds.add(supplier.id)
+                }
+            }
+        }
+        
+        // 3. Get ALL active suppliers of the specified types
+        val allSuppliers = supplierRepository.findBySupplierTypeInAndIsActiveTrue(types)
+        
+        // 4. Sort: recent suppliers first, then alphabetically
+        val sortedSuppliers = allSuppliers.sortedWith(
+            compareByDescending<SupplyChainSupplier> { it.id in recentSupplierIds }
+                .thenBy { it.supplierName }
+        )
+        
+        log.info("Found ${sortedSuppliers.size} suppliers for farmer $farmerId (${recentSupplierIds.size} recent)")
+        return sortedSuppliers.map { it.toDto() }
     }
 
     /**

@@ -180,6 +180,11 @@
                             <v-list-item-icon><v-icon small>mdi-clipboard-check</v-icon></v-list-item-icon>
                             <v-list-item-title>Record Inspection</v-list-item-title>
                           </v-list-item>
+                          <v-divider v-if="item.status === 'IN_TRANSIT'"></v-divider>
+                          <v-list-item v-if="item.status === 'IN_TRANSIT'" @click="openConfirmReceiptDialog(item)" class="tw-bg-green-50">
+                            <v-list-item-icon><v-icon small color="success">mdi-check-circle</v-icon></v-list-item-icon>
+                            <v-list-item-title class="tw-text-green-700 tw-font-medium">Confirm Receipt</v-list-item-title>
+                          </v-list-item>
                           <v-list-item v-if="item.status !== 'DELIVERED'" @click="updateShipmentStatus(item)">
                             <v-list-item-icon><v-icon small>mdi-update</v-icon></v-list-item-icon>
                             <v-list-item-title>Update Status</v-list-item-title>
@@ -390,6 +395,94 @@
         :hedera-network="hederaNetwork"
       />
     </v-dialog>
+
+    <!-- Confirm Receipt Dialog -->
+    <v-dialog v-model="showConfirmReceiptDialog" max-width="600" persistent>
+      <v-card v-if="receiptShipment">
+        <v-card-title class="tw-bg-green-600 tw-text-white">
+          <v-icon color="white" class="tw-mr-2">mdi-check-circle</v-icon>
+          Confirm Shipment Receipt
+        </v-card-title>
+        <v-card-text class="tw-pt-6">
+          <v-alert type="info" text dense class="tw-mb-4">
+            Confirm receipt of shipment <strong>{{ receiptShipment.shipmentNumber }}</strong>
+            from <strong>{{ receiptShipment.exporterName || 'Exporter' }}</strong>
+          </v-alert>
+
+          <v-form ref="receiptForm" v-model="receiptFormValid">
+            <v-row>
+              <v-col cols="6">
+                <v-text-field
+                  :value="receiptShipment.quantityKg"
+                  label="Expected Quantity (kg)"
+                  outlined
+                  dense
+                  disabled
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model.number="receipt.receivedQuantityKg"
+                  label="Actual Received (kg) *"
+                  type="number"
+                  outlined
+                  dense
+                  :rules="[v => v > 0 || 'Required']"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+
+            <v-alert
+              v-if="receipt.receivedQuantityKg && receipt.receivedQuantityKg !== receiptShipment.quantityKg"
+              type="warning"
+              text
+              dense
+              class="tw-mb-4"
+            >
+              <strong>Quantity discrepancy detected!</strong> Both values will be recorded immutably on Hedera.
+            </v-alert>
+
+            <v-text-field
+              v-model="receipt.arrivalDate"
+              label="Arrival Date *"
+              type="date"
+              outlined
+              dense
+              :rules="[v => !!v || 'Required']"
+            ></v-text-field>
+
+            <v-select
+              v-model="receipt.condition"
+              :items="['Excellent', 'Good', 'Fair', 'Poor']"
+              label="Shipment Condition"
+              outlined
+              dense
+            ></v-select>
+
+            <v-textarea
+              v-model="receipt.notes"
+              label="Receipt Notes"
+              outlined
+              dense
+              rows="2"
+            ></v-textarea>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn text @click="showConfirmReceiptDialog = false">Cancel</v-btn>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="success"
+            :loading="confirmingReceipt"
+            :disabled="!receiptFormValid"
+            @click="confirmReceipt"
+          >
+            <v-icon left>mdi-check</v-icon>
+            Confirm Receipt
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -415,6 +508,17 @@ export default {
       showShipmentDialog: false,
       showTraceabilityDialog: false,
       selectedShipment: null,
+      // Confirm Receipt
+      showConfirmReceiptDialog: false,
+      receiptShipment: null,
+      receiptFormValid: false,
+      confirmingReceipt: false,
+      receipt: {
+        receivedQuantityKg: null,
+        arrivalDate: new Date().toISOString().split('T')[0],
+        condition: 'Good',
+        notes: '',
+      },
       shipmentHeaders: [
         { text: 'Shipment #', value: 'shipmentNumber' },
         { text: 'Produce', value: 'produceType' },
@@ -548,6 +652,41 @@ export default {
         UNDER_INVESTIGATION: 'orange',
       };
       return colors[status] || 'grey';
+    },
+
+    // Confirm Receipt methods
+    openConfirmReceiptDialog(shipment) {
+      this.receiptShipment = shipment;
+      this.receipt.receivedQuantityKg = shipment.quantityKg;
+      this.receipt.arrivalDate = new Date().toISOString().split('T')[0];
+      this.receipt.condition = 'Good';
+      this.receipt.notes = '';
+      this.showConfirmReceiptDialog = true;
+    },
+
+    async confirmReceipt() {
+      if (!this.$refs.receiptForm.validate()) return;
+
+      this.confirmingReceipt = true;
+      try {
+        const payload = {
+          shipmentId: this.receiptShipment.id,
+          receivedQuantityKg: this.receipt.receivedQuantityKg,
+          arrivalDate: this.receipt.arrivalDate,
+          condition: this.receipt.condition,
+          notes: this.receipt.notes,
+          hasDiscrepancy: this.receipt.receivedQuantityKg !== this.receiptShipment.quantityKg,
+        };
+
+        await axios.put(`/api/v1/shipments/${this.receiptShipment.id}/confirm`, payload);
+        this.$toast.success('Shipment receipt confirmed! Data written to Hedera.');
+        this.showConfirmReceiptDialog = false;
+        await this.fetchShipments();
+      } catch (error) {
+        this.$toast.error('Failed to confirm receipt');
+      } finally {
+        this.confirmingReceipt = false;
+      }
     },
   },
 };

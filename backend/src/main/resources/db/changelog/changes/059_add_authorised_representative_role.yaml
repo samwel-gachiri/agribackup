@@ -1,0 +1,331 @@
+databaseChangeLog:
+  # ==========================================
+  # ADD AUTHORISED REPRESENTATIVE ROLE
+  # EUDR Article 6 - Role for EU-based representatives of non-EU operators
+  # ==========================================
+
+  - changeSet:
+      id: 059_01_add_authorised_representative_role
+      author: agribackup
+      comment: >
+        EUDR Article 6 Compliance: Add AUTHORISED_REPRESENTATIVE role
+        for EU-based representatives who act on behalf of non-EU exporters/importers.
+      changes:
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: id
+                  value: role_authorised_representative
+              - column:
+                  name: name
+                  value: AUTHORISED_REPRESENTATIVE
+              - column:
+                  name: description
+                  value: EU-based Authorised Representative for non-EU operators under EUDR Article 6
+      rollback:
+        - delete:
+            tableName: roles
+            where: id = 'role_authorised_representative'
+
+  - changeSet:
+      id: 059_02_add_authorised_representative_permissions
+      author: agribackup
+      comment: >
+        Permissions for Authorised Representatives to submit DDS and manage mandates.
+      changes:
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: id
+                  value: perm_submit_dds_on_behalf
+              - column:
+                  name: name
+                  value: SUBMIT_DDS_ON_BEHALF
+              - column:
+                  name: description
+                  value: Can submit Due Diligence Statements on behalf of operators
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: id
+                  value: perm_manage_mandates
+              - column:
+                  name: name
+                  value: MANAGE_MANDATES
+              - column:
+                  name: description
+                  value: Can manage representation mandates
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: id
+                  value: perm_view_operator_data
+              - column:
+                  name: name
+                  value: VIEW_OPERATOR_DATA
+              - column:
+                  name: description
+                  value: Can view operator supply chain and compliance data
+        - insert:
+            tableName: permissions
+            columns:
+              - column:
+                  name: id
+                  value: perm_access_eu_traces
+              - column:
+                  name: name
+                  value: ACCESS_EU_TRACES
+              - column:
+                  name: description
+                  value: Can access EU TRACES system with EORI
+
+  - changeSet:
+      id: 059_03_link_ar_role_permissions
+      author: agribackup
+      comment: Link permissions to AUTHORISED_REPRESENTATIVE role
+      changes:
+        - insert:
+            tableName: role_permissions
+            columns:
+              - column:
+                  name: role_id
+                  value: role_authorised_representative
+              - column:
+                  name: permission_id
+                  value: perm_submit_dds_on_behalf
+        - insert:
+            tableName: role_permissions
+            columns:
+              - column:
+                  name: role_id
+                  value: role_authorised_representative
+              - column:
+                  name: permission_id
+                  value: perm_manage_mandates
+        - insert:
+            tableName: role_permissions
+            columns:
+              - column:
+                  name: role_id
+                  value: role_authorised_representative
+              - column:
+                  name: permission_id
+                  value: perm_view_operator_data
+        - insert:
+            tableName: role_permissions
+            columns:
+              - column:
+                  name: role_id
+                  value: role_authorised_representative
+              - column:
+                  name: permission_id
+                  value: perm_access_eu_traces
+
+  # ==========================================
+  # FIX AUTHORISED_REPRESENTATIVES TABLE SCHEMA
+  # Make legacy columns nullable - they were from old design in 057
+  # The new design uses user_profile_id instead
+  # ==========================================
+  - changeSet:
+      id: 059_04_fix_ar_table_operator_id_nullable
+      author: agribackup
+      comment: >
+        Make operator_id nullable. The new AR design links via user_profile_id
+        and RepresentativeMandate instead of direct operator_id.
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: operator_id
+      changes:
+        - dropNotNullConstraint:
+            tableName: authorised_representatives
+            columnName: operator_id
+            columnDataType: VARCHAR(36)
+
+  - changeSet:
+      id: 059_05_fix_ar_table_operator_type_nullable
+      author: agribackup
+      comment: Make operator_type nullable as it's no longer used
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: operator_type
+      changes:
+        - dropNotNullConstraint:
+            tableName: authorised_representatives
+            columnName: operator_type
+            columnDataType: VARCHAR(20)
+
+  - changeSet:
+      id: 059_06_fix_ar_table_representative_name_nullable
+      author: agribackup
+      comment: Make representative_name nullable - replaced by company_name
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: representative_name
+      changes:
+        - dropNotNullConstraint:
+            tableName: authorised_representatives
+            columnName: representative_name
+            columnDataType: VARCHAR(255)
+
+  - changeSet:
+      id: 059_07_fix_ar_table_representative_type_nullable
+      author: agribackup
+      comment: Make representative_type nullable - no longer needed
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: representative_type
+      changes:
+        - dropNotNullConstraint:
+            tableName: authorised_representatives
+            columnName: representative_type
+            columnDataType: VARCHAR(50)
+
+  # Make sure columns added in 058 have proper defaults/constraints
+  - changeSet:
+      id: 059_08_fix_ar_eori_nullable_for_insert
+      author: agribackup
+      comment: Temporarily allow null EORI for partial AR creation during signup
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: eori_number
+      changes:
+        - sql:
+            sql: >
+              ALTER TABLE authorised_representatives 
+              MODIFY COLUMN eori_number VARCHAR(17) NULL;
+
+  - changeSet:
+      id: 059_09_fix_ar_registration_number_nullable
+      author: agribackup
+      comment: Allow null registration_number for initial creation
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: registration_number
+      changes:
+        - dropNotNullConstraint:
+            tableName: authorised_representatives
+            columnName: registration_number
+            columnDataType: VARCHAR(255)
+
+  - changeSet:
+      id: 059_10_fix_ar_contact_email_nullable
+      author: agribackup
+      comment: Allow null contact_email initially (can use user profile email)
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: contact_email
+      changes:
+        - dropNotNullConstraint:
+            tableName: authorised_representatives
+            columnName: contact_email
+            columnDataType: VARCHAR(255)
+
+  - changeSet:
+      id: 059_11_fix_ar_vat_number_nullable
+      author: agribackup
+      comment: Allow null vat_number initially
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: vat_number
+      changes:
+        - dropNotNullConstraint:
+            tableName: authorised_representatives
+            columnName: vat_number
+            columnDataType: VARCHAR(20)
+
+  - changeSet:
+      id: 059_12_fix_ar_company_name_nullable
+      author: agribackup
+      comment: Allow null company_name initially
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: company_name
+      changes:
+        - dropNotNullConstraint:
+            tableName: authorised_representatives
+            columnName: company_name
+            columnDataType: VARCHAR(255)
+
+  - changeSet:
+      id: 059_13_fix_ar_business_address_nullable
+      author: agribackup
+      comment: Allow null business_address initially
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: business_address
+      changes:
+        - sql:
+            sql: >
+              ALTER TABLE authorised_representatives 
+              MODIFY COLUMN business_address TEXT NULL;
+
+  # Additional legacy columns from 057 that need to be nullable
+  - changeSet:
+      id: 059_14_fix_ar_address_nullable
+      author: agribackup
+      comment: Make legacy 'address' column nullable (from 057 migration)
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: address
+      changes:
+        - sql:
+            sql: >
+              ALTER TABLE authorised_representatives 
+              MODIFY COLUMN address TEXT NULL;
+
+  - changeSet:
+      id: 059_15_fix_ar_mandate_start_date_nullable
+      author: agribackup
+      comment: Make legacy 'mandate_start_date' column nullable
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: mandate_start_date
+      changes:
+        - dropNotNullConstraint:
+            tableName: authorised_representatives
+            columnName: mandate_start_date
+            columnDataType: DATE
+
+  - changeSet:
+      id: 059_16_fix_ar_eu_member_state_nullable
+      author: agribackup
+      comment: Make legacy eu_member_state nullable (from 057)
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: authorised_representatives
+            columnName: eu_member_state
+      changes:
+        - sql:
+            sql: >
+              ALTER TABLE authorised_representatives 
+              MODIFY COLUMN eu_member_state VARCHAR(50) NULL;
+

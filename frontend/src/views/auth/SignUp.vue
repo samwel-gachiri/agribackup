@@ -67,6 +67,10 @@
                   v-else-if="portalContext === 'importer'"
                   @importer-registered="handleRegistrationSuccess"
                 />
+                <AuthorisedRepresentativeSignUp
+                  v-else-if="portalContext === 'authorised-representative'"
+                  @ar-registered="handleRegistrationSuccess"
+                />
 
                 <!-- Portal Selection -->
                 <div v-else>
@@ -148,6 +152,18 @@
                           Importer Portal
                         </v-btn>
                       </v-col>
+                      <v-col cols="12" sm="4">
+                        <v-btn
+                          block
+                          large
+                          color="deep-purple"
+                          @click="selectPortal('authorised-representative')"
+                          class="mb-3"
+                        >
+                          <v-icon left>mdi-account-tie</v-icon>
+                          Authorised Rep (EU)
+                        </v-btn>
+                      </v-col>
                     </v-row>
 
                     <div class="text-center mt-4">
@@ -209,6 +225,7 @@ import ExporterSignUp from '@/components/auth/ExporterSignUp.vue';
 import AggregatorSignUp from '@/components/auth/AggregatorSignUp.vue';
 import ProcessorSignUp from '@/components/auth/ProcessorSignUp.vue';
 import ImporterSignUp from '@/components/auth/ImporterSignUp.vue';
+import AuthorisedRepresentativeSignUp from '@/components/auth/AuthorisedRepresentativeSignUp.vue';
 import UserSignUp from '@/components/auth/UserSignUp.vue';
 // import CardTitle from '@/components/shared/CardTitle.vue';
 
@@ -256,6 +273,7 @@ export default {
     AggregatorSignUp,
     ProcessorSignUp,
     ImporterSignUp,
+    AuthorisedRepresentativeSignUp,
     UserSignUp,
   },
   mixins: [require('@/mixins/analyticsMixin.js').default],
@@ -338,6 +356,7 @@ export default {
         aggregator: 'Create Aggregator Account',
         processor: 'Create Processor Account',
         importer: 'Create Importer Account',
+        'authorised-representative': 'Register as Authorised Representative',
       };
 
       return titles[this.portalContext] || 'Create Account';
@@ -353,6 +372,7 @@ export default {
         aggregator: 'Aggregator Portal',
         processor: 'Processor Portal',
         importer: 'Importer Portal',
+        'authorised-representative': 'Authorised Representative (EUDR Article 6)',
       };
 
       return names[this.portalContext] || '';
@@ -378,6 +398,7 @@ export default {
         aggregator: 'orange',
         processor: 'teal',
         importer: 'indigo',
+        'authorised-representative': 'deep-purple',
       };
 
       return colors[this.portalContext] || 'primary';
@@ -391,6 +412,7 @@ export default {
         aggregator: 'mdi-warehouse',
         processor: 'mdi-factory',
         importer: 'mdi-ship-wheel',
+        'authorised-representative': 'mdi-account-tie',
       };
 
       return icons[this.portalContext] || 'mdi-account-plus';

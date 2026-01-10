@@ -164,7 +164,6 @@ export default {
         });
       } catch (error) {
         this.$toast.error('Failed to download QR code');
-        console.error('Download error:', error);
       }
     },
   },

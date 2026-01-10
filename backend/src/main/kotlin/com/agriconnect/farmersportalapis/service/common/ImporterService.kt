@@ -337,6 +337,70 @@ class ImporterService(
         return mapToResponseDto(importer)
     }
 
+    // ============================================
+    // EUDR SME CLASSIFICATION METHODS
+    // ============================================
+
+    /**
+     * Update SME (Small and Medium Enterprise) declaration for EUDR Article 13 compliance.
+     * SMEs qualify for simplified due diligence requirements.
+     */
+    fun updateSmeDeclaration(importerId: String, request: UpdateSmeDeclarationDto): SmeClassificationResponseDto {
+        val importer = importerRepository.findById(importerId)
+            .orElseThrow { NoSuchElementException("Importer not found with id: $importerId") }
+
+        // Update SME fields
+        importer.employeeCount = request.employeeCount
+        importer.annualTurnover = request.annualTurnover
+        importer.balanceSheetTotal = request.balanceSheetTotal
+        importer.smeDeclarationDate = request.declarationDate
+
+        // Auto-calculate SME category based on EU thresholds
+        importer.smeCategory = importer.calculateSmeCategory()
+        importer.updatedAt = java.time.LocalDateTime.now()
+
+        val savedImporter = importerRepository.save(importer)
+
+        return SmeClassificationResponseDto(
+            entityId = savedImporter.id,
+            entityType = "IMPORTER",
+            smeCategory = savedImporter.smeCategory,
+            employeeCount = savedImporter.employeeCount,
+            annualTurnover = savedImporter.annualTurnover,
+            balanceSheetTotal = savedImporter.balanceSheetTotal,
+            declarationDate = savedImporter.smeDeclarationDate,
+            isDeclarationExpired = savedImporter.isSmeDeclarationExpired(),
+            isEligibleForSimplifiedDD = savedImporter.isEligibleForSimplifiedDueDiligence(),
+            calculatedCategory = savedImporter.calculateSmeCategory()
+        )
+    }
+
+    /**
+     * Get current SME classification status for an importer.
+     */
+    @Transactional(readOnly = true)
+    fun getSmeClassification(importerId: String): SmeClassificationResponseDto {
+        val importer = importerRepository.findById(importerId)
+            .orElseThrow { NoSuchElementException("Importer not found with id: $importerId") }
+
+        return SmeClassificationResponseDto(
+            entityId = importer.id,
+            entityType = "IMPORTER",
+            smeCategory = importer.smeCategory,
+            employeeCount = importer.employeeCount,
+            annualTurnover = importer.annualTurnover,
+            balanceSheetTotal = importer.balanceSheetTotal,
+            declarationDate = importer.smeDeclarationDate,
+            isDeclarationExpired = importer.isSmeDeclarationExpired(),
+            isEligibleForSimplifiedDD = importer.isEligibleForSimplifiedDueDiligence(),
+            calculatedCategory = importer.calculateSmeCategory()
+        )
+    }
+
+    // ============================================
+    // END EUDR SME METHODS
+    // ============================================
+
     @Transactional(readOnly = true)
     fun getAllImporters(pageable: Pageable): Page<ImporterResponseDto> {
         return importerRepository.findAll(pageable).map { mapToResponseDto(it) }
@@ -568,7 +632,13 @@ class ImporterService(
                 email = importer.userProfile.email ?: "",
                 phoneNumber = importer.userProfile.phoneNumber ?: "",
                 fullName = importer.userProfile.fullName
-            )
+            ),
+            smeCategory = importer.smeCategory,
+            employeeCount = importer.employeeCount,
+            annualTurnover = importer.annualTurnover,
+            balanceSheetTotal = importer.balanceSheetTotal,
+            smeDeclarationDate = importer.smeDeclarationDate,
+            isEligibleForSimplifiedDD = importer.isEligibleForSimplifiedDueDiligence()
         )
     }
 

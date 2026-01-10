@@ -114,6 +114,14 @@ google:
   api:
     key: ${GOOGLE_API_KEY}
 
+# Twelve Data API Configuration (for real-time commodity prices)
+# Sign up for free API key at: https://twelvedata.com
+# Free tier: 800 API calls/day, 8 calls/minute
+twelvedata:
+  api:
+    url: https://api.twelvedata.com
+    key: ${TWELVE_DATA_API_KEY:}
+
 jwt:
   secret: ${JWT_SECRET}
   expiration: 86400

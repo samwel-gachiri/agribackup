@@ -643,6 +643,9 @@ export default {
   mounted() {
     this.setFarmerLocation();
     this.fetchProductionUnits();
+    if (this.$route.query.action === 'add') {
+      this.openAddDialog();
+    }
   },
   computed: {
     stats() {

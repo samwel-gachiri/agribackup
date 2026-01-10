@@ -16,6 +16,43 @@
         </v-col>
       </v-row>
 
+      <!-- Authorised Representative Alert (for non-EU exporters) -->
+      <v-row v-if="showARAlert" class="mb-4">
+        <v-col cols="12">
+          <v-alert
+            type="warning"
+            prominent
+            border="left"
+            colored-border
+            elevation="2"
+            class="ar-alert"
+          >
+            <v-row align="center">
+              <v-col class="grow">
+                <div class="text-h6 font-weight-bold mb-1">
+                  <v-icon left color="warning">mdi-account-tie</v-icon>
+                  Authorised Representative Required
+                </div>
+                <p class="mb-0 text-body-2">
+                  As a non-EU operator, you must designate an EU-based Authorised Representative
+                  to submit Due Diligence Statements on your behalf (EUDR Article 6).
+                </p>
+              </v-col>
+              <v-col class="shrink">
+                <v-btn
+                  color="warning"
+                  dark
+                  @click="$router.push({ name: 'AuthorisedRepresentativeManagement' })"
+                >
+                  <v-icon left>mdi-account-plus</v-icon>
+                  Manage AR
+                </v-btn>
+              </v-col>
+            </v-row>
+          </v-alert>
+        </v-col>
+      </v-row>
+
       <!-- Key Metrics -->
       <v-row class="mb-4">
         <v-col cols="12" sm="6" md="3">
@@ -245,11 +282,18 @@
 </template>
 
 <script>
+import axios from 'axios';
+import authorisedRepresentativeService from '@/services/authorisedRepresentativeService';
+
 export default {
   name: 'ExporterEudrDashboard',
 
   data() {
     return {
+      // Exporter profile data
+      exporterProfile: null,
+      hasActiveMandate: false,
+
       metrics: {
         compliantSuppliers: 45,
         atRiskSuppliers: 12,
@@ -371,7 +415,49 @@ export default {
     };
   },
 
+  computed: {
+    exporterId() {
+      return this.$store.state.auth?.user?.id || localStorage.getItem('userId');
+    },
+
+    /**
+     * Show AR alert if:
+     * 1. Exporter is from a non-EU country
+     * 2. AND they don't have an active AR mandate
+     */
+    showARAlert() {
+      if (!this.exporterProfile?.originCountryCode) return false;
+      const requiresAR = authorisedRepresentativeService.requiresAR(this.exporterProfile.originCountryCode);
+      return requiresAR && !this.hasActiveMandate;
+    },
+  },
+
+  async mounted() {
+    await this.loadExporterProfile();
+    await this.checkARMandate();
+  },
+
   methods: {
+    async loadExporterProfile() {
+      try {
+        const response = await axios.get(`/api/exporters-service/exporter/${this.exporterId}`);
+        this.exporterProfile = response.data?.data || response.data;
+      } catch (error) {
+        this.$toast.error('Failed to load exporter profile:', error.message);
+      }
+    },
+
+    async checkARMandate() {
+      try {
+        const response = await authorisedRepresentativeService.getExporterMandates(this.exporterId);
+        const mandates = response.data || response || [];
+        this.hasActiveMandate = mandates.some((m) => m.status === 'ACTIVE');
+      } catch (error) {
+        this.$toast.error('Failed to check AR mandate:', error.message);
+        this.hasActiveMandate = false;
+      }
+    },
+
     getPercentage(value, total) {
       return total > 0 ? Math.round((value / total) * 100) : 0;
     },
@@ -513,5 +599,9 @@ export default {
 
 .alert-item:hover {
   background-color: rgba(0, 0, 0, 0.04);
+}
+
+.ar-alert {
+  border-radius: 12px;
 }
 </style>

@@ -201,6 +201,18 @@ const routes = [
     },
   },
   {
+    path: "/exporter/eudr/authorised-representative",
+    name: "AuthorisedRepresentativeManagement",
+    component: () => import("../views/exporter/eudr/AuthorisedRepresentativeManagement.vue"),
+    meta: {
+      title: "Authorised Representative",
+      requiresAuth: true,
+      roles: ["EXPORTER"],
+      description: "Manage your EU Authorised Representative for DDS submission (EUDR Article 6)",
+      icon: "mdi-account-tie",
+    },
+  },
+  {
     path: "/exporter/eudr/batches",
     name: "ExporterBatches",
     component: () => import("../views/exporter/eudr/ExporterBatches.vue"),
@@ -239,18 +251,6 @@ const routes = [
 
   // === AGGREGATOR EUDR ROUTES ===
   {
-    path: "/aggregator/dashboard",
-    name: "AggregatorDashboard",
-    component: () => import("../views/aggregator/AggregatorDashboard.vue"),
-    meta: {
-      title: "Aggregator Dashboard",
-      requiresAuth: true,
-      roles: ["AGGREGATOR"],
-      description: "Aggregator overview and main workspace",
-      icon: "mdi-view-dashboard",
-    },
-  },
-  {
     path: "/aggregator/eudr/intersections",
     name: "AggregatorSpatialIntersections",
     component: () => import("../views/aggregator/AggregatorSpatialIntersections.vue"),
@@ -277,6 +277,69 @@ const routes = [
     },
   },
 
+  // === TRANSFER MANAGEMENT ROUTES (Supplier Portal) ===
+  {
+    path: "/transfers/incoming",
+    name: "IncomingTransfers",
+    component: () => import("../views/supplier/IncomingTransfers.vue"),
+    meta: {
+      title: "Incoming Transfers",
+      requiresAuth: true,
+      roles: ["SUPPLIER", "AGGREGATOR", "PROCESSOR"],
+      description: "View and confirm incoming produce transfers",
+      icon: "mdi-inbox-arrow-down",
+    },
+  },
+  {
+    path: "/transfers/outgoing",
+    name: "OutgoingTransfers",
+    component: () => import("../views/supplier/OutgoingTransfers.vue"),
+    meta: {
+      title: "Outgoing Transfers",
+      requiresAuth: true,
+      roles: ["SUPPLIER", "AGGREGATOR", "PROCESSOR"],
+      description: "View your sent transfers and their status",
+      icon: "mdi-inbox-arrow-up",
+    },
+  },
+  {
+    path: "/transfers/send",
+    name: "SendToSupplier",
+    component: () => import("../views/supplier/SendToSupplier.vue"),
+    meta: {
+      title: "Send to Supplier",
+      requiresAuth: true,
+      roles: ["SUPPLIER", "AGGREGATOR", "PROCESSOR"],
+      description: "Initiate a new transfer to another supplier",
+      icon: "mdi-send",
+    },
+  },
+  {
+    path: "/supplier/inventory",
+    name: "SupplierInventory",
+    component: () => import("../views/supplier/SupplierInventory.vue"),
+    meta: {
+      title: "My Inventory",
+      requiresAuth: true,
+      roles: ["SUPPLIER", "AGGREGATOR", "PROCESSOR"],
+      description: "View and manage your confirmed inventory",
+      icon: "mdi-warehouse",
+    },
+  },
+  {
+    path: "/farmer/send-to-supplier",
+    name: "FarmerSendToSupplier",
+    component: () => import("../views/farmer/SendToSupplier.vue"),
+    meta: {
+      title: "Send to Supplier",
+      requiresAuth: true,
+      roles: ["FARMER"],
+      description: "Send your produce to a connected supplier",
+      icon: "mdi-send",
+    },
+  },
+
+
   // === IMPORTER EUDR ROUTES ===
   {
     path: "/importer/dashboard",
@@ -288,6 +351,56 @@ const routes = [
       roles: ["IMPORTER"],
       description: "Importer overview and due diligence workspace",
       icon: "mdi-ship-wheel",
+    },
+  },
+
+  // === AUTHORISED REPRESENTATIVE ROUTES ===
+  {
+    path: "/ar/dashboard",
+    name: "ARDashboard",
+    component: () => import("../views/authorised-representative/ARDashboard.vue"),
+    meta: {
+      title: "AR Dashboard",
+      requiresAuth: true,
+      roles: ["AUTHORISED_REPRESENTATIVE"],
+      description: "Authorised Representative dashboard for EUDR compliance",
+      icon: "mdi-account-tie",
+    },
+  },
+  {
+    path: "/ar/mandates",
+    name: "ARMandates",
+    component: () => import("../views/authorised-representative/ARMandates.vue"),
+    meta: {
+      title: "My Mandates",
+      requiresAuth: true,
+      roles: ["AUTHORISED_REPRESENTATIVE"],
+      description: "Manage your representation mandates",
+      icon: "mdi-file-sign",
+    },
+  },
+  {
+    path: "/ar/exporters",
+    name: "ARExporters",
+    component: () => import("../views/authorised-representative/ARExporters.vue"),
+    meta: {
+      title: "My Exporters",
+      requiresAuth: true,
+      roles: ["AUTHORISED_REPRESENTATIVE"],
+      description: "Exporters you represent under EUDR Article 6",
+      icon: "mdi-crown",
+    },
+  },
+  {
+    path: "/ar/exporter/:exporterId",
+    name: "ARExporterView",
+    component: () => import("../views/authorised-representative/ARExporterView.vue"),
+    meta: {
+      title: "Exporter View",
+      requiresAuth: true,
+      roles: ["AUTHORISED_REPRESENTATIVE"],
+      description: "View and act on behalf of an exporter",
+      icon: "mdi-account-switch",
     },
   },
 

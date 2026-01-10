@@ -38,6 +38,9 @@ interface FarmerCollectionRepository : JpaRepository<com.agriconnect.farmersport
     fun findByBatchId(batchId: String): List<com.agriconnect.farmersportalapis.domain.eudr.FarmerCollection>
     fun findByPaymentStatus(paymentStatus: com.agriconnect.farmersportalapis.domain.eudr.PaymentStatus): List<com.agriconnect.farmersportalapis.domain.eudr.FarmerCollection>
     fun findByAggregatorIdAndPaymentStatus(aggregatorId: String, paymentStatus: com.agriconnect.farmersportalapis.domain.eudr.PaymentStatus): List<com.agriconnect.farmersportalapis.domain.eudr.FarmerCollection>
+    
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT fc.aggregator FROM FarmerCollection fc WHERE fc.farmer.id = :farmerId")
+    fun findDistinctAggregatorsByFarmerId(farmerId: String): List<com.agriconnect.farmersportalapis.domain.eudr.Aggregator>
 }
 
 @Repository

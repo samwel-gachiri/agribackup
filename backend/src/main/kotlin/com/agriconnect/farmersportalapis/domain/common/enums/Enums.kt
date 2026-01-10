@@ -89,3 +89,20 @@ enum class PickupStopStatus {
     SKIPPED,
     COMPLETED
 }
+
+/**
+ * SME Category for EUDR simplified due diligence
+ * Based on EU definition of SMEs:
+ * - MICRO: <10 employees AND turnover/balance ≤€2M
+ * - SMALL: <50 employees AND turnover/balance ≤€10M
+ * - MEDIUM: <250 employees AND turnover/balance ≤€50M
+ * - LARGE: ≥250 employees OR turnover >€50M
+ *
+ * SMEs (Micro, Small, Medium) benefit from simplified due diligence under EUDR Article 13
+ */
+enum class SmeCategory {
+    MICRO,
+    SMALL,
+    MEDIUM,
+    LARGE
+}

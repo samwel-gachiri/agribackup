@@ -4,6 +4,7 @@ import com.agriconnect.farmersportalapis.application.dtos.BuyerFarmerSearchReque
 import com.agriconnect.farmersportalapis.application.dtos.FarmerSearchResultDto
 import com.agriconnect.farmersportalapis.service.common.impl.BuyerFarmerManagementService
 import com.agriconnect.farmersportalapis.service.common.impl.YieldRecordingService
+import com.agriconnect.farmersportalapis.service.supplychain.FlexibleSupplyChainService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -14,10 +15,11 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/farmers")
-@Tag(name = "Farmer Search", description = "APIs for searching farmers")
+@Tag(name = "Farmer", description = "APIs for farmer operations")
 class FarmerController(
     private val buyerFarmerManagementService: BuyerFarmerManagementService,
-    private val yieldRecordingService: YieldRecordingService
+    private val yieldRecordingService: YieldRecordingService,
+    private val flexibleSupplyChainService: FlexibleSupplyChainService
 ) {
 
     @Operation(
@@ -67,5 +69,24 @@ class FarmerController(
         } else {
             ResponseEntity.badRequest().body(result.msg + result.data)
         }
+    }
+
+    @Operation(
+        summary = "Get connected suppliers for a farmer",
+        description = "Get aggregators, cooperatives and farmer groups that a farmer can send produce to",
+        responses = [ApiResponse(responseCode = "200", description = "OK")]
+    )
+    @GetMapping("/{farmerId}/connected-suppliers")
+    fun getConnectedSuppliers(
+        @Parameter(description = "Id of farmer")
+        @PathVariable farmerId: String
+    ): ResponseEntity<Any> {
+        // Include all supplier types that farmers can send produce to
+        val supplierTypes = listOf(
+            "AGGREGATOR", "COOPERATIVE", "FARMER_GROUP", 
+            "PROCESSOR", "TRADER", "WAREHOUSE", "EXPORTER"
+        )
+        val suppliers = flexibleSupplyChainService.getSuppliersAcceptingFromFarmers(farmerId, supplierTypes)
+        return ResponseEntity.ok(suppliers)
     }
 }

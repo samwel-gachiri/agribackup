@@ -7,6 +7,8 @@
     <ExporterDashboardLayout v-if="user && getCurrentUserRole() === 'exporter'"/>
     <SystemAdminDashboard v-if="user && getCurrentUserRole() === 'system_admin'"/>
     <ZoneSupervisorDashboard v-if="user && getCurrentUserRole() === 'zone_supervisor'"/>
+    <ARDashboardRedirect v-if="user && getCurrentUserRole() === 'authorised_representative'"/>
+    <SupplierDashboard v-if="user && ['supplier', 'processor', 'trader', 'warehouse'].includes(getCurrentUserRole())"/>
   </Default>
 </template>
 
@@ -21,8 +23,20 @@ import ExporterDashboardLayout from '@/views/exporter/EudrDashboard.vue';
 // import ExporterDashboardLayout from '@/components/layout/dashboard/ExporterDashboard.vue';
 import SystemAdminDashboard from '@/components/layout/dashboard/SystemAdminDashboard.vue';
 import ZoneSupervisorDashboard from '@/components/layout/dashboard/ZoneSupervisorDashboard.vue';
+import SupplierDashboard from '@/views/supplier/SupplierDashboard.vue';
 import { getCurrentUserRole } from '@/utils/roles.js';
 // eslint-disable-next-line import/no-unresolved
+
+// AR Dashboard Redirect Component - redirects to dedicated AR Dashboard
+const ARDashboardRedirect = {
+  name: 'ARDashboardRedirect',
+  mounted() {
+    this.$router.replace({ name: 'ARDashboard' });
+  },
+  render() {
+    return null;
+  },
+};
 
 export default {
   methods: { getCurrentUserRole },
@@ -34,6 +48,8 @@ export default {
     ExporterDashboardLayout,
     SystemAdminDashboard,
     ZoneSupervisorDashboard,
+    ARDashboardRedirect,
+    SupplierDashboard,
     Default,
   },
   computed: {

@@ -5,8 +5,11 @@ import com.agriconnect.farmersportalapis.domain.common.enums.ExporterVerificatio
 import com.agriconnect.farmersportalapis.domain.common.enums.PickupStatus
 import com.agriconnect.farmersportalapis.domain.common.enums.PickupRouteStatus
 import com.agriconnect.farmersportalapis.domain.common.enums.PickupStopStatus
+import com.agriconnect.farmersportalapis.domain.common.enums.SmeCategory
 import com.agriconnect.farmersportalapis.domain.listing.ProduceListing
 import jakarta.persistence.*
+import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 
@@ -43,12 +46,88 @@ class Exporter(
     @Column(name = "origin_country_code", length = 3)
     var originCountryCode: String? = null,
 
+    // ======== EUDR SME Classification Fields ========
+    // SMEs benefit from simplified due diligence under EUDR Article 13
+
+    /**
+     * SME category classification based on EU definition
+     * Determines due diligence requirements under EUDR
+     */
+    @Column(name = "sme_category")
+    @Enumerated(EnumType.STRING)
+    var smeCategory: SmeCategory? = null,
+
+    /**
+     * Total number of employees (FTE equivalent)
+     * Used for SME classification threshold determination
+     */
+    @Column(name = "employee_count")
+    var employeeCount: Int? = null,
+
+    /**
+     * Annual turnover in EUR
+     * Used for SME classification threshold determination
+     */
+    @Column(name = "annual_turnover", precision = 15, scale = 2)
+    var annualTurnover: BigDecimal? = null,
+
+    /**
+     * Balance sheet total in EUR
+     * Alternative criterion for SME classification
+     */
+    @Column(name = "balance_sheet_total", precision = 15, scale = 2)
+    var balanceSheetTotal: BigDecimal? = null,
+
+    /**
+     * Date when SME status was declared/verified
+     * SME status should be re-evaluated annually
+     */
+    @Column(name = "sme_declaration_date")
+    var smeDeclarationDate: LocalDate? = null,
+
+    // ======== End EUDR SME Fields ========
+
     @OneToMany(mappedBy = "exporter", cascade = [CascadeType.ALL], orphanRemoval = true)
     var zones: MutableList<Zone> = mutableListOf(),
 
     @OneToMany(mappedBy = "exporter", cascade = [CascadeType.ALL])
     var farmerRelationships: MutableList<FarmerExporterRelationship> = mutableListOf(),
-)
+) {
+    /**
+     * Determines if this exporter qualifies for simplified due diligence under EUDR
+     * SMEs (Micro, Small, Medium) are eligible for reduced requirements
+     */
+    fun isEligibleForSimplifiedDueDiligence(): Boolean {
+        return smeCategory != null && smeCategory != SmeCategory.LARGE
+    }
+
+    /**
+     * Checks if SME declaration needs renewal (older than 1 year)
+     */
+    fun isSmeDeclarationExpired(): Boolean {
+        return smeDeclarationDate?.isBefore(LocalDate.now().minusYears(1)) ?: true
+    }
+
+    /**
+     * Auto-classifies SME category based on employee count and financial thresholds
+     * Based on EU SME definition (Commission Recommendation 2003/361/EC)
+     */
+    fun calculateSmeCategory(): SmeCategory {
+        val employees = employeeCount ?: 0
+        val turnover = annualTurnover ?: BigDecimal.ZERO
+        val balance = balanceSheetTotal ?: BigDecimal.ZERO
+
+        val turnoverMillions = turnover.divide(BigDecimal(1_000_000), 2, java.math.RoundingMode.HALF_UP)
+        val balanceMillions = balance.divide(BigDecimal(1_000_000), 2, java.math.RoundingMode.HALF_UP)
+
+        return when {
+            employees < 10 && (turnoverMillions <= BigDecimal(2) || balanceMillions <= BigDecimal(2)) -> SmeCategory.MICRO
+            employees < 50 && (turnoverMillions <= BigDecimal(10) || balanceMillions <= BigDecimal(10)) -> SmeCategory.SMALL
+            employees < 250 && (turnoverMillions <= BigDecimal(50) || balanceMillions <= BigDecimal(43)) -> SmeCategory.MEDIUM
+            else -> SmeCategory.LARGE
+        }
+    }
+}
 
 @Entity
 @Table(name = "farmer_exporter_relationships")

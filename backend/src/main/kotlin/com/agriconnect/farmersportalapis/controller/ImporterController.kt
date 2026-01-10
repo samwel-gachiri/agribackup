@@ -60,6 +60,36 @@ class ImporterController(
         return ResponseEntity.ok(importer)
     }
 
+    // ==================== EUDR SME Classification Endpoints ====================
+
+    @GetMapping("/{importerId}/sme-classification")
+    @Operation(
+        summary = "Get SME classification",
+        description = "Retrieves the current SME (Small and Medium Enterprise) classification for EUDR Article 13 compliance"
+    )
+    fun getSmeClassification(@PathVariable importerId: String): ResponseEntity<SmeClassificationResponseDto> {
+        val classification = importerService.getSmeClassification(importerId)
+        return ResponseEntity.ok(classification)
+    }
+
+    @PutMapping("/{importerId}/sme-declaration")
+    @Operation(
+        summary = "Update SME declaration",
+        description = "Updates the SME declaration for EUDR Article 13 simplified due diligence eligibility. " +
+                "SME thresholds: Micro (<10 employees, ≤€2M), Small (<50 employees, ≤€10M), " +
+                "Medium (<250 employees, ≤€50M), Large (≥250 employees or >€50M)"
+    )
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('IMPORTER') and #importerId == authentication.principal.entityId)")
+    fun updateSmeDeclaration(
+        @PathVariable importerId: String,
+        @Valid @RequestBody request: UpdateSmeDeclarationDto
+    ): ResponseEntity<SmeClassificationResponseDto> {
+        val classification = importerService.updateSmeDeclaration(importerId, request)
+        return ResponseEntity.ok(classification)
+    }
+
+    // ==================== End EUDR SME Endpoints ====================
+
     @GetMapping
     @Operation(summary = "List all importers", description = "Get paginated list of all importers")
     @PreAuthorize("hasRole('ADMIN')")

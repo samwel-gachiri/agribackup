@@ -13,7 +13,12 @@ import java.util.concurrent.TimeUnit
 class CacheConfig {
     @Bean
     fun cacheManager(): CacheManager {
-        val cacheManager = CaffeineCacheManager("listings")
+        val cacheManager = CaffeineCacheManager(
+            "listings",
+            "commodityPrices",
+            "commodityPricesWithChange",
+            "weatherCache"
+        )
         cacheManager.setCaffeine(
             Caffeine.newBuilder()
                 .expireAfterWrite(10, TimeUnit.MINUTES) // Adjust TTL if needed

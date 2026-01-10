@@ -14,16 +14,14 @@ import com.agriconnect.farmersportalapis.domain.auth.PasswordResetToken
 import com.agriconnect.farmersportalapis.domain.auth.RoleType
 import com.agriconnect.farmersportalapis.domain.auth.UserProfile
 import com.agriconnect.farmersportalapis.domain.common.enums.ExporterVerificationStatus
-import com.agriconnect.farmersportalapis.domain.eudr.Aggregator
-import com.agriconnect.farmersportalapis.domain.eudr.AggregatorType
-import com.agriconnect.farmersportalapis.domain.eudr.Importer
-import com.agriconnect.farmersportalapis.domain.eudr.Processor
+import com.agriconnect.farmersportalapis.domain.eudr.*
 import com.agriconnect.farmersportalapis.domain.profile.Exporter
 import com.agriconnect.farmersportalapis.domain.profile.Farmer
 import com.agriconnect.farmersportalapis.domain.supplychain.SupplierType
 import com.agriconnect.farmersportalapis.domain.supplychain.SupplierVerificationStatus
 import com.agriconnect.farmersportalapis.domain.supplychain.SupplyChainSupplier
 import com.agriconnect.farmersportalapis.infrastructure.repositories.*
+import com.agriconnect.farmersportalapis.repository.AuthorisedRepresentativeRepository
 import com.agriconnect.farmersportalapis.repository.SupplyChainSupplierRepository
 import com.agriconnect.farmersportalapis.service.common.ImporterService
 import com.agriconnect.farmersportalapis.service.hedera.HederaAccountService
@@ -57,6 +55,7 @@ class AuthService(
         private val aggregatorRepository: AggregatorRepository,
         private val processorRepository: ProcessorRepository,
         private val importerRepository: ImporterRepository,
+        private val authorisedRepresentativeRepository: AuthorisedRepresentativeRepository,
         private val supplyChainSupplierRepository: SupplyChainSupplierRepository,
         private val adminRepository: AdminEntityRepository,
         private val systemAdminRepository: SystemAdminRepository,
@@ -1021,6 +1020,135 @@ class AuthService(
         }
     }
 
+    /**
+     * Register a new Authorised Representative (EUDR Article 6)
+     * ARs must have a valid EORI number and be established in an EU member state.
+     * They act on behalf of non-EU operators for DDS submission.
+     */
+    @Transactional(rollbackFor = [Exception::class])
+    fun registerAuthorisedRepresentative(
+        request: com.agriconnect.farmersportalapis.application.dtos.auth.AuthorisedRepresentativeRegistrationDto
+    ): Result<AuthorisedRepresentative> {
+        return try {
+            validateRegistrationRequest(request.user)
+
+            // Validate EORI format
+            val eoriNumber = request.eoriNumber.uppercase()
+            val eoriRegex = Regex("^[A-Z]{2}[A-Z0-9]{1,15}$")
+            if (!eoriRegex.matches(eoriNumber)) {
+                return ResultFactory.getFailResult(
+                    "Invalid EORI format. Expected: 2-letter EU country code + up to 15 alphanumeric characters"
+                )
+            }
+
+            // Check EORI doesn't already exist
+            if (authorisedRepresentativeRepository.existsByEoriNumber(eoriNumber)) {
+                logger.warn("Registration failed: EORI {} already registered", eoriNumber)
+                return ResultFactory.getFailResult("EORI number already registered")
+            }
+
+            // Handle blank email/phone by setting to null
+            val email = request.user.email?.takeIf { it.isNotBlank() }
+            val phoneNumber = request.user.phoneNumber?.takeIf { it.isNotBlank() }
+
+            // Check for role-specific duplicates
+            if (email != null && userRepository.existsByEmailAndRole(email, RoleType.AUTHORISED_REPRESENTATIVE.name)) {
+                logger.warn("Registration failed: Email {} already registered as AR", email)
+                return ResultFactory.getFailResult("Email already registered as Authorised Representative")
+            }
+            if (phoneNumber != null && userRepository.existsByPhoneNumberAndRole(phoneNumber, RoleType.AUTHORISED_REPRESENTATIVE.name)) {
+                logger.warn("Registration failed: Phone {} already registered as AR", phoneNumber)
+                return ResultFactory.getFailResult("Phone number already registered as Authorised Representative")
+            }
+
+            // Check for existing user by email or phone number
+            val existingUser = when {
+                email != null -> userRepository.findByEmail(email)
+                phoneNumber != null -> userRepository.findByPhoneNumber(phoneNumber)
+                else -> null
+            }
+
+            val arRole = roleRepository.findByName(RoleType.AUTHORISED_REPRESENTATIVE.name)
+                ?: throw EntityNotFoundException("Authorised Representative role not found")
+
+            val user = if (existingUser != null) {
+                // Reuse existing user and add AR role
+                if (!existingUser.roles.contains(arRole)) {
+                    existingUser.roles.add(arRole)
+                    userRepository.save(existingUser)
+                } else {
+                    existingUser
+                }
+            } else {
+                // Create new user
+                val newUser = createUser(request.user.copy(email = email))
+                newUser.roles.add(arRole)
+                userRepository.save(newUser)
+            }
+
+            // Create AR entity
+            val ar = AuthorisedRepresentative(
+                id = java.util.UUID.randomUUID().toString(),
+                userProfile = user,
+                eoriNumber = eoriNumber,
+                companyName = request.companyName,
+                euMemberState = request.euMemberState,
+                registrationNumber = request.registrationNumber,
+                vatNumber = request.vatNumber,
+                contactEmail = email ?: request.user.email ?: "",
+                contactPhone = request.contactPhone,
+                contactPersonName = request.user.fullName,
+                businessAddress = request.businessAddress,
+                isVerified = false, // Requires admin verification
+                isAcceptingMandates = true,
+                isActive = true
+            )
+
+            val savedAR = authorisedRepresentativeRepository.save(ar)
+
+            logger.info("Authorised Representative registered: id={}, eori={}, email={}", 
+                savedAR.id, savedAR.eoriNumber, user.email)
+
+            // Send welcome email if user has email
+            if (user.email != null) {
+                try {
+                    emailService.sendWelcomeEmail(
+                        user.email!!,
+                        user.fullName ?: "Authorised Representative",
+                        "AUTHORISED_REPRESENTATIVE"
+                    )
+                } catch (e: Exception) {
+                    logger.warn("Failed to send welcome email to {}: {}", user.email, e.message)
+                }
+            }
+
+            // Send welcome SMS if user has phone number
+            if (user.phoneNumber != null) {
+                try {
+                    smsService.sendWelcomeSms(
+                        user.phoneNumber!!,
+                        user.fullName ?: "Authorised Representative",
+                        "AUTHORISED_REPRESENTATIVE"
+                    )
+                    logger.info("Welcome SMS queued for AR: {}", user.phoneNumber)
+                } catch (e: Exception) {
+                    logger.warn("Failed to queue welcome SMS to {}: {}", user.phoneNumber, e.message)
+                }
+            }
+
+            ResultFactory.getSuccessResult(savedAR)
+        } catch (e: PersistenceException) {
+            logger.error("Database error during AR registration: {}", e.message, e)
+            throw e
+        } catch (e: EntityNotFoundException) {
+            logger.error("Entity not found during AR registration: {}", e.message, e)
+            return ResultFactory.getFailResult("Registration failed: ${e.message}")
+        } catch (e: Exception) {
+            logger.error("Unexpected error during AR registration: {}", e.message, e)
+            return ResultFactory.getFailResult("Failed to register Authorised Representative: ${e.message}")
+        }
+    }
+
     private fun validateRegistrationRequest(user: UserRegistrationDto) {
         if (user.password.isBlank()) {
             throw IllegalArgumentException("Password cannot be empty")
@@ -1371,6 +1499,26 @@ class AuthService(
                                         companyName = i.companyName,
                                         verificationStatus = i.verificationStatus.name,
                                         hederaAccountId = i.hederaAccountId
+                                )
+                            }
+                        }
+                        RoleType.AUTHORISED_REPRESENTATIVE -> {
+                            logger.debug(
+                                    "[AuthService] Resolving Authorised Representative entity for userId={}",
+                                    user.id
+                            )
+                            authorisedRepresentativeRepository.findByUserProfileId(user.id)?.let { ar ->
+                                AuthorisedRepresentativeLoginDto(
+                                        id = ar.id,
+                                        userId = ar.userProfile?.id ?: "",
+                                        fullName = ar.userProfile?.fullName ?: "",
+                                        email = ar.userProfile?.email,
+                                        phoneNumber = ar.userProfile?.phoneNumber,
+                                        eoriNumber = ar.eoriNumber,
+                                        companyName = ar.companyName,
+                                        euMemberState = ar.euMemberState,
+                                        isVerified = ar.isVerified,
+                                        isAcceptingMandates = ar.isAcceptingMandates
                                 )
                             }
                         }
@@ -2028,6 +2176,21 @@ class AuthService(
                                             hederaAccountId = i.hederaAccountId
                                     )
                                 }
+                        RoleType.AUTHORISED_REPRESENTATIVE ->
+                                authorisedRepresentativeRepository.findByUserProfileId(user.id)?.let { ar ->
+                                    AuthorisedRepresentativeLoginDto(
+                                            id = ar.id,
+                                            userId = ar.userProfile?.id ?: "",
+                                            fullName = ar.userProfile?.fullName ?: "",
+                                            email = ar.userProfile?.email,
+                                            phoneNumber = ar.userProfile?.phoneNumber,
+                                            eoriNumber = ar.eoriNumber,
+                                            companyName = ar.companyName,
+                                            euMemberState = ar.euMemberState,
+                                            isVerified = ar.isVerified,
+                                            isAcceptingMandates = ar.isAcceptingMandates
+                                    )
+                                }
                         RoleType.ADMIN ->
                                 adminRepository.findByUserProfileId(user.id)?.let { admin ->
                                     AdminLoginDto(
@@ -2109,63 +2272,89 @@ class AuthService(
                 when (roleType) {
                     RoleType.FARMER -> {
                         if (farmerRepository.findByUserProfile(user).isEmpty) {
-                            val farmer =
-                                    Farmer(userProfile = user, farmName = "My Farm", farmSize = 0.0)
+                            val farmerDetails = request.roleDetails?.FARMER
+                            val farmer = Farmer(
+                                userProfile = user,
+                                farmName = farmerDetails?.farmName?.takeIf { it.isNotBlank() } ?: "My Farm",
+                                farmSize = farmerDetails?.farmSize?.toDoubleOrNull() ?: 0.0
+                            )
                             farmerRepository.save(farmer)
                         }
                     }
                     RoleType.BUYER -> {
                         if (buyerRepository.findByUserProfile(user).isEmpty) {
-                            val buyer =
-                                    Buyer(
-                                            userProfile = user,
-                                            companyName = "My Company",
-                                            businessType = "General"
-                                    )
+                            val buyerDetails = request.roleDetails?.BUYER
+                            val buyer = Buyer(
+                                userProfile = user,
+                                companyName = buyerDetails?.businessName?.takeIf { it.isNotBlank() } ?: "My Company",
+                                businessType = "General"
+                            )
                             buyerRepository.save(buyer)
                         }
                     }
                     RoleType.EXPORTER -> {
                         if (exporterRepository.findByUserProfile(user.id).isEmpty) {
-                            val exporter =
-                                    Exporter(
-                                            id=UUID.randomUUID().toString(),
-                                            userProfile = user,
-                                            companyName = "",
-                                            licenseId = "PENDING",
-                                            verificationStatus = ExporterVerificationStatus.PENDING
-                                    )
+                            val exporterDetails = request.roleDetails?.EXPORTER
+                            val exporter = Exporter(
+                                id = UUID.randomUUID().toString(),
+                                userProfile = user,
+                                companyName = exporterDetails?.companyName?.takeIf { it.isNotBlank() } ?: "",
+                                originCountry = exporterDetails?.originCountry,
+                                licenseId = "PENDING",
+                                verificationStatus = ExporterVerificationStatus.PENDING
+                            )
                             exporterRepository.save(exporter)
                         }
                     }
                     RoleType.AGGREGATOR -> {
                         if (aggregatorRepository.findByUserProfile(user) == null) {
-                            val aggregator =
-                                    Aggregator(
-                                            userProfile = user,
-                                            organizationName = ""
-                                    )
+                            val aggregator = Aggregator(
+                                userProfile = user,
+                                organizationName = ""
+                            )
                             aggregatorRepository.save(aggregator)
                         }
                     }
                     RoleType.PROCESSOR -> {
                         if (processorRepository.findByUserProfile(user) == null) {
-                            val processor =
-                                    Processor(
-                                            userProfile = user,
-                                            facilityName = "",
-                                    )
+                            val processor = Processor(
+                                userProfile = user,
+                                facilityName = "",
+                            )
                             processorRepository.save(processor)
                         }
                     }
                     RoleType.IMPORTER -> {
                         if (importerRepository.findByUserProfile(user) == null) {
-                            val importer =
-                                    Importer(
-                                            userProfile = user,
-                                            companyName = "My Import Company"
-                                    )
+                            val importerDetails = request.roleDetails?.IMPORTER
+                            val importer = Importer(
+                                userProfile = user,
+                                companyName = importerDetails?.businessName?.takeIf { it.isNotBlank() } ?: "My Import Company"
+                            )
                             importerRepository.save(importer)
+                        }
+                    }
+                    RoleType.AUTHORISED_REPRESENTATIVE -> {
+                        val arDetails = request.roleDetails?.AUTHORISED_REPRESENTATIVE
+                        // Create AR entity - can be partial (EORI can be added later)
+                        if (authorisedRepresentativeRepository.findByUserProfile(user) == null) {
+                            val ar = AuthorisedRepresentative(
+                                userProfile = user,
+                                eoriNumber = arDetails?.eoriNumber?.takeIf { it.isNotBlank() }?.uppercase(),
+                                companyName = arDetails?.companyName?.takeIf { it.isNotBlank() },
+                                euMemberState = arDetails?.euMemberState?.takeIf { it.isNotBlank() },
+                                registrationNumber = arDetails?.registrationNumber?.takeIf { it.isNotBlank() },
+                                vatNumber = arDetails?.vatNumber?.takeIf { it.isNotBlank() },
+                                contactEmail = user.email,
+                                contactPhone = user.phoneNumber,
+                                contactPersonName = user.fullName,
+                                businessAddress = arDetails?.businessAddress?.takeIf { it.isNotBlank() },
+                                isVerified = false,
+                                isAcceptingMandates = true,
+                                isActive = true
+                            )
+                            authorisedRepresentativeRepository.save(ar)
+                            logger.info("Created AR entity for user {}: EORI={}", user.id, arDetails?.eoriNumber ?: "pending")
                         }
                     }
                     RoleType.SUPPLIER -> {

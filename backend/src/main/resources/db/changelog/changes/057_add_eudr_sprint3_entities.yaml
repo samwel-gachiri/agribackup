@@ -1,0 +1,455 @@
+databaseChangeLog:
+  # ==========================================
+  # AUTHORISED REPRESENTATIVES TABLE
+  # EUDR Article 6 - Non-EU operators must designate EU-based representative
+  # ==========================================
+  - changeSet:
+      id: 057_create_authorised_representatives_table
+      author: agribackup
+      comment: >
+        EUDR Article 6 Compliance: Authorised Representatives for non-EU operators.
+        Non-EU operators must designate an EU-based natural or legal person
+        to fulfill obligations and act as contact for competent authorities.
+      changes:
+        - createTable:
+            tableName: authorised_representatives
+            columns:
+              - column:
+                  name: representative_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                  remarks: "UUID primary key"
+              - column:
+                  name: operator_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                  remarks: "Reference to the non-EU operator (exporter/importer)"
+              - column:
+                  name: operator_type
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+                  remarks: "Type of operator: EXPORTER, IMPORTER, etc."
+              - column:
+                  name: representative_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                  remarks: "Full legal name of the authorised representative"
+              - column:
+                  name: representative_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                  remarks: "NATURAL_PERSON or LEGAL_PERSON"
+              - column:
+                  name: eu_member_state
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                  remarks: "EU member state where representative is established"
+              - column:
+                  name: registration_number
+                  type: VARCHAR(100)
+                  remarks: "Business registration number if legal person"
+              - column:
+                  name: address
+                  type: TEXT
+                  constraints:
+                    nullable: false
+                  remarks: "Full address within the EU member state"
+              - column:
+                  name: contact_email
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                  remarks: "Contact email for authorities"
+              - column:
+                  name: contact_phone
+                  type: VARCHAR(50)
+                  remarks: "Contact phone number"
+              - column:
+                  name: mandate_document_url
+                  type: VARCHAR(500)
+                  remarks: "URL to the mandate document granting authority"
+              - column:
+                  name: mandate_start_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+                  remarks: "Date when the mandate becomes effective"
+              - column:
+                  name: mandate_end_date
+                  type: DATE
+                  remarks: "Date when the mandate expires (null = indefinite)"
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+                  remarks: "Whether the representative is currently active"
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+  - changeSet:
+      id: 057_create_authorised_representatives_indexes
+      author: agribackup
+      comment: Indexes for authorised representatives queries
+      changes:
+        - createIndex:
+            indexName: idx_auth_rep_operator
+            tableName: authorised_representatives
+            columns:
+              - column:
+                  name: operator_id
+              - column:
+                  name: operator_type
+        - createIndex:
+            indexName: idx_auth_rep_active
+            tableName: authorised_representatives
+            columns:
+              - column:
+                  name: is_active
+
+  # ==========================================
+  # GRIEVANCE CASES TABLE
+  # EUDR Article 13 - Grievance mechanism for compliance concerns
+  # ==========================================
+  - changeSet:
+      id: 057_create_grievance_cases_table
+      author: agribackup
+      comment: >
+        EUDR Article 13 Compliance: Grievance mechanism for stakeholders
+        to raise concerns about compliance violations.
+      changes:
+        - createTable:
+            tableName: grievance_cases
+            columns:
+              - column:
+                  name: case_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                  remarks: "UUID primary key"
+              - column:
+                  name: case_number
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+                  remarks: "Human-readable case reference number"
+              - column:
+                  name: submitter_id
+                  type: VARCHAR(36)
+                  remarks: "User ID of submitter (null if anonymous)"
+              - column:
+                  name: submitter_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                  remarks: "Type: INTERNAL_STAKEHOLDER, EXTERNAL_STAKEHOLDER, AUTHORITY, ANONYMOUS"
+              - column:
+                  name: submitter_email
+                  type: VARCHAR(255)
+                  remarks: "Contact email for case updates"
+              - column:
+                  name: target_entity_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                  remarks: "Entity type being reported: FARMER, AGGREGATOR, EXPORTER, etc."
+              - column:
+                  name: target_entity_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                  remarks: "ID of the entity being reported"
+              - column:
+                  name: target_entity_name
+                  type: VARCHAR(255)
+                  remarks: "Name of the entity for reference"
+              - column:
+                  name: category
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                  remarks: "Category: DEFORESTATION, FALSE_DECLARATION, TRACEABILITY, etc."
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                  remarks: "Brief title of the grievance"
+              - column:
+                  name: description
+                  type: TEXT
+                  constraints:
+                    nullable: false
+                  remarks: "Detailed description of the concern"
+              - column:
+                  name: evidence_urls
+                  type: TEXT
+                  remarks: "JSON array of evidence document URLs"
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  defaultValue: "SUBMITTED"
+                  constraints:
+                    nullable: false
+                  remarks: "Status: SUBMITTED, UNDER_REVIEW, INVESTIGATING, etc."
+              - column:
+                  name: priority
+                  type: VARCHAR(20)
+                  defaultValue: "MEDIUM"
+                  constraints:
+                    nullable: false
+                  remarks: "Priority: LOW, MEDIUM, HIGH, CRITICAL"
+              - column:
+                  name: assigned_to
+                  type: VARCHAR(36)
+                  remarks: "User ID of assigned investigator"
+              - column:
+                  name: resolution_outcome
+                  type: VARCHAR(50)
+                  remarks: "Outcome: SUBSTANTIATED, UNSUBSTANTIATED, etc."
+              - column:
+                  name: resolution_notes
+                  type: TEXT
+                  remarks: "Notes explaining the resolution"
+              - column:
+                  name: corrective_actions
+                  type: TEXT
+                  remarks: "JSON array of corrective actions taken"
+              - column:
+                  name: related_workflow_id
+                  type: VARCHAR(36)
+                  remarks: "Link to related supply chain workflow if applicable"
+              - column:
+                  name: related_batch_id
+                  type: VARCHAR(36)
+                  remarks: "Link to related batch if applicable"
+              - column:
+                  name: is_confidential
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+                  remarks: "Whether case details should be kept confidential"
+              - column:
+                  name: submitted_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: acknowledged_at
+                  type: TIMESTAMP
+                  remarks: "When the case was acknowledged"
+              - column:
+                  name: resolved_at
+                  type: TIMESTAMP
+                  remarks: "When the case was resolved"
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+  - changeSet:
+      id: 057_create_grievance_comments_table
+      author: agribackup
+      comment: Comments and updates on grievance cases
+      changes:
+        - createTable:
+            tableName: grievance_comments
+            columns:
+              - column:
+                  name: comment_id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: case_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: author_id
+                  type: VARCHAR(36)
+                  remarks: "User ID of comment author"
+              - column:
+                  name: author_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: comment_type
+                  type: VARCHAR(30)
+                  defaultValue: "NOTE"
+                  constraints:
+                    nullable: false
+                  remarks: "Type: NOTE, STATUS_CHANGE, EVIDENCE_ADDED, INTERNAL"
+              - column:
+                  name: content
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_internal
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+                  remarks: "Internal notes not visible to submitter"
+              - column:
+                  name: attachment_urls
+                  type: TEXT
+                  remarks: "JSON array of attachment URLs"
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            constraintName: fk_grievance_comments_case
+            baseTableName: grievance_comments
+            baseColumnNames: case_id
+            referencedTableName: grievance_cases
+            referencedColumnNames: case_id
+            onDelete: CASCADE
+
+  - changeSet:
+      id: 057_create_grievance_cases_indexes
+      author: agribackup
+      comment: Indexes for grievance queries
+      changes:
+        - createIndex:
+            indexName: idx_grievance_target
+            tableName: grievance_cases
+            columns:
+              - column:
+                  name: target_entity_type
+              - column:
+                  name: target_entity_id
+        - createIndex:
+            indexName: idx_grievance_status
+            tableName: grievance_cases
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            indexName: idx_grievance_category
+            tableName: grievance_cases
+            columns:
+              - column:
+                  name: category
+        - createIndex:
+            indexName: idx_grievance_submitter
+            tableName: grievance_cases
+            columns:
+              - column:
+                  name: submitter_id
+
+  # ==========================================
+  # SME FIELDS FOR EXPORTERS AND IMPORTERS
+  # EUDR Article 13 - Simplified due diligence for SMEs
+  # ==========================================
+  - changeSet:
+      id: 057_add_sme_fields_to_exporters
+      author: agribackup
+      comment: >
+        EUDR Article 13: Add SME classification fields to exporters.
+        SMEs benefit from simplified due diligence requirements.
+      changes:
+        - addColumn:
+            tableName: exporters
+            columns:
+              - column:
+                  name: sme_category
+                  type: VARCHAR(20)
+                  remarks: "SME classification: MICRO, SMALL, MEDIUM, LARGE"
+              - column:
+                  name: employee_count
+                  type: INT
+                  remarks: "Number of employees (FTE equivalent)"
+              - column:
+                  name: annual_turnover
+                  type: DECIMAL(15,2)
+                  remarks: "Annual turnover in EUR"
+              - column:
+                  name: balance_sheet_total
+                  type: DECIMAL(15,2)
+                  remarks: "Balance sheet total in EUR"
+              - column:
+                  name: sme_declaration_date
+                  type: DATE
+                  remarks: "Date of SME status declaration/verification"
+
+  - changeSet:
+      id: 057_add_sme_fields_to_importers
+      author: agribackup
+      comment: >
+        EUDR Article 13: Add SME classification fields to importers.
+        SMEs benefit from simplified due diligence requirements.
+      changes:
+        - addColumn:
+            tableName: importers
+            columns:
+              - column:
+                  name: sme_category
+                  type: VARCHAR(20)
+                  remarks: "SME classification: MICRO, SMALL, MEDIUM, LARGE"
+              - column:
+                  name: employee_count
+                  type: INT
+                  remarks: "Number of employees (FTE equivalent)"
+              - column:
+                  name: annual_turnover
+                  type: DECIMAL(15,2)
+                  remarks: "Annual turnover in EUR"
+              - column:
+                  name: balance_sheet_total
+                  type: DECIMAL(15,2)
+                  remarks: "Balance sheet total in EUR"
+              - column:
+                  name: sme_declaration_date
+                  type: DATE
+                  remarks: "Date of SME status declaration/verification"
+
+  - changeSet:
+      id: 057_create_sme_indexes
+      author: agribackup
+      comment: Indexes for SME queries
+      changes:
+        - createIndex:
+            indexName: idx_exporters_sme_category
+            tableName: exporters
+            columns:
+              - column:
+                  name: sme_category
+        - createIndex:
+            indexName: idx_importers_sme_category
+            tableName: importers
+            columns:
+              - column:
+                  name: sme_category

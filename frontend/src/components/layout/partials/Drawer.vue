@@ -158,6 +158,14 @@ export default {
             roles: ['FARMER'],
             iconColor: '#8b5cf6',
           },
+          {
+            icon: 'mdi-send',
+            text: 'Send to Supplier',
+            link: { name: 'FarmerSendToSupplier' },
+            roles: ['FARMER'],
+            iconColor: '#0891b2',
+            isEudr: true,
+          },
         ],
       },
 
@@ -186,6 +194,52 @@ export default {
             link: { name: 'AggregatorSpatialIntersections' },
             roles: ['AGGREGATOR'],
             iconColor: '#2563eb',
+            isEudr: true,
+          },
+        ],
+      },
+
+      // ==========================================
+      // SUPPLIER PORTAL (for Aggregators, Processors, and generic Suppliers)
+      // ==========================================
+      {
+        icon: 'mdi-swap-horizontal-bold',
+        text: 'Transfers',
+        isSection: true,
+        roles: ['SUPPLIER', 'AGGREGATOR', 'PROCESSOR'],
+        iconColor: '#0891b2',
+        isEudr: true,
+        children: [
+          {
+            icon: 'mdi-inbox-arrow-down',
+            text: 'Incoming Transfers',
+            link: { name: 'IncomingTransfers' },
+            roles: ['SUPPLIER', 'AGGREGATOR', 'PROCESSOR'],
+            iconColor: '#16a34a',
+            isEudr: true,
+          },
+          {
+            icon: 'mdi-inbox-arrow-up',
+            text: 'Outgoing Transfers',
+            link: { name: 'OutgoingTransfers' },
+            roles: ['SUPPLIER', 'AGGREGATOR', 'PROCESSOR'],
+            iconColor: '#f97316',
+            isEudr: true,
+          },
+          {
+            icon: 'mdi-send',
+            text: 'Send to Supplier',
+            link: { name: 'SendToSupplier' },
+            roles: ['SUPPLIER', 'AGGREGATOR', 'PROCESSOR'],
+            iconColor: '#2563eb',
+            isEudr: true,
+          },
+          {
+            icon: 'mdi-warehouse',
+            text: 'My Inventory',
+            link: { name: 'SupplierInventory' },
+            roles: ['SUPPLIER', 'AGGREGATOR', 'PROCESSOR'],
+            iconColor: '#7c3aed',
             isEudr: true,
           },
         ],
@@ -264,6 +318,52 @@ export default {
             link: { name: 'ComplianceReporting' },
             roles: ['EXPORTER', 'SYSTEM_ADMIN', 'VERIFIER', 'AUDITOR'],
             iconColor: '#10b981',
+            isEudr: true,
+          },
+          {
+            icon: 'mdi-account-tie',
+            text: 'Authorised Representative',
+            link: { name: 'AuthorisedRepresentativeManagement' },
+            roles: ['EXPORTER'],
+            iconColor: '#7c3aed',
+            isEudr: true,
+          },
+        ],
+      },
+
+      // ==========================================
+      // AUTHORISED REPRESENTATIVE SECTION
+      // ==========================================
+      {
+        icon: 'mdi-account-tie',
+        text: 'AR Portal',
+        isSection: true,
+        roles: ['AUTHORISED_REPRESENTATIVE'],
+        iconColor: '#7c3aed',
+        isEudr: true,
+        children: [
+          {
+            icon: 'mdi-view-dashboard',
+            text: 'AR Dashboard',
+            link: { name: 'ARDashboard' },
+            roles: ['AUTHORISED_REPRESENTATIVE'],
+            iconColor: '#7c3aed',
+            isEudr: true,
+          },
+          {
+            icon: 'mdi-file-sign',
+            text: 'My Mandates',
+            link: { name: 'ARMandates' },
+            roles: ['AUTHORISED_REPRESENTATIVE'],
+            iconColor: '#10b981',
+            isEudr: true,
+          },
+          {
+            icon: 'mdi-crown',
+            text: 'My Exporters',
+            link: { name: 'ARExporters' },
+            roles: ['AUTHORISED_REPRESENTATIVE'],
+            iconColor: '#f97316',
             isEudr: true,
           },
         ],

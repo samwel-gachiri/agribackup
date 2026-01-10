@@ -85,6 +85,24 @@ class HederaMainService(
     // Record document upload e.g. Exporter's License
     fun recordDocumentUpload(document: EudrDocument) = hcs.recordDocumentUpload(document)
 
+    // Record two-party handshake transfer event
+    fun recordTransferEvent(
+        transferId: String,
+        senderName: String,
+        senderType: String,
+        recipientName: String,
+        recipientType: String,
+        produceType: String,
+        senderQuantityKg: java.math.BigDecimal,
+        receiverQuantityKg: java.math.BigDecimal?,
+        status: String,
+        hasDiscrepancy: Boolean,
+        discrepancyKg: java.math.BigDecimal?
+    ) = hcs.recordTransferEvent(
+        transferId, senderName, senderType, recipientName, recipientType,
+        produceType, senderQuantityKg, receiverQuantityKg, status, hasDiscrepancy, discrepancyKg
+    )
+
     /**
      * Create EUDR Compliance Certificate NFT Collection
      * This is a one-time setup to create the NFT collection

@@ -46,4 +46,7 @@ interface SupplyChainSupplierRepository : JpaRepository<SupplyChainSupplier, Str
     fun findByConnectedExporterId(exporterId: String): List<SupplyChainSupplier>
     
     fun findByConnectedExporterIdAndIsActiveTrue(exporterId: String): List<SupplyChainSupplier>
+    
+    // Find active suppliers by types (for farmer transfers)
+    fun findBySupplierTypeInAndIsActiveTrue(types: List<SupplierType>): List<SupplyChainSupplier>
 }

@@ -1,13 +1,16 @@
 package com.agriconnect.farmersportalapis.application.dtos
 
 import com.agriconnect.farmersportalapis.domain.common.enums.ExporterVerificationStatus
+import com.agriconnect.farmersportalapis.domain.common.enums.SmeCategory
 import jakarta.validation.constraints.DecimalMax
 import jakarta.validation.constraints.DecimalMin
+import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.NotNull
 import lombok.Builder
 import lombok.Data
 import java.math.BigDecimal
+import java.time.LocalDate
 
 @Builder
 @Data
@@ -30,6 +33,43 @@ data class UpdateExporterRequestDto(
     val companyDesc: String?,
     val originCountry: String?,
     val originCountryCode: String?
+)
+
+/**
+ * DTO for updating SME (Small and Medium Enterprise) classification
+ * Used for EUDR Article 13 simplified due diligence eligibility
+ */
+@Builder
+@Data
+data class UpdateSmeDeclarationDto(
+    @field:Min(value = 0, message = "Employee count cannot be negative")
+    val employeeCount: Int,
+
+    @field:DecimalMin(value = "0.0", message = "Annual turnover cannot be negative")
+    val annualTurnover: BigDecimal,
+
+    @field:DecimalMin(value = "0.0", message = "Balance sheet total cannot be negative")
+    val balanceSheetTotal: BigDecimal,
+
+    val declarationDate: LocalDate = LocalDate.now()
+)
+
+/**
+ * Response DTO for SME classification status
+ */
+@Builder
+@Data
+data class SmeClassificationResponseDto(
+    val entityId: String,
+    val entityType: String, // EXPORTER or IMPORTER
+    val smeCategory: SmeCategory?,
+    val employeeCount: Int?,
+    val annualTurnover: BigDecimal?,
+    val balanceSheetTotal: BigDecimal?,
+    val declarationDate: LocalDate?,
+    val isDeclarationExpired: Boolean,
+    val isEligibleForSimplifiedDD: Boolean,
+    val calculatedCategory: SmeCategory // Based on provided data
 )
 
 //@Builder
@@ -63,7 +103,14 @@ data class ExporterResponseDto(
     val verificationStatus: ExporterVerificationStatus,
     val exportLicenseFormUrl: String?,
     val originCountry: String? = "",
-    val originCountryCode: String? = ""
+    val originCountryCode: String? = "",
+    // EUDR SME Fields
+    val smeCategory: SmeCategory? = null,
+    val employeeCount: Int? = null,
+    val annualTurnover: BigDecimal? = null,
+    val balanceSheetTotal: BigDecimal? = null,
+    val smeDeclarationDate: LocalDate? = null,
+    val isEligibleForSimplifiedDD: Boolean = false
 )
 
 //@Builder

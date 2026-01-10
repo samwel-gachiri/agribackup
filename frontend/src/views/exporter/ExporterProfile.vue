@@ -184,6 +184,62 @@
               </div>
             </v-card-text>
           </v-card>
+
+          <!-- SME Classification Card (EUDR Article 13) -->
+          <v-card class="tw-rounded-xl lg:tw-col-span-2">
+            <v-card-title class="tw-flex tw-items-center tw-gap-2 tw-border-b tw-pb-4">
+              <v-icon color="teal">mdi-office-building-cog</v-icon>
+              <span>SME Classification (EUDR Article 13)</span>
+              <v-spacer />
+              <v-chip
+                v-if="smeClassification"
+                :color="getSmeColor(smeClassification.smeCategory)"
+                small
+                text-color="white"
+              >
+                {{ getSmeLabel(smeClassification.smeCategory) }}
+              </v-chip>
+            </v-card-title>
+            <v-card-text class="tw-pt-6">
+              <v-alert v-if="!smeClassification || !smeClassification.smeCategory" type="info" dense text class="tw-mb-4">
+                <strong>Declare your SME status</strong> to determine if you qualify for simplified due diligence under EUDR Article 13.
+              </v-alert>
+
+              <div v-if="smeClassification && smeClassification.smeCategory" class="tw-mb-4">
+                <div class="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-4">
+                  <div class="tw-p-3 tw-bg-gray-50 tw-rounded-lg">
+                    <div class="tw-text-xs tw-text-gray-500">Employees</div>
+                    <div class="tw-font-semibold">{{ smeClassification.employeeCount || '—' }}</div>
+                  </div>
+                  <div class="tw-p-3 tw-bg-gray-50 tw-rounded-lg">
+                    <div class="tw-text-xs tw-text-gray-500">Annual Turnover</div>
+                    <div class="tw-font-semibold">{{ formatCurrency(smeClassification.annualTurnover) }}</div>
+                  </div>
+                  <div class="tw-p-3 tw-bg-gray-50 tw-rounded-lg">
+                    <div class="tw-text-xs tw-text-gray-500">Balance Sheet</div>
+                    <div class="tw-font-semibold">{{ formatCurrency(smeClassification.balanceSheetTotal) }}</div>
+                  </div>
+                  <div class="tw-p-3 tw-bg-gray-50 tw-rounded-lg">
+                    <div class="tw-text-xs tw-text-gray-500">Simplified DD</div>
+                    <div class="tw-font-semibold">
+                      <v-icon v-if="smeClassification.isEligibleForSimplifiedDD" color="success" small>mdi-check-circle</v-icon>
+                      <v-icon v-else color="warning" small>mdi-alert-circle</v-icon>
+                      {{ smeClassification.isEligibleForSimplifiedDD ? 'Eligible' : 'Not Eligible' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <v-btn
+                color="teal"
+                outlined
+                @click="showSmeDialog = true"
+              >
+                <v-icon left>mdi-pencil</v-icon>
+                {{ smeClassification && smeClassification.smeCategory ? 'Update' : 'Declare' }} SME Status
+              </v-btn>
+            </v-card-text>
+          </v-card>
         </div>
 
         <!-- Save Button -->
@@ -202,6 +258,17 @@
         </div>
       </v-form>
 
+      <!-- SME Declaration Dialog -->
+      <v-dialog v-model="showSmeDialog" max-width="700" persistent>
+        <SmeDeclarationForm
+          v-if="showSmeDialog"
+          :entity-id="exporterId"
+          entity-type="EXPORTER"
+          @updated="onSmeUpdated"
+          @cancel="showSmeDialog = false"
+        />
+      </v-dialog>
+
       <!-- Snackbar -->
       <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="4000" top right>
         {{ snackbar.message }}
@@ -213,15 +280,19 @@
 <script>
 import axios from 'axios';
 import Default from '@/components/layout/Default.vue';
+import SmeDeclarationForm from '@/components/eudr/SmeDeclarationForm.vue';
+import smeClassificationService from '@/services/smeClassificationService';
 
 export default {
   name: 'ExporterProfile',
-  components: { Default },
+  components: { Default, SmeDeclarationForm },
 
   data() {
     return {
       loading: true,
       saving: false,
+      showSmeDialog: false,
+      smeClassification: null,
       formValid: false,
       loadingCountries: false,
 
@@ -265,6 +336,7 @@ export default {
     await Promise.all([
       this.loadCountries(),
       this.loadProfile(),
+      this.loadSmeClassification(),
     ]);
   },
 
@@ -376,6 +448,42 @@ export default {
         SUSPENDED: 'mdi-pause-circle',
       };
       return icons[status] || 'mdi-help-circle';
+    },
+
+    // SME Classification Methods
+    async loadSmeClassification() {
+      try {
+        const response = await smeClassificationService.getExporterSmeClassification(this.exporterId);
+        this.smeClassification = response.data || response;
+      } catch (error) {
+        // Not an error if SME classification doesn't exist yet
+        this.$toast.error('Failed to load SME classification:', error.message);
+        this.smeClassification = null;
+      }
+    },
+
+    onSmeUpdated(classification) {
+      this.smeClassification = classification;
+      this.showSmeDialog = false;
+      this.showSnackbar('SME declaration updated successfully', 'success');
+    },
+
+    getSmeColor(category) {
+      const colors = {
+        MICRO: 'teal',
+        SMALL: 'blue',
+        MEDIUM: 'orange',
+        LARGE: 'red',
+      };
+      return colors[category] || 'grey';
+    },
+
+    getSmeLabel(category) {
+      return smeClassificationService.getCategoryLabel(category);
+    },
+
+    formatCurrency(amount) {
+      return smeClassificationService.formatCurrency(amount);
     },
 
     showSnackbar(message, color = 'success') {

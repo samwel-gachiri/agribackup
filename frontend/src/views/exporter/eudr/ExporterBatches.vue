@@ -227,6 +227,17 @@
                   small
                   outlined
                 />
+                <!-- Create Shipment Button -->
+                <v-btn
+                  v-if="item.status === 'Exported'"
+                  icon
+                  small
+                  color="cyan"
+                  @click="openShipmentDialog(item)"
+                  title="Create Shipment to Importer"
+                >
+                  <v-icon>mdi-ship-wheel</v-icon>
+                </v-btn>
               </template>
             </v-data-table>
           </v-card>
@@ -351,11 +362,112 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Create Shipment Dialog -->
+    <v-dialog v-model="showShipmentDialog" max-width="600" persistent>
+      <v-card v-if="shipmentBatch">
+        <v-card-title class="tw-bg-cyan-600 tw-text-white">
+          <v-icon color="white" class="tw-mr-2">mdi-ship-wheel</v-icon>
+          Create Shipment to Importer
+        </v-card-title>
+        <v-card-text class="tw-pt-6">
+          <v-alert type="info" text dense class="tw-mb-4">
+            Create a shipment for batch <strong>{{ shipmentBatch.batchId }}</strong>
+            ({{ shipmentBatch.volume }} {{ shipmentBatch.commodity }})
+          </v-alert>
+
+          <v-form ref="shipmentForm" v-model="shipmentFormValid">
+            <v-autocomplete
+              v-model="shipment.importerId"
+              :items="importersList"
+              item-text="displayName"
+              item-value="id"
+              label="Select Importer *"
+              outlined
+              dense
+              prepend-inner-icon="mdi-domain"
+              :rules="[v => !!v || 'Required']"
+              :loading="loadingImporters"
+            >
+              <template v-slot:item="{ item }">
+                <div class="tw-py-2">
+                  <div class="tw-font-medium">{{ item.companyName }}</div>
+                  <div class="tw-text-xs tw-text-slate-500">{{ item.country }} • {{ item.port || 'N/A' }}</div>
+                </div>
+              </template>
+            </v-autocomplete>
+
+            <v-text-field
+              v-model="shipment.shipmentNumber"
+              label="Shipment Number"
+              outlined
+              dense
+              prepend-inner-icon="mdi-barcode"
+              placeholder="Auto-generated if empty"
+            ></v-text-field>
+
+            <v-row>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="shipment.departureDate"
+                  label="Departure Date *"
+                  type="date"
+                  outlined
+                  dense
+                  :rules="[v => !!v || 'Required']"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="shipment.estimatedArrival"
+                  label="Est. Arrival Date"
+                  type="date"
+                  outlined
+                  dense
+                ></v-text-field>
+              </v-col>
+            </v-row>
+
+            <v-text-field
+              v-model="shipment.portOfOrigin"
+              label="Port of Origin"
+              outlined
+              dense
+              prepend-inner-icon="mdi-anchor"
+              placeholder="e.g., Mombasa"
+            ></v-text-field>
+
+            <v-textarea
+              v-model="shipment.notes"
+              label="Shipping Notes"
+              outlined
+              dense
+              rows="2"
+            ></v-textarea>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn text @click="showShipmentDialog = false">Cancel</v-btn>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="cyan"
+            dark
+            :loading="creatingShipment"
+            :disabled="!shipmentFormValid"
+            @click="createShipment"
+          >
+            <v-icon left>mdi-send</v-icon>
+            Create Shipment
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script>
 /* eslint-disable */
+import axios from 'axios';
 import BatchQRCode from '@/components/shared/BatchQRCode.vue';
 
 export default {
@@ -372,6 +484,21 @@ export default {
       supplierFilter: 'All',
       showDetailsDialog: false,
       selectedBatch: null,
+      // Shipment dialog
+      showShipmentDialog: false,
+      shipmentBatch: null,
+      shipmentFormValid: false,
+      creatingShipment: false,
+      loadingImporters: false,
+      importersList: [],
+      shipment: {
+        importerId: null,
+        shipmentNumber: '',
+        departureDate: new Date().toISOString().split('T')[0],
+        estimatedArrival: '',
+        portOfOrigin: '',
+        notes: '',
+      },
       statusOptions: ['All', 'Received', 'Processing', 'Exported', 'Rejected'],
       commodityOptions: [
         { text: 'All Commodities', value: 'All' },
@@ -533,6 +660,63 @@ export default {
     viewTraceability(batch) {
     },
     exportBatches() {
+    },
+    // Shipment methods
+    async openShipmentDialog(batch) {
+      this.shipmentBatch = batch;
+      this.showShipmentDialog = true;
+      await this.loadImporters();
+    },
+    async loadImporters() {
+      this.loadingImporters = true;
+      try {
+        const response = await axios.get('/api/v1/importers');
+        this.importersList = (response.data || []).map((i) => ({
+          ...i,
+          displayName: `${i.companyName} (${i.country})`,
+        }));
+      } catch (error) {
+        this.$toast.error('Failed to fetch importers:', error.message);
+        this.importersList = [];
+      } finally {
+        this.loadingImporters = false;
+      }
+    },
+    async createShipment() {
+      if (!this.$refs.shipmentForm.validate()) return;
+
+      this.creatingShipment = true;
+      try {
+        const payload = {
+          batchId: this.shipmentBatch.batchId,
+          importerId: this.shipment.importerId,
+          shipmentNumber: this.shipment.shipmentNumber || `SHP-${Date.now()}`,
+          departureDate: this.shipment.departureDate,
+          estimatedArrival: this.shipment.estimatedArrival,
+          portOfOrigin: this.shipment.portOfOrigin,
+          notes: this.shipment.notes,
+        };
+
+        await axios.post('/api/v1/shipments', payload);
+        this.$toast.success('Shipment created! Importer will need to confirm receipt.');
+        this.showShipmentDialog = false;
+        this.resetShipmentForm();
+      } catch (error) {
+        this.$toast.error('Failed to create shipment');
+      } finally {
+        this.creatingShipment = false;
+      }
+    },
+    resetShipmentForm() {
+      this.shipment = {
+        importerId: null,
+        shipmentNumber: '',
+        departureDate: new Date().toISOString().split('T')[0],
+        estimatedArrival: '',
+        portOfOrigin: '',
+        notes: '',
+      };
+      this.$refs.shipmentForm?.resetValidation();
     },
   },
 };

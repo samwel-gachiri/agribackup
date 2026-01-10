@@ -579,7 +579,7 @@ export default {
           phoneNumber: farmer.phoneNumber || 'N/A',
         }));
       } catch (error) {
-        // console.error('Farmer search error:', error);
+        this.$toast.error('Farmer search error:', error.message);
         this.farmerSearchResults = [];
       } finally {
         this.searchingFarmer = false;
@@ -604,7 +604,7 @@ export default {
           this.$toast.warning('Farmer not found with that QR code');
         }
       } catch (error) {
-        this.$toast.error('Failed to find farmer');
+        this.$toast.error('Failed to find farmer:', error.message);
       } finally {
         this.searchingFarmer = false;
       }
@@ -640,7 +640,7 @@ export default {
           this.collection.productionUnitId = this.farmerProductionUnits[0].id;
         }
       } catch (error) {
-        // console.error('Error loading production units:', error);
+        this.$toast.error('Error loading production units:', error.message);
         this.farmerProductionUnits = [];
       } finally {
         this.loadingProductionUnits = false;
